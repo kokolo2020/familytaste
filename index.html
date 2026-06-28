@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FamilyBites | Every Meal. Every Memory. One Family.</title>
+  <meta name="description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app" class="site-shell">
+    <section id="landing" class="landing-view">
+      <aside class="landing-sidebar" aria-label="FamilyBites menu preview">
+        <button class="landing-logo" data-action="home" aria-label="FamilyBites home">
+          <span class="logo-house">⌂</span>
+          <span>
+            <strong>FamilyBites</strong>
+          </span>
+        </button>
+        <nav class="landing-menu" aria-label="Preview navigation">
+          <button class="active" type="button" data-page="dashboard"><span>⌂</span>Home</button>
+          <button type="button" data-page="order"><span>🧑‍🍳</span>Chef Menu</button>
+          <button type="button" data-page="weekly"><span>▥</span>Weekly Recap</button>
+          <button type="button" data-page="chat"><span>☏</span>Family Chat</button>
+          <button type="button" data-page="settings"><span>⚙</span>Settings</button>
+        </nav>
+      </aside>
+
+      <div class="landing-main">
+        <header class="landing-topbar">
+          <button class="nav-pill" data-action="demo-dashboard">View App</button>
+          <div class="family-account">
+            <span class="bell">●</span>
+            <span class="account-avatar">👨</span>
+            <span>
+              <small>Welcome back!</small>
+              <strong>The Johnson Family</strong>
+            </span>
+          </div>
+        </header>
+
+        <section class="profile-dock">
+          <div id="profileGrid" class="profile-grid"></div>
+        </section>
+
+        <section class="weekly-preview">
+          <div class="section-title">
+            <button class="text-pill" data-action="demo-dashboard" type="button">View Chef Menu ›</button>
+          </div>
+          <div class="week-strip">
+            <article><span>Mon</span><strong>Spaghetti Bolognese</strong><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=78" alt="Spaghetti Bolognese"></article>
+            <article><span>Tue</span><strong>Chicken Stir Fry</strong><img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=360&q=78" alt="Chicken stir fry"></article>
+            <article><span>Wed</span><strong>Salmon with Asparagus</strong><img src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=360&q=78" alt="Salmon with asparagus"></article>
+            <article><span>Thu</span><strong>Tacos Night</strong><img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=360&q=78" alt="Tacos"></article>
+            <article><span>Fri</span><strong>Lemon Garlic Chicken</strong><img src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=360&q=78" alt="Lemon garlic chicken"></article>
+            <article><span>Sat</span><strong>Homemade Pizza</strong><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=360&q=78" alt="Homemade pizza"></article>
+            <article><span>Sun</span><strong>Family Brunch</strong><img src="https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=360&q=78" alt="Family brunch pancakes"></article>
+          </div>
+        </section>
+
+        <section class="landing-actions" aria-label="FamilyBites shortcuts">
+          <button data-action="demo-dashboard" type="button"><span>💬</span><strong>Family Chat</strong><i>›</i></button>
+          <button data-action="demo-dashboard" type="button"><span>📅</span><strong>Weekly Recap</strong><i>›</i></button>
+          <button data-action="demo-dashboard" type="button"><span>🧑‍🍳</span><strong>Chef Menu</strong><i>›</i></button>
+        </section>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace-view hidden">
+      <aside class="side-nav" aria-label="Primary navigation">
+        <button class="brand-mark compact" data-action="home" aria-label="Back to profiles">
+          <span class="brand-icon">🍽️</span>
+          <span>FamilyBites</span>
+        </button>
+        <nav id="desktopNav" class="nav-list"></nav>
+        <div class="nav-profile">
+          <div id="navAvatar" class="mini-avatar">👨</div>
+          <div>
+            <span id="navName">Dad</span>
+            <small>Private family space</small>
+          </div>
+        </div>
+      </aside>
+
+      <div class="content-shell">
+        <header class="app-header">
+          <div>
+            <p id="activeKicker" class="eyebrow">Dashboard</p>
+            <h2 id="pageTitle">Welcome back</h2>
+          </div>
+          <div class="header-actions">
+            <button class="icon-button" data-page="chat" aria-label="Open family chat">💬</button>
+            <button id="activeAvatar" class="profile-chip" data-page="profile">👨 Dad</button>
+          </div>
+        </header>
+
+        <section id="page-dashboard" class="page active-page" data-title="Dashboard" data-kicker="Today">
+          <div class="hero-panel">
+            <div>
+              <p class="eyebrow">Today in your family kitchen</p>
+              <h3 id="dashboardGreeting">Good evening, Dad</h3>
+              <p>Log meals, compare favorites, and keep the whole family in sync before dinner becomes a group chat mystery.</p>
+            </div>
+            <button class="primary-button" data-page="snap">📷 Snap Food</button>
+          </div>
+
+          <div class="metrics-grid">
+            <article class="metric-card dark-card">
+              <span>Today's Calories</span>
+              <strong id="todayCalories">0</strong>
+              <div class="progress-track"><i id="calorieProgress"></i></div>
+              <small>Goal 2,200 calories</small>
+            </article>
+            <article class="metric-card">
+              <span>Today's Meals</span>
+              <strong id="todayMeals">0</strong>
+              <small id="mealSummary">No meals logged yet</small>
+            </article>
+            <article class="metric-card">
+              <span>Money Spent</span>
+              <strong id="todaySpend">$0</strong>
+              <small>Saved from food entries</small>
+            </article>
+          </div>
+
+          <section class="section-row">
+            <div>
+              <p class="eyebrow">Quick Actions</p>
+              <h3>Family shortcuts</h3>
+            </div>
+            <div class="quick-grid">
+              <button data-page="snap">📷 <span>Snap Food</span></button>
+              <button data-page="order">🧑‍🍳 <span>Chef Menu</span></button>
+              <button data-page="favorites">❤️ <span>Favorite Restaurants</span></button>
+              <button data-page="chat">💬 <span>Family Chat</span></button>
+              <button data-page="weekly">📊 <span>Weekly AI Report</span></button>
+              <button data-page="timeline">📅 <span>Food Timeline</span></button>
+            </div>
+          </section>
+
+          <section class="split-layout">
+            <div>
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Recent Meals</p>
+                  <h3>Saved memories</h3>
+                </div>
+                <button class="text-button" data-page="timeline">View all</button>
+              </div>
+              <div id="recentMeals" class="meal-list"></div>
+            </div>
+            <aside class="insight-panel">
+              <p class="eyebrow">AI Preview</p>
+              <h3>Tonight's gentle nudge</h3>
+              <p id="aiNudge">Add the first meal today and FamilyBites will start shaping a weekly pattern.</p>
+            </aside>
+          </section>
+        </section>
+
+        <section id="page-snap" class="page" data-title="Snap Food" data-kicker="Food journal">
+          <div class="form-layout">
+            <form id="mealForm" class="glass-form">
+              <label class="photo-drop" for="mealPhoto">
+                <input id="mealPhoto" name="photo" type="file" accept="image/*" capture="environment">
+                <img id="photoPreview" class="photo-preview hidden" alt="Selected food preview">
+                <span id="photoIcon">📷</span>
+                <strong id="photoTitle">Tap to snap or upload food</strong>
+                <small id="photoHint">Your photo will appear in the meal preview.</small>
+              </label>
+              <label>Food Name<input id="foodName" name="food_name" required placeholder="Chicken rice"></label>
+              <label>Restaurant<input id="restaurantName" name="restaurant_name" placeholder="Favorite local spot"></label>
+              <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
+              <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
+              <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
+              <button class="primary-button wide" type="submit">Save Meal</button>
+            </form>
+            <aside class="preview-card">
+              <p class="eyebrow">Live Preview</p>
+              <img id="previewPhoto" class="preview-photo hidden" alt="Food preview">
+              <h3 id="previewFood">New family bite</h3>
+              <p id="previewMeta">Fill the form to preview the saved meal.</p>
+            </aside>
+          </div>
+        </section>
+
+        <section id="page-order" class="page" data-title="Chef Menu" data-kicker="Family ordering">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Chef Menu</p>
+              <h3>Add foods to cart, then send to Chef</h3>
+            </div>
+          </div>
+          <div class="chef-menu-layout">
+            <div id="orderGrid" class="order-menu-grid"></div>
+            <aside class="chef-cart">
+              <div>
+                <p class="eyebrow">Cart</p>
+                <h3>Family order</h3>
+              </div>
+              <div id="cartList" class="cart-list"></div>
+              <button id="sendCartButton" class="primary-button" type="button">Done · Send to Chef</button>
+            </aside>
+          </div>
+          <div class="voice-order-panel">
+            <div>
+              <p class="eyebrow">Voice Chat</p>
+              <h3>Send a voice note to Chef</h3>
+              <p>Record allergies, timing, or special requests.</p>
+            </div>
+            <button id="voiceRecordButton" class="primary-button" type="button">Record Voice</button>
+          </div>
+        </section>
+
+        <section id="page-chef" class="page" data-title="Chef Interface" data-kicker="Kitchen inbox">
+          <div class="chef-header-panel">
+            <div>
+              <p class="eyebrow">Chef View</p>
+              <h3>Incoming food orders</h3>
+              <p>Only the foods sent to Chef and family voice notes appear here.</p>
+            </div>
+            <button class="secondary-button" data-page="order" type="button">Back to Chef Menu</button>
+          </div>
+          <div class="chef-layout">
+            <section>
+              <div class="section-title">
+                <h3>Foods to prepare</h3>
+              </div>
+              <div id="chefOrderList" class="chef-order-list"></div>
+            </section>
+            <section>
+              <div class="section-title">
+                <h3>Voice notes</h3>
+              </div>
+              <div id="chefVoiceList" class="chef-voice-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-favorites" class="page" data-title="Favorite Restaurants" data-kicker="Family approved">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Favorite Restaurants</p>
+              <h3>Trusted places for busy nights</h3>
+            </div>
+          </div>
+          <div id="favoriteGrid" class="restaurant-grid"></div>
+        </section>
+
+        <section id="page-weekly" class="page" data-title="Weekly AI Report" data-kicker="Nutrition recap">
+          <div class="report-grid">
+            <article><span>Meals</span><strong id="reportMeals">0</strong></article>
+            <article><span>Calories</span><strong id="reportCalories">0</strong></article>
+            <article><span>Money Spent</span><strong id="reportSpend">$0</strong></article>
+            <article><span>Favorite Restaurant</span><strong id="reportRestaurant">-</strong></article>
+            <article><span>Favorite Food</span><strong id="reportFood">-</strong></article>
+            <article><span>Protein Score</span><strong>82</strong></article>
+            <article><span>Vegetable Score</span><strong>64</strong></article>
+            <article><span>Fruit Score</span><strong>58</strong></article>
+          </div>
+          <div class="recommendation-card">
+            <p class="eyebrow">AI Recommendation</p>
+            <h3>Build a brighter plate</h3>
+            <p id="weeklyRecommendation">Log a few meals and the weekly AI report will summarize nutrition, habits, restaurants, and spending.</p>
+          </div>
+        </section>
+
+        <section id="page-chat" class="page" data-title="Family Chat" data-kicker="Private chat">
+          <div id="chatList" class="chat-list"></div>
+          <form id="chatForm" class="chat-composer">
+            <input id="chatText" placeholder="Message the family..." autocomplete="off">
+            <button type="submit">Send</button>
+          </form>
+          <p class="muted">Future-ready for photos and voice.</p>
+        </section>
+
+        <section id="page-timeline" class="page" data-title="Food Timeline" data-kicker="Meal history">
+          <div id="timelineList" class="timeline-list"></div>
+        </section>
+
+        <section id="page-profile" class="page" data-title="Profile" data-kicker="Family member">
+          <div class="profile-detail">
+            <div id="profileAvatarLarge" class="large-avatar">👨</div>
+            <div>
+              <p class="eyebrow">Selected profile</p>
+              <h3 id="profileNameLarge">Dad</h3>
+              <div class="avatar-picker-wrap">
+                <strong>Choose Avatar</strong>
+                <div id="avatarPicker" class="avatar-picker" aria-label="Choose profile avatar"></div>
+              </div>
+              <label class="profile-photo-control">
+                <input id="profilePhotoInput" type="file" accept="image/*">
+                <span>Upload Profile Photo</span>
+              </label>
+              <button class="secondary-button" data-action="home">Switch Profile</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="page-settings" class="page" data-title="Settings" data-kicker="Family preferences">
+          <div id="settingsContent"></div>
+        </section>
+      </div>
+
+      <nav id="mobileNav" class="mobile-nav" aria-label="Mobile navigation"></nav>
+    </section>
+  </main>
+
+  <div id="addMemberModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3>Add Family Member</h3>
+      <label class="modal-field">Name<input id="newMemberName" placeholder="e.g. Uncle Bob" autocomplete="off"></label>
+      <label class="modal-field">Role<input id="newMemberRole" placeholder="e.g. Weekend Cook" autocomplete="off"></label>
+      <div class="modal-actions">
+        <button class="primary-button" id="confirmAddMember">Add Member</button>
+        <button class="secondary-button" id="cancelAddMember">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
