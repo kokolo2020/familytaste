@@ -4,61 +4,31 @@ const appState = {
   currentPage: 'dashboard',
   members: [
     { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
-    { id: 'mom', name: 'Mom', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
-    { id: 'daughter', name: 'Emily', avatar: '👧', role: 'Snack Curator', photo: 'assets/avatars/emily.jpg' },
-    { id: 'son', name: 'James', avatar: '👦', role: 'Food Explorer', photo: 'assets/avatars/james.jpg' },
-    { id: 'grandma', name: 'Sophia', avatar: '👵', role: 'Family Chef', photo: 'assets/avatars/sophia.jpg' },
+    { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
     { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
   ],
-  meals: [
-    {
-      id: 'seed-1',
-      member_id: 'dad',
-      food_name: 'Salmon rice bowl',
-      restaurant_name: 'Kitchen Table',
-      location_name: 'Home',
-      price: 12,
-      calories: 620,
-      notes: 'Good protein and vegetables.',
-      eaten_at: new Date().toISOString()
-    },
-    {
-      id: 'seed-2',
-      member_id: 'dad',
-      food_name: 'Mango yogurt',
-      restaurant_name: 'Family Fridge',
-      location_name: 'Home',
-      price: 4,
-      calories: 240,
-      notes: 'Easy afternoon snack.',
-      eaten_at: new Date().toISOString()
-    }
-  ],
+  meals: [],
   favorites: [
     { id: 'fav-1', name: 'Grandma Kitchen', phone: 'Add number', address: 'Near home', notes: 'Comfort food for Sunday dinner.' },
     { id: 'fav-2', name: 'Pizza Company', phone: '1112', address: 'Delivery', notes: 'Fast Friday-night order.' },
     { id: 'fav-3', name: 'Sushi Family Bar', phone: 'Add number', address: 'City center', notes: 'Daughter always votes for salmon rolls.' }
   ],
-  chat: [
-    { id: 'chat-1', member_id: 'mom', member_name: 'Mom', message: 'Who is home for dinner?', created_at: new Date(Date.now() - 1800000).toISOString() },
-    { id: 'chat-2', member_id: 'dad', member_name: 'Dad', message: 'I can order if everyone chooses by 6.', created_at: new Date(Date.now() - 900000).toISOString() },
-    { id: 'chat-3', member_id: 'daughter', member_name: 'Daughter', message: 'Sushi please.', created_at: new Date(Date.now() - 600000).toISOString() }
-  ],
+  chat: [],
   chefOrders: [],
   cart: [],
   voiceNotes: []
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
-const localMealsStorageKey = 'familyBites.meals';
-const localChatStorageKey = 'familyBites.chat';
+const localMealsStorageKey = 'familyBites.meals.v2';
+const localChatStorageKey = 'familyBites.chat.v2';
 const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
-  { id: 'mom', label: 'Mom', url: 'assets/avatars/mom.jpg' },
+  { id: 'rithyna', label: 'Rithyna', url: 'assets/avatars/mom.jpg' },
   { id: 'emily', label: 'Emily', url: 'assets/avatars/emily.jpg' },
   { id: 'james', label: 'James', url: 'assets/avatars/james.jpg' },
   { id: 'sophia', label: 'Sophia', url: 'assets/avatars/sophia.jpg' },
@@ -168,12 +138,18 @@ async function hydrateFromSupabase() {
   try {
     await window.familyBitesDb.ensureFamily();
     appState.familyId = window.familyBitesDb.familyId;
-    const [members, meals, favorites, chat] = await Promise.all([
+    const [members, meals, favorites, chat] = (await Promise.allSettled([
       window.familyBitesDb.getMembers(),
       window.familyBitesDb.getMeals(),
       window.familyBitesDb.getFavorites(),
       window.familyBitesDb.getChat()
-    ]);
+    ])).map((result) => {
+      if (result.status === 'rejected') {
+        console.warn('One Supabase table failed to load.', result.reason);
+        return [];
+      }
+      return result.value;
+    });
 
     if (members.length) {
       appState.members = [...members.map(normalizeMember), appState.members.find((member) => member.id === 'add')];
@@ -182,6 +158,8 @@ async function hydrateFromSupabase() {
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
     if (favorites.length) appState.favorites = favorites;
     if (chat.length) appState.chat = mergeRecords(chat.map(normalizeChat), appState.chat);
+
+    subscribeToFamilyChat();
   } catch (error) {
     console.warn('Supabase unavailable, using local demo data.', error);
   }
@@ -548,7 +526,10 @@ function saveVoiceNote(blob) {
 }
 
 function renderReport() {
-  const meals = getMemberMeals();
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const inThisWeek = (meal) => new Date(meal.eaten_at || meal.created_at).getTime() >= weekAgo;
+  const meals = getMemberMeals().filter(inThisWeek);
+  const familyMeals = appState.meals.filter(inThisWeek);
   const calories = sum(meals, 'calories');
   const spend = sum(meals, 'price');
   const favoriteRestaurant = mostCommon(meals.map((meal) => meal.restaurant_name).filter(Boolean));
@@ -559,9 +540,30 @@ function renderReport() {
   document.getElementById('reportSpend').textContent = formatMoney(spend);
   document.getElementById('reportRestaurant').textContent = favoriteRestaurant || '-';
   document.getElementById('reportFood').textContent = favoriteFood || '-';
-  document.getElementById('weeklyRecommendation').textContent = meals.length
-    ? `AI recommendation: ${appState.currentMember.name} is building a useful food history. Keep protein steady, add more fruit, and save restaurant prices to improve family spending insights.`
-    : 'Log a few meals and the weekly AI report will summarize nutrition, habits, restaurants, and spending.';
+  document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood);
+}
+
+function buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood) {
+  if (!meals.length) {
+    return 'No meals logged in the last 7 days. Log a few meals and this report will summarize your real nutrition, habits, and spending.';
+  }
+  const name = appState.currentMember.name;
+  const days = new Set(meals.map((meal) => new Date(meal.eaten_at || meal.created_at).toDateString())).size;
+  const avgPerDay = Math.round(calories / Math.max(days, 1));
+  const parts = [];
+  parts.push(`${name} logged ${meals.length} meal${meals.length !== 1 ? 's' : ''} across ${days} day${days !== 1 ? 's' : ''} this week (${calories.toLocaleString()} calories, about ${avgPerDay.toLocaleString()} per active day).`);
+  if (avgPerDay > 2400) {
+    parts.push('That is above the 2,200 daily guide — try a lighter dinner or swap one snack for fruit.');
+  } else if (avgPerDay > 0 && avgPerDay < 1400) {
+    parts.push('That is on the light side — make sure breakfast is not being skipped.');
+  } else {
+    parts.push('Calorie balance looks steady — keep it up.');
+  }
+  if (favoriteFood) parts.push(`Most repeated dish: ${favoriteFood}.`);
+  if (spend > 0) parts.push(`Food spending recorded this week: ${formatMoney(spend)}.`);
+  const familyCount = familyMeals.length - meals.length;
+  if (familyCount > 0) parts.push(`The rest of the family logged ${familyCount} more meal${familyCount !== 1 ? 's' : ''}.`);
+  return parts.join(' ');
 }
 
 function renderChat() {
@@ -615,6 +617,14 @@ async function saveMeal(event) {
 
   if (window.familyBitesDb?.isConfigured) {
     try {
+      if (meal.photo_url && meal.photo_url.startsWith('data:')) {
+        try {
+          const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
+          if (uploadedUrl) meal.photo_url = uploadedUrl;
+        } catch (uploadError) {
+          console.warn('Photo upload to storage failed, keeping local copy.', uploadError);
+        }
+      }
       const savedMeal = await window.familyBitesDb.saveMeal(meal);
       appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
       saveStoredAppData();
@@ -622,6 +632,22 @@ async function saveMeal(event) {
     } catch (error) {
       console.warn('Meal saved locally but Supabase write failed.', error);
     }
+  }
+}
+
+function subscribeToFamilyChat() {
+  if (!window.familyBitesDb?.subscribeChat) return;
+  try {
+    window.familyBitesDb.subscribeChat((row) => {
+      // Own messages are already rendered locally when sent.
+      if (row.member_id === appState.currentMember?.id) return;
+      if (appState.chat.some((item) => item.id === row.id)) return;
+      appState.chat.push(normalizeChat(row));
+      saveStoredAppData();
+      renderChat();
+    });
+  } catch (error) {
+    console.warn('Live chat updates unavailable.', error);
   }
 }
 
@@ -799,6 +825,7 @@ function defaultProfilePhoto(member) {
   const map = {
     dad: 'assets/avatars/dad.jpg',
     mom: 'assets/avatars/mom.jpg',
+    rithyna: 'assets/avatars/mom.jpg',
     daughter: 'assets/avatars/emily.jpg',
     emily: 'assets/avatars/emily.jpg',
     son: 'assets/avatars/james.jpg',
@@ -922,6 +949,7 @@ function normalizeMeal(meal) {
   return {
     ...meal,
     food_name: meal.food_name || meal.name || 'Meal',
+    notes: meal.notes || meal.description || '',
     photo_url: meal.photo_url || '',
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };

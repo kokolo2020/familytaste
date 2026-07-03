@@ -68,7 +68,7 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
-        notes: meal.notes || null,
+        description: meal.notes || null,
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
       };
@@ -114,6 +114,28 @@
         .single();
       if (error) throw error;
       return data;
+    },
+    async uploadMealPhoto(dataUrl) {
+      if (!client) return null;
+      const blob = await (await fetch(dataUrl)).blob();
+      const ext = blob.type.includes('png') ? 'png' : 'jpg';
+      const path = `meals/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await client.storage.from('meal-photos').upload(path, blob, { contentType: blob.type });
+      if (error) throw error;
+      const { data } = client.storage.from('meal-photos').getPublicUrl(path);
+      return data?.publicUrl || null;
+    },
+    subscribeChat(onMessage) {
+      if (!client || !this.familyId) return null;
+      return client
+        .channel('family-chat')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'family_chat',
+          filter: `family_id=eq.${this.familyId}`
+        }, (payload) => onMessage(payload.new))
+        .subscribe();
     }
   };
 
@@ -129,10 +151,7 @@
 
     const starterMembers = [
       { family_id: familyId, name: 'Dad', avatar: '👨', role: 'Family Admin' },
-      { family_id: familyId, name: 'Mom', avatar: '👩', role: 'Meal Planner' },
-      { family_id: familyId, name: 'Son', avatar: '👦', role: 'Food Explorer' },
-      { family_id: familyId, name: 'Daughter', avatar: '👧', role: 'Snack Curator' },
-      { family_id: familyId, name: 'Grandma', avatar: '👵', role: 'Family Chef' }
+      { family_id: familyId, name: 'Rithyna', avatar: '👩', role: 'Meal Planner' }
     ];
 
     const { error: insertError } = await client.from('members').insert(starterMembers);
