@@ -80,6 +80,30 @@
       if (error) throw error;
       return data;
     },
+    async updateMeal(mealId, fields) {
+      if (!client) return null;
+      const payload = { ...fields };
+      if ('notes' in payload) {
+        payload.description = payload.notes || null;
+        delete payload.notes;
+      }
+      const { data, error } = await client
+        .from('food_entries')
+        .update(payload)
+        .eq('id', mealId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async deleteMeal(mealId) {
+      if (!client) return;
+      const { error } = await client
+        .from('food_entries')
+        .delete()
+        .eq('id', mealId);
+      if (error) throw error;
+    },
     async getFavorites() {
       if (!client || !this.familyId) return [];
       const { data, error } = await client

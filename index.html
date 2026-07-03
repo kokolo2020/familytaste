@@ -162,6 +162,7 @@
                   <p class="eyebrow">Yesterday</p>
                   <h3>Yesterday's Food</h3>
                 </div>
+                <button class="text-button" data-add-meal="yesterday">+ Add</button>
               </div>
               <div id="yesterdayFoodList" class="meal-list"></div>
             </div>
@@ -329,6 +330,25 @@
       <nav id="mobileNav" class="mobile-nav" aria-label="Mobile navigation"></nav>
     </section>
   </main>
+
+  <div id="mealModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3 id="mealModalTitle">Edit Food Entry</h3>
+      <label class="modal-field">Food Name<input id="editFoodName" placeholder="Chicken rice" autocomplete="off"></label>
+      <label class="modal-field">Restaurant<input id="editRestaurant" placeholder="Optional" autocomplete="off"></label>
+      <label class="modal-field">Location<input id="editLocation" placeholder="Optional" autocomplete="off"></label>
+      <div class="modal-field-row">
+        <label class="modal-field">Price (฿)<input id="editPrice" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
+      </div>
+      <label class="modal-field">Date<input id="editDate" type="date"></label>
+      <label class="modal-field">Notes<input id="editNotes" placeholder="Optional" autocomplete="off"></label>
+      <div class="modal-actions">
+        <button class="primary-button" id="saveMealEdit">Save</button>
+        <button class="secondary-button" id="cancelMealEdit">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <div id="addMemberModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">

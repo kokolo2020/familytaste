@@ -115,6 +115,36 @@ function bindEvents() {
     if (removeMemberTarget) {
       removeMember(removeMemberTarget.dataset.removeMember);
     }
+
+    const editMealTarget = event.target.closest('[data-edit-meal]');
+    if (editMealTarget) {
+      openMealModal(editMealTarget.dataset.editMeal);
+    }
+
+    const deleteMealTarget = event.target.closest('[data-delete-meal]');
+    if (deleteMealTarget) {
+      handleDeleteMeal(deleteMealTarget.dataset.deleteMeal);
+    }
+
+    const addMealTarget = event.target.closest('[data-add-meal]');
+    if (addMealTarget) {
+      openMealModal(null, addMealTarget.dataset.addMeal);
+    }
+
+    const logAgainTarget = event.target.closest('[data-log-again]');
+    if (logAgainTarget) {
+      handleLogAgain(logAgainTarget.dataset.logAgain);
+    }
+
+    const renameFavTarget = event.target.closest('[data-rename-fav]');
+    if (renameFavTarget) {
+      handleRenameFavorite(renameFavTarget.dataset.renameFav);
+    }
+
+    const removeFavTarget = event.target.closest('[data-remove-fav]');
+    if (removeFavTarget) {
+      handleRemoveFavorite(removeFavTarget.dataset.removeFav);
+    }
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
@@ -127,6 +157,10 @@ function bindEvents() {
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
+  document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
+  document.getElementById('cancelMealEdit').addEventListener('click', () => {
+    document.getElementById('mealModal').classList.add('hidden');
+  });
   document.getElementById('profileNameInput').addEventListener('keydown', (event) => {
     if (event.key === 'Enter') handleSaveProfileName();
   });
@@ -394,7 +428,170 @@ async function handleSaveBioStats() {
 
 function renderFoodList(elementId, meals, emptyMessage) {
   document.getElementById(elementId).innerHTML =
-    meals.map(mealTemplate).join('') || emptyState(emptyMessage);
+    meals.map((meal) => mealTemplate(meal, true)).join('') || emptyState(emptyMessage);
+}
+
+let editingMealId = null;
+
+function openMealModal(mealId, defaultDay) {
+  editingMealId = mealId || null;
+  const meal = mealId ? appState.meals.find((item) => item.id === mealId) : null;
+  const defaultDate = defaultDay === 'yesterday' ? new Date(Date.now() - 24 * 60 * 60 * 1000) : new Date();
+
+  document.getElementById('mealModalTitle').textContent = meal ? 'Edit Food Entry' : 'Add Food Entry';
+  document.getElementById('editFoodName').value = meal?.food_name || '';
+  document.getElementById('editRestaurant').value = meal?.restaurant_name || '';
+  document.getElementById('editLocation').value = meal?.location_name || '';
+  document.getElementById('editPrice').value = meal?.price ?? '';
+  document.getElementById('editCalories').value = meal?.calories ?? '';
+  document.getElementById('editNotes').value = meal?.notes || '';
+  document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
+  document.getElementById('mealModal').classList.remove('hidden');
+  document.getElementById('editFoodName').focus();
+}
+
+function mergeDateKeepTime(originalIso, dateValue) {
+  if (!dateValue) return originalIso;
+  const original = new Date(originalIso);
+  const [year, month, day] = dateValue.split('-').map(Number);
+  original.setFullYear(year, month - 1, day);
+  return original.toISOString();
+}
+
+async function handleSaveMealEdit() {
+  const foodName = document.getElementById('editFoodName').value.trim();
+  if (!foodName) {
+    document.getElementById('editFoodName').focus();
+    return;
+  }
+
+  const fields = {
+    food_name: foodName,
+    restaurant_name: document.getElementById('editRestaurant').value.trim(),
+    location_name: document.getElementById('editLocation').value.trim(),
+    price: numberOrNull(document.getElementById('editPrice').value),
+    calories: numberOrNull(document.getElementById('editCalories').value),
+    notes: document.getElementById('editNotes').value.trim()
+  };
+  const dateValue = document.getElementById('editDate').value;
+  document.getElementById('mealModal').classList.add('hidden');
+
+  if (editingMealId) {
+    const meal = appState.meals.find((item) => item.id === editingMealId);
+    if (!meal) return;
+    Object.assign(meal, fields);
+    meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
+    saveStoredAppData();
+    renderAll();
+    if (window.familyBitesDb?.isConfigured) {
+      try {
+        await window.familyBitesDb.updateMeal(meal.id, { ...fields, eaten_at: meal.eaten_at });
+      } catch (error) {
+        console.warn('Meal updated locally but Supabase write failed.', error);
+      }
+    }
+  } else {
+    await persistNewMeal({
+      id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+      family_id: appState.familyId,
+      member_id: appState.currentMember.id,
+      ...fields,
+      photo_url: '',
+      eaten_at: mergeDateKeepTime(new Date().toISOString(), dateValue)
+    });
+  }
+}
+
+async function persistNewMeal(meal) {
+  appState.meals.unshift(meal);
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    try {
+      const savedMeal = await window.familyBitesDb.saveMeal(meal);
+      appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
+      saveStoredAppData();
+      renderAll();
+    } catch (error) {
+      console.warn('Meal saved locally but Supabase write failed.', error);
+    }
+  }
+}
+
+async function handleDeleteMeal(mealId) {
+  const meal = appState.meals.find((item) => item.id === mealId);
+  if (!meal) return;
+  if (!confirm(`Delete "${meal.food_name}"?`)) return;
+
+  appState.meals = appState.meals.filter((item) => item.id !== mealId);
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    try {
+      await window.familyBitesDb.deleteMeal(mealId);
+    } catch (error) {
+      console.warn('Meal deleted locally but Supabase delete failed.', error);
+    }
+  }
+}
+
+async function handleLogAgain(foodName) {
+  const source = getMemberMeals().find((item) => item.food_name === foodName);
+  if (!source) return;
+  await persistNewMeal({
+    id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+    family_id: appState.familyId,
+    member_id: appState.currentMember.id,
+    food_name: source.food_name,
+    restaurant_name: source.restaurant_name || '',
+    location_name: source.location_name || '',
+    price: source.price ?? null,
+    calories: source.calories ?? null,
+    notes: source.notes || '',
+    photo_url: source.photo_url || '',
+    eaten_at: new Date().toISOString()
+  });
+}
+
+async function handleRenameFavorite(foodName) {
+  const newNameRaw = prompt(`Rename "${foodName}" to:`, foodName);
+  const newName = newNameRaw ? newNameRaw.trim() : '';
+  if (!newName || newName === foodName) return;
+
+  const affected = getMemberMeals().filter((item) => item.food_name === foodName);
+  affected.forEach((item) => { item.food_name = newName; });
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    for (const item of affected) {
+      try {
+        await window.familyBitesDb.updateMeal(item.id, { food_name: newName });
+      } catch (error) {
+        console.warn('Rename sync failed for one entry.', error);
+      }
+    }
+  }
+}
+
+async function handleRemoveFavorite(foodName) {
+  const affected = getMemberMeals().filter((item) => item.food_name === foodName);
+  if (!affected.length) return;
+  const label = affected.length === 1 ? '1 logged entry' : `${affected.length} logged entries`;
+  if (!confirm(`Remove "${foodName}" and delete its ${label}?`)) return;
+
+  const affectedIds = new Set(affected.map((item) => item.id));
+  appState.meals = appState.meals.filter((item) => !affectedIds.has(item.id));
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    for (const item of affected) {
+      try {
+        await window.familyBitesDb.deleteMeal(item.id);
+      } catch (error) {
+        console.warn('Delete sync failed for one entry.', error);
+      }
+    }
+  }
 }
 
 function renderFavoriteFoods(meals) {
@@ -410,6 +607,11 @@ function renderFavoriteFoods(meals) {
       <div>
         <h4>${escapeHtml(name)}</h4>
         <p>Logged ${count} time${count !== 1 ? 's' : ''}</p>
+        <div class="meal-actions">
+          <button type="button" data-log-again="${escapeAttr(name)}">➕ Log again</button>
+          <button type="button" data-rename-fav="${escapeAttr(name)}">✏️ Rename</button>
+          <button type="button" data-remove-fav="${escapeAttr(name)}">🗑 Remove</button>
+        </div>
       </div>
       <strong>❤️</strong>
     </article>
@@ -430,14 +632,19 @@ function renderMeals() {
   `).join('') || emptyState('Your food timeline will appear here.');
 }
 
-function mealTemplate(meal) {
+function mealTemplate(meal, withActions = false) {
+  const actions = withActions ? `
+        <div class="meal-actions">
+          <button type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+          <button type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+        </div>` : '';
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.notes || 'Saved to FamilyBites')}</p>
+        <p>${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.notes || 'Saved to FamilyBites')}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -1125,9 +1332,12 @@ function isYesterday(meal) {
   return new Date(meal.eaten_at || meal.created_at).toDateString() === yesterday.toDateString();
 }
 
+function dateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function todayKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return dateKey(new Date());
 }
 
 function sum(items, key) {

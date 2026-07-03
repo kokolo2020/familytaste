@@ -1394,6 +1394,33 @@ h1 span {
   justify-items: start;
 }
 
+.meal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.meal-actions button {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #fff0d3;
+  color: #8b520b;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.meal-actions button:hover {
+  background: #ffe3ae;
+}
+
+.modal-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .bio-panel {
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 8px;
