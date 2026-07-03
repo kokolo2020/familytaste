@@ -1,4 +1,4 @@
--- FamilyBites migration 002 — family chat sync + meal photo storage
+-- FamilyBites migration 002 — family chat sync, media storage, profile photos
 -- Paste this whole file into the Supabase SQL Editor and click Run.
 
 -- 1. Family chat table (the app also stores member_name for display)
@@ -16,10 +16,13 @@ do $$ begin
   alter publication supabase_realtime add table family_chat;
 exception when duplicate_object then null; end $$;
 
--- 3. Public storage bucket for meal photos
+-- 3. Profile photo column on members (synced avatars / uploaded photos)
+alter table members add column if not exists photo_url text;
+
+-- 4. Public storage bucket for meal photos and profile avatars
 insert into storage.buckets (id, name, public)
-values ('meal-photos', 'meal-photos', true)
+values ('family-media', 'family-media', true)
 on conflict (id) do nothing;
 
-create policy "anon can upload meal photos" on storage.objects
-  for insert to anon with check (bucket_id = 'meal-photos');
+create policy "anon can upload family media" on storage.objects
+  for insert to anon with check (bucket_id = 'family-media');

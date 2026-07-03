@@ -1394,6 +1394,26 @@ h1 span {
   justify-items: start;
 }
 
+.profile-name-edit {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: min(520px, 100%);
+  margin: 2px 0 6px;
+}
+
+.profile-name-edit input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(128, 92, 53, 0.24);
+  border-radius: 12px;
+  background: #fff8ef;
+  font: inherit;
+  font-weight: 700;
+  color: #4a3520;
+}
+
 .avatar-picker-wrap {
   display: grid;
   gap: 10px;

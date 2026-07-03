@@ -115,15 +115,32 @@
       if (error) throw error;
       return data;
     },
-    async uploadMealPhoto(dataUrl) {
+    async uploadImage(dataUrl, folder) {
       if (!client) return null;
       const blob = await (await fetch(dataUrl)).blob();
       const ext = blob.type.includes('png') ? 'png' : 'jpg';
-      const path = `meals/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await client.storage.from('meal-photos').upload(path, blob, { contentType: blob.type });
+      const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await client.storage.from('family-media').upload(path, blob, { contentType: blob.type });
       if (error) throw error;
-      const { data } = client.storage.from('meal-photos').getPublicUrl(path);
+      const { data } = client.storage.from('family-media').getPublicUrl(path);
       return data?.publicUrl || null;
+    },
+    async uploadMealPhoto(dataUrl) {
+      return this.uploadImage(dataUrl, 'meals');
+    },
+    async uploadAvatar(dataUrl) {
+      return this.uploadImage(dataUrl, 'avatars');
+    },
+    async updateMember(memberId, fields) {
+      if (!client) return null;
+      const { data, error } = await client
+        .from('members')
+        .update(fields)
+        .eq('id', memberId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
     },
     subscribeChat(onMessage) {
       if (!client || !this.familyId) return null;

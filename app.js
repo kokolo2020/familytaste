@@ -123,6 +123,10 @@ function bindEvents() {
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
+  document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
+  document.getElementById('profileNameInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') handleSaveProfileName();
+  });
 
   ['foodName', 'restaurantName', 'calories'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
@@ -585,7 +589,35 @@ function renderProfile() {
   const member = appState.currentMember || appState.members[0];
   document.getElementById('profileAvatarLarge').innerHTML = avatarMarkup(member);
   document.getElementById('profileNameLarge').textContent = member.name;
+  const nameInput = document.getElementById('profileNameInput');
+  if (document.activeElement !== nameInput) nameInput.value = member.name;
   renderAvatarPicker(member);
+}
+
+async function handleSaveProfileName() {
+  const member = appState.currentMember;
+  const input = document.getElementById('profileNameInput');
+  const newName = input.value.trim();
+  if (!member || !newName || newName === member.name) return;
+
+  member.name = newName;
+  const matchingMember = appState.members.find((item) => item.id === member.id);
+  if (matchingMember) matchingMember.name = newName;
+  updateProfileUi();
+  renderProfiles();
+  renderProfile();
+  renderSettings();
+
+  await syncMemberToSupabase(member.id, { name: newName });
+}
+
+async function syncMemberToSupabase(memberId, fields) {
+  if (!window.familyBitesDb?.isConfigured || !appState.familyId) return;
+  try {
+    await window.familyBitesDb.updateMember(memberId, fields);
+  } catch (error) {
+    console.warn('Profile change saved locally but Supabase write failed.', error);
+  }
 }
 
 async function saveMeal(event) {
@@ -756,14 +788,16 @@ async function handleProfilePhotoChange(event) {
   }
 
   try {
-    const photoUrl = await resizeImageFile(file, 640, 0.84);
-    member.photo = photoUrl;
-    const matchingMember = appState.members.find((item) => item.id === member.id);
-    if (matchingMember) matchingMember.photo = photoUrl;
-    saveProfilePhoto(member.id, photoUrl);
-    renderProfiles();
-    updateProfileUi();
-    renderProfile();
+    let photoUrl = await resizeImageFile(file, 640, 0.84);
+    if (window.familyBitesDb?.isConfigured) {
+      try {
+        const uploadedUrl = await window.familyBitesDb.uploadAvatar(photoUrl);
+        if (uploadedUrl) photoUrl = uploadedUrl;
+      } catch (uploadError) {
+        console.warn('Avatar upload to storage failed, keeping local copy.', uploadError);
+      }
+    }
+    applyMemberPhoto(member, photoUrl);
     event.target.value = '';
   } catch (error) {
     console.warn('Could not read profile photo.', error);
@@ -775,6 +809,10 @@ async function handleProfilePhotoChange(event) {
 function chooseProfileAvatar(photoUrl) {
   const member = appState.currentMember;
   if (!member || !photoUrl) return;
+  applyMemberPhoto(member, photoUrl);
+}
+
+function applyMemberPhoto(member, photoUrl) {
   member.photo = photoUrl;
   const matchingMember = appState.members.find((item) => item.id === member.id);
   if (matchingMember) matchingMember.photo = photoUrl;
@@ -782,6 +820,10 @@ function chooseProfileAvatar(photoUrl) {
   renderProfiles();
   updateProfileUi();
   renderProfile();
+  // Data URLs stay local-only; storage URLs and preset asset paths sync for the whole family.
+  if (!photoUrl.startsWith('data:')) {
+    syncMemberToSupabase(member.id, { photo_url: photoUrl });
+  }
 }
 
 function renderAvatarPicker(member) {
@@ -809,7 +851,8 @@ function normalizeMember(member) {
     id: member.id,
     name: member.name,
     avatar: member.avatar || '👤',
-    photo: member.photo || defaultProfilePhoto(member),
+    photo_url: member.photo_url || '',
+    photo: member.photo_url || member.photo || defaultProfilePhoto(member),
     role: member.role || 'Family member'
   };
 }
@@ -852,6 +895,8 @@ function applyStoredProfilePhotos() {
 }
 
 function savedOrDefaultProfilePhoto(member, savedPhoto) {
+  // A photo synced to the family database wins over anything saved on this device.
+  if (member.photo_url) return member.photo_url;
   if (savedPhoto && !savedPhoto.includes('dicebear.com')) return savedPhoto;
   if (member.photo && !member.photo.includes('dicebear.com')) return member.photo;
   return defaultProfilePhoto(member);
