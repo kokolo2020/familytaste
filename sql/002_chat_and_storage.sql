@@ -16,6 +16,13 @@ do $$ begin
   alter publication supabase_realtime add table family_chat;
 exception when duplicate_object then null; end $$;
 
+-- 2b. RLS policies (family_chat has RLS enabled; anon needs read + write)
+alter table family_chat enable row level security;
+create policy "family can read chat" on family_chat
+  for select to anon using (true);
+create policy "family can send chat" on family_chat
+  for insert to anon with check (true);
+
 -- 3. Profile photo column on members (synced avatars / uploaded photos)
 alter table members add column if not exists photo_url text;
 
