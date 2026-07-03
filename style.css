@@ -1394,6 +1394,73 @@ h1 span {
   justify-items: start;
 }
 
+.bio-panel {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  background: rgba(255, 252, 246, 0.78);
+  box-shadow: var(--soft-shadow);
+  backdrop-filter: blur(18px);
+  padding: 22px;
+  margin-bottom: 28px;
+}
+
+.bio-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.bio-field {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #fff8ef;
+  box-shadow: inset 0 0 0 1px rgba(128, 92, 53, 0.12);
+}
+
+.bio-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.bio-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(128, 92, 53, 0.2);
+  border-radius: 8px;
+  background: white;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  color: #4a3520;
+}
+
+.bio-field strong {
+  font-size: 26px;
+  line-height: 1.4;
+}
+
+.food-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .bio-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .food-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 .profile-name-edit {
   display: flex;
   gap: 10px;

@@ -19,7 +19,20 @@ exception when duplicate_object then null; end $$;
 -- 3. Profile photo column on members (synced avatars / uploaded photos)
 alter table members add column if not exists photo_url text;
 
--- 4. Public storage bucket for meal photos and profile avatars
+-- 4. Daily bio stats (weight, steps, blood sugar) — one row per member per day
+create table if not exists bio_logs (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid references families(id) on delete cascade,
+  member_id uuid references members(id) on delete cascade,
+  log_date date not null default current_date,
+  weight_kg numeric,
+  steps integer,
+  sugar_level numeric,
+  created_at timestamptz default now(),
+  unique (member_id, log_date)
+);
+
+-- 5. Public storage bucket for meal photos and profile avatars
 insert into storage.buckets (id, name, public)
 values ('family-media', 'family-media', true)
 on conflict (id) do nothing;

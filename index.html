@@ -98,21 +98,12 @@
         </header>
 
         <section id="page-dashboard" class="page active-page" data-title="Dashboard" data-kicker="Today">
-          <div class="hero-panel">
-            <div>
-              <p class="eyebrow">Today in your family kitchen</p>
-              <h3 id="dashboardGreeting">Good evening, Dad</h3>
-              <p>Log meals, compare favorites, and keep the whole family in sync before dinner becomes a group chat mystery.</p>
-            </div>
-            <button class="primary-button" data-page="snap">📷 Snap Food</button>
-          </div>
-
           <div class="metrics-grid">
             <article class="metric-card dark-card">
               <span>Today's Calories</span>
               <strong id="todayCalories">0</strong>
               <div class="progress-track"><i id="calorieProgress"></i></div>
-              <small>Goal 2,200 calories</small>
+              <small id="calorieGoalLabel">Goal 2,200 calories</small>
             </article>
             <article class="metric-card">
               <span>Today's Meals</span>
@@ -122,41 +113,67 @@
             <article class="metric-card">
               <span>Money Spent</span>
               <strong id="todaySpend">$0</strong>
-              <small>Saved from food entries</small>
+              <small>From today's food entries</small>
             </article>
           </div>
 
-          <section class="section-row">
-            <div>
-              <p class="eyebrow">Quick Actions</p>
-              <h3>Family shortcuts</h3>
+          <section class="bio-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Bio Stats</p>
+                <h3>Today's health check</h3>
+              </div>
+              <button class="primary-button" id="saveBioStats" type="button">Save Bio Stats</button>
             </div>
-            <div class="quick-grid">
-              <button data-page="snap">📷 <span>Snap Food</span></button>
-              <button data-page="order">🧑‍🍳 <span>Chef Menu</span></button>
-              <button data-page="favorites">❤️ <span>Favorite Restaurants</span></button>
-              <button data-page="chat">💬 <span>Family Chat</span></button>
-              <button data-page="weekly">📊 <span>Weekly AI Report</span></button>
-              <button data-page="timeline">📅 <span>Food Timeline</span></button>
+            <div class="bio-grid">
+              <label class="bio-field">
+                <span>⚖️ Weight (kg)</span>
+                <input id="bioWeight" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0.0">
+              </label>
+              <label class="bio-field">
+                <span>👟 Steps</span>
+                <input id="bioSteps" type="number" step="1" min="0" inputmode="numeric" placeholder="0">
+              </label>
+              <label class="bio-field">
+                <span>🩸 Blood Sugar (mg/dL)</span>
+                <input id="bioSugar" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0">
+              </label>
+              <div class="bio-field bio-readonly">
+                <span>🔥 Calories Today</span>
+                <strong id="bioCalories">0</strong>
+              </div>
             </div>
           </section>
 
-          <section class="split-layout">
+          <section class="food-columns">
             <div>
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Recent Meals</p>
-                  <h3>Saved memories</h3>
+                  <p class="eyebrow">Today</p>
+                  <h3>Today's Food</h3>
                 </div>
-                <button class="text-button" data-page="timeline">View all</button>
+                <button class="text-button" data-page="snap">+ Add</button>
               </div>
-              <div id="recentMeals" class="meal-list"></div>
+              <div id="todayFoodList" class="meal-list"></div>
             </div>
-            <aside class="insight-panel">
-              <p class="eyebrow">AI Preview</p>
-              <h3>Tonight's gentle nudge</h3>
-              <p id="aiNudge">Add the first meal today and FamilyBites will start shaping a weekly pattern.</p>
-            </aside>
+            <div>
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Yesterday</p>
+                  <h3>Yesterday's Food</h3>
+                </div>
+              </div>
+              <div id="yesterdayFoodList" class="meal-list"></div>
+            </div>
+            <div>
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Most Loved</p>
+                  <h3>Favorite Foods</h3>
+                </div>
+              </div>
+              <div id="favoriteFoodList" class="meal-list"></div>
+            </div>
           </section>
         </section>
 

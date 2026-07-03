@@ -131,6 +131,26 @@
     async uploadAvatar(dataUrl) {
       return this.uploadImage(dataUrl, 'avatars');
     },
+    async getBioLogs(logDate) {
+      if (!client || !this.familyId) return [];
+      const { data, error } = await client
+        .from('bio_logs')
+        .select('*')
+        .eq('family_id', this.familyId)
+        .eq('log_date', logDate);
+      if (error) throw error;
+      return data || [];
+    },
+    async saveBioLog(log) {
+      if (!client) return null;
+      const { data, error } = await client
+        .from('bio_logs')
+        .upsert(log, { onConflict: 'member_id,log_date' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
     async updateMember(memberId, fields) {
       if (!client) return null;
       const { data, error } = await client

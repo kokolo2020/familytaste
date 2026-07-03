@@ -16,7 +16,8 @@ const appState = {
   chat: [],
   chefOrders: [],
   cart: [],
-  voiceNotes: []
+  voiceNotes: [],
+  bioLogs: {}
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -25,6 +26,7 @@ const localChatStorageKey = 'familyBites.chat.v2';
 const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
+const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
@@ -124,6 +126,7 @@ function bindEvents() {
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
+  document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
   document.getElementById('profileNameInput').addEventListener('keydown', (event) => {
     if (event.key === 'Enter') handleSaveProfileName();
   });
@@ -162,6 +165,20 @@ async function hydrateFromSupabase() {
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
     if (favorites.length) appState.favorites = favorites;
     if (chat.length) appState.chat = mergeRecords(chat.map(normalizeChat), appState.chat);
+
+    try {
+      const bioLogs = await window.familyBitesDb.getBioLogs(todayKey());
+      bioLogs.forEach((log) => {
+        if (!appState.bioLogs[log.member_id]) appState.bioLogs[log.member_id] = {};
+        appState.bioLogs[log.member_id][log.log_date] = {
+          weight_kg: log.weight_kg,
+          steps: log.steps,
+          sugar_level: log.sugar_level
+        };
+      });
+    } catch (bioError) {
+      console.warn('Bio logs unavailable (table may not exist yet).', bioError);
+    }
 
     subscribeToFamilyChat();
   } catch (error) {
@@ -289,33 +306,118 @@ function updateProfileUi() {
   document.getElementById('navAvatar').innerHTML = avatarMarkup(member);
   document.getElementById('navName').textContent = member.name;
   document.getElementById('activeAvatar').innerHTML = `${avatarMarkup(member)} <span>${escapeHtml(member.name)}</span>`;
-  document.getElementById('dashboardGreeting').textContent = `${getGreeting()}, ${member.name}`;
 }
 
 function renderDashboard() {
   const memberMeals = getMemberMeals();
   const todayMeals = memberMeals.filter(isToday);
+  const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
   const spend = sum(todayMeals, 'price');
-  const progress = Math.min(Math.round((calories / 2200) * 100), 100);
+  const goal = Number(appState.currentMember?.target_calories) || 2200;
+  const progress = Math.min(Math.round((calories / goal) * 100), 100);
 
   document.getElementById('todayCalories').textContent = calories.toLocaleString();
   document.getElementById('todayMeals').textContent = todayMeals.length.toString();
   document.getElementById('todaySpend').textContent = formatMoney(spend);
   document.getElementById('calorieProgress').style.width = `${progress}%`;
+  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()} calories`;
   document.getElementById('mealSummary').textContent = todayMeals.length
     ? todayMeals.slice(0, 3).map((meal) => meal.food_name).join(', ')
     : 'No meals logged yet';
-  document.getElementById('aiNudge').textContent = calories > 0
-    ? `You have logged ${calories.toLocaleString()} calories today. Add one colorful side or fruit snack to lift the weekly balance.`
-    : 'Add the first meal today and FamilyBites will start shaping a weekly pattern.';
+  document.getElementById('bioCalories').textContent = calories.toLocaleString();
+
+  renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
+  renderFoodList('yesterdayFoodList', yesterdayMeals, 'Nothing was logged yesterday.');
+  renderFavoriteFoods(memberMeals);
+  renderBioInputs();
+}
+
+function getTodayBioLog() {
+  const member = appState.currentMember;
+  if (!member) return {};
+  return appState.bioLogs[member.id]?.[todayKey()] || {};
+}
+
+function renderBioInputs() {
+  const member = appState.currentMember;
+  if (!member) return;
+  const log = getTodayBioLog();
+  const fill = (id, value) => {
+    const input = document.getElementById(id);
+    if (document.activeElement !== input) input.value = value ?? '';
+  };
+  fill('bioWeight', log.weight_kg ?? member.weight_kg ?? '');
+  fill('bioSteps', log.steps ?? '');
+  fill('bioSugar', log.sugar_level ?? '');
+}
+
+async function handleSaveBioStats() {
+  const member = appState.currentMember;
+  if (!member) return;
+
+  const log = {
+    weight_kg: numberOrNull(document.getElementById('bioWeight').value),
+    steps: numberOrNull(document.getElementById('bioSteps').value),
+    sugar_level: numberOrNull(document.getElementById('bioSugar').value)
+  };
+
+  if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
+  appState.bioLogs[member.id][todayKey()] = log;
+  if (log.weight_kg !== null) member.weight_kg = log.weight_kg;
+  saveStoredAppData();
+
+  const button = document.getElementById('saveBioStats');
+  button.textContent = 'Saved ✓';
+  setTimeout(() => { button.textContent = 'Save Bio Stats'; }, 1800);
+
+  if (window.familyBitesDb?.isConfigured && appState.familyId) {
+    if (log.weight_kg !== null) {
+      try {
+        await window.familyBitesDb.updateMember(member.id, { weight_kg: log.weight_kg });
+      } catch (error) {
+        console.warn('Weight saved locally but Supabase write failed.', error);
+      }
+    }
+    try {
+      await window.familyBitesDb.saveBioLog({
+        family_id: appState.familyId,
+        member_id: member.id,
+        log_date: todayKey(),
+        ...log
+      });
+    } catch (error) {
+      console.warn('Bio stats saved locally but Supabase write failed.', error);
+    }
+  }
+}
+
+function renderFoodList(elementId, meals, emptyMessage) {
+  document.getElementById(elementId).innerHTML =
+    meals.map(mealTemplate).join('') || emptyState(emptyMessage);
+}
+
+function renderFavoriteFoods(meals) {
+  const counts = {};
+  meals.forEach((meal) => {
+    if (!meal.food_name) return;
+    counts[meal.food_name] = (counts[meal.food_name] || 0) + 1;
+  });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  document.getElementById('favoriteFoodList').innerHTML = top.map(([name, count]) => `
+    <article class="meal-card">
+      <span class="meal-emoji">${mealEmoji(name)}</span>
+      <div>
+        <h4>${escapeHtml(name)}</h4>
+        <p>Logged ${count} time${count !== 1 ? 's' : ''}</p>
+      </div>
+      <strong>❤️</strong>
+    </article>
+  `).join('') || emptyState('Log meals to discover favorites.');
 }
 
 function renderMeals() {
   const meals = getMemberMeals();
-  const mealCards = meals.slice(0, 4).map(mealTemplate).join('') || emptyState('No meals yet. Snap your first food memory.');
-  document.getElementById('recentMeals').innerHTML = mealCards;
-
   document.getElementById('timelineList').innerHTML = meals.map((meal) => `
     <article class="timeline-item">
       <span class="timeline-date">${formatDate(meal.eaten_at)}</span>
@@ -853,7 +955,9 @@ function normalizeMember(member) {
     avatar: member.avatar || '👤',
     photo_url: member.photo_url || '',
     photo: member.photo_url || member.photo || defaultProfilePhoto(member),
-    role: member.role || 'Family member'
+    role: member.role || 'Family member',
+    weight_kg: member.weight_kg ?? null,
+    target_calories: member.target_calories ?? null
   };
 }
 
@@ -908,6 +1012,8 @@ function applyStoredAppData() {
   const storedOrders = getStoredJson(chefOrdersStorageKey, []);
   const storedCart = getStoredJson(chefCartStorageKey, []);
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
+  const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
+  if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
@@ -921,6 +1027,7 @@ function saveStoredAppData() {
   setStoredJson(chefOrdersStorageKey, appState.chefOrders);
   setStoredJson(chefCartStorageKey, appState.cart);
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
+  setStoredJson(bioLogsStorageKey, appState.bioLogs);
 }
 
 function mergeRecords(primary, fallback) {
@@ -1013,6 +1120,16 @@ function isToday(meal) {
   return new Date(meal.eaten_at || meal.created_at).toDateString() === new Date().toDateString();
 }
 
+function isYesterday(meal) {
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return new Date(meal.eaten_at || meal.created_at).toDateString() === yesterday.toDateString();
+}
+
+function todayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 function sum(items, key) {
   return items.reduce((total, item) => total + Number(item[key] || 0), 0);
 }
@@ -1026,7 +1143,7 @@ function mostCommon(values) {
 }
 
 function formatMoney(value) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value || 0);
+  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(value || 0);
 }
 
 function formatDate(value) {
