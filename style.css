@@ -1062,6 +1062,7 @@ h1 span {
 }
 
 .glass-form input,
+.glass-form select,
 .glass-form textarea,
 .chat-composer input {
   width: 100%;
@@ -1072,6 +1073,15 @@ h1 span {
   color: var(--text);
   background: rgba(255, 255, 255, 0.86);
   outline: none;
+}
+
+.glass-form select,
+.modal-field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #786858 50%), linear-gradient(135deg, #786858 50%, transparent 50%);
+  background-position: calc(100% - 18px) 20px, calc(100% - 13px) 20px;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
 }
 
 .glass-form textarea {
@@ -1949,7 +1959,8 @@ h1 span {
   font-weight: 850;
 }
 
-.modal-field input {
+.modal-field input,
+.modal-field select {
   width: 100%;
   min-height: 48px;
   border: 1px solid #e6d6c5;
@@ -1994,7 +2005,8 @@ h1 span {
     font-size: 12px;
   }
 
-  .modal-field input {
+  .modal-field input,
+  .modal-field select {
     min-height: 42px;
     padding: 0 12px;
   }

@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProfiles();
   renderNavigation();
   bindEvents();
+  resetMealDateTime();
   hydrateFromSupabase();
 });
 
@@ -170,7 +171,7 @@ function bindEvents() {
     if (event.key === 'Enter') handleSaveProfileName();
   });
 
-  ['foodName', 'restaurantName', 'calories'].forEach((id) => {
+  ['foodName', 'restaurantName', 'calories', 'mealType'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
 }
@@ -466,6 +467,8 @@ function openMealModal(mealId, defaultDay) {
   document.getElementById('editCalories').value = meal?.calories ?? '';
   document.getElementById('editNotes').value = meal?.notes || '';
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
+  document.getElementById('editTime').value = timeKey(meal ? new Date(meal.eaten_at) : defaultDate);
+  document.getElementById('editMealType').value = meal?.meal_type || inferMealType(meal ? new Date(meal.eaten_at) : defaultDate);
   document.getElementById('editMealPhoto').value = '';
   editingMealPhotoUrl = meal?.photo_url || '';
   renderEditMealPhoto();
@@ -479,6 +482,15 @@ function mergeDateKeepTime(originalIso, dateValue) {
   const [year, month, day] = dateValue.split('-').map(Number);
   original.setFullYear(year, month - 1, day);
   return original.toISOString();
+}
+
+function mergeDateAndTime(originalIso, dateValue, timeValue) {
+  const merged = new Date(mergeDateKeepTime(originalIso, dateValue));
+  if (timeValue) {
+    const [hours, minutes] = timeValue.split(':').map(Number);
+    merged.setHours(hours, minutes, 0, 0);
+  }
+  return merged.toISOString();
 }
 
 async function handleSaveMealEdit() {
@@ -495,16 +507,18 @@ async function handleSaveMealEdit() {
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
     notes: document.getElementById('editNotes').value.trim(),
+    meal_type: document.getElementById('editMealType').value,
     photo_url: editingMealPhotoUrl
   };
   const dateValue = document.getElementById('editDate').value;
+  const timeValue = document.getElementById('editTime').value;
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
     const meal = appState.meals.find((item) => item.id === editingMealId);
     if (!meal) return;
     Object.assign(meal, fields);
-    meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
+    meal.eaten_at = mergeDateAndTime(meal.eaten_at, dateValue, timeValue);
     saveStoredAppData();
     renderAll();
     if (window.familyBitesDb?.isConfigured) {
@@ -530,7 +544,7 @@ async function handleSaveMealEdit() {
       member_id: appState.currentMember.id,
       ...fields,
       photo_url: editingMealPhotoUrl,
-      eaten_at: mergeDateKeepTime(new Date().toISOString(), dateValue)
+      eaten_at: mergeDateAndTime(new Date().toISOString(), dateValue, timeValue)
     });
   }
 }
@@ -662,7 +676,7 @@ function renderMeals() {
       <span class="timeline-date">${formatDate(meal.eaten_at)}</span>
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.location_name || 'No location')}</p>
+        <p>${escapeHtml(formatMealType(meal.meal_type))} · ${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.location_name || 'No location')}</p>
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -681,7 +695,7 @@ function mealTemplate(meal, withActions = false) {
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.notes || 'Saved to FamilyBites')}</p>${actions}
+        <p>${escapeHtml(formatMealType(meal.meal_type))} · ${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.notes || 'Saved to FamilyTaste')}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -971,6 +985,7 @@ async function saveMeal(event) {
   const form = event.currentTarget;
   const formData = new FormData(form);
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
+  const eatenAt = mergeDateAndTime(new Date().toISOString(), formData.get('meal_date'), formData.get('meal_time'));
   const meal = {
     id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
     family_id: appState.familyId,
@@ -981,8 +996,9 @@ async function saveMeal(event) {
     price: numberOrNull(formData.get('price')),
     calories: numberOrNull(formData.get('calories')),
     notes: formData.get('notes').trim(),
+    meal_type: formData.get('meal_type'),
     photo_url: photoUrl,
-    eaten_at: new Date().toISOString()
+    eaten_at: eatenAt
   };
 
   if (!meal.food_name) return;
@@ -990,6 +1006,7 @@ async function saveMeal(event) {
   appState.meals.unshift(meal);
   saveStoredAppData();
   form.reset();
+  resetMealDateTime();
   resetPhotoPreview();
   showPage('dashboard');
 
@@ -1065,11 +1082,13 @@ function updateMealPreview() {
   const food = document.getElementById('foodName').value.trim();
   const restaurant = document.getElementById('restaurantName').value.trim();
   const calories = document.getElementById('calories').value.trim();
+  const mealType = document.getElementById('mealType').value;
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const previewPhoto = document.getElementById('previewPhoto');
   document.getElementById('previewFood').textContent = food || 'New family bite';
   document.getElementById('previewMeta').textContent = [
     restaurant || 'Restaurant not set',
+    formatMealType(mealType),
     calories ? `${calories} calories` : 'Calories pending'
   ].join(' · ');
 
@@ -1377,13 +1396,39 @@ function resizeImageFile(file, maxSize, quality) {
 }
 
 function normalizeMeal(meal) {
+  const rawNotes = meal.notes || meal.description || '';
+  const mealTypeMatch = rawNotes.match(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i);
   return {
     ...meal,
     food_name: meal.food_name || meal.name || 'Meal',
-    notes: meal.notes || meal.description || '',
+    notes: rawNotes.replace(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i, ''),
+    meal_type: meal.meal_type || mealTypeMatch?.[1]?.toLowerCase() || inferMealType(new Date(meal.eaten_at || meal.created_at || Date.now())),
     photo_url: meal.photo_url || '',
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };
+}
+
+function timeKey(date = new Date()) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function inferMealType(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 10) return 'breakfast';
+  if (hour < 15) return 'lunch';
+  if (hour < 21) return 'dinner';
+  return 'snack';
+}
+
+function formatMealType(value = '') {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Meal';
+}
+
+function resetMealDateTime() {
+  const now = new Date();
+  document.getElementById('mealDate').value = dateKey(now);
+  document.getElementById('mealTime').value = timeKey(now);
+  document.getElementById('mealType').value = inferMealType(now);
 }
 
 function normalizeChat(message) {

@@ -68,7 +68,7 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
-        description: meal.notes || null,
+        description: serializeMealDescription(meal.notes, meal.meal_type),
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
       };
@@ -83,9 +83,10 @@
     async updateMeal(mealId, fields) {
       if (!client) return null;
       const payload = { ...fields };
-      if ('notes' in payload) {
-        payload.description = payload.notes || null;
+      if ('notes' in payload || 'meal_type' in payload) {
+        payload.description = serializeMealDescription(payload.notes, payload.meal_type);
         delete payload.notes;
+        delete payload.meal_type;
       }
       const { data, error } = await client
         .from('food_entries')
@@ -199,6 +200,11 @@
         .subscribe();
     }
   };
+
+  function serializeMealDescription(notes, mealType) {
+    const cleanNotes = String(notes || '').replace(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i, '');
+    return mealType ? `${cleanNotes}${cleanNotes ? '\n' : ''}[[meal_type:${mealType}]]` : cleanNotes || null;
+  }
 
   async function seedMembers(familyId) {
     const { data: existing, error: findError } = await client

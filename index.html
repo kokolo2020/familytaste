@@ -214,6 +214,9 @@
               <label>Food Name<input id="foodName" name="food_name" required placeholder="Chicken rice"></label>
               <label>Restaurant<input id="restaurantName" name="restaurant_name" placeholder="Favorite local spot"></label>
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
+              <label>Meal Type<select id="mealType" name="meal_type"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
+              <label>Date<input id="mealDate" name="meal_date" type="date" required></label>
+              <label>Time<input id="mealTime" name="meal_time" type="time" required></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
@@ -374,6 +377,8 @@
         <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
       </div>
       <label class="modal-field">Date<input id="editDate" type="date"></label>
+      <label class="modal-field">Time<input id="editTime" type="time"></label>
+      <label class="modal-field">Meal Type<select id="editMealType"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
       <label class="modal-field">Notes<input id="editNotes" placeholder="Optional" autocomplete="off"></label>
       <div class="modal-actions">
         <button class="primary-button" id="saveMealEdit">Save</button>
