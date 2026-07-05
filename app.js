@@ -477,7 +477,12 @@ function openMealModal(mealId, defaultDay) {
   document.getElementById('editRestaurant').value = meal?.restaurant_name || '';
   document.getElementById('editLocation').value = meal?.location_name || '';
   document.getElementById('editPrice').value = meal?.price ?? '';
-  document.getElementById('editCalories').value = meal?.calories ?? '';
+  const editCaloriesInput = document.getElementById('editCalories');
+  editCaloriesInput.value = meal?.calories ?? '';
+  delete editCaloriesInput.dataset.estimatedCalories;
+  const editEstimateStatus = document.getElementById('editCalorieEstimate');
+  editEstimateStatus.classList.remove('estimate-success');
+  editEstimateStatus.textContent = 'AI Scan analyzes the photo. Quick Estimate uses food name and portion.';
   document.getElementById('editPortionSize').value = meal?.portion_size || 'regular';
   document.getElementById('editNotes').value = meal?.notes || '';
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
@@ -519,7 +524,8 @@ async function handleSaveMealEdit() {
     restaurant_name: document.getElementById('editRestaurant').value.trim(),
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
-    calories: numberOrNull(document.getElementById('editCalories').value),
+    calories: numberOrNull(document.getElementById('editCalories').value)
+      ?? numberOrNull(document.getElementById('editCalories').dataset.estimatedCalories),
     portion_size: document.getElementById('editPortionSize').value,
     notes: document.getElementById('editNotes').value.trim(),
     meal_type: document.getElementById('editMealType').value,
@@ -1054,7 +1060,8 @@ async function saveMeal(event) {
     restaurant_name: formData.get('restaurant_name').trim(),
     location_name: formData.get('location_name').trim(),
     price: numberOrNull(formData.get('price')),
-    calories: numberOrNull(formData.get('calories')),
+    calories: numberOrNull(formData.get('calories'))
+      ?? numberOrNull(form.dataset.estimatedCalories),
     portion_size: formData.get('portion_size') || 'regular',
     notes: formData.get('notes').trim(),
     meal_type: formData.get('meal_type'),
@@ -1067,6 +1074,7 @@ async function saveMeal(event) {
   appState.meals.unshift(meal);
   saveStoredAppData();
   form.reset();
+  delete form.dataset.estimatedCalories;
   resetMealDateTime();
   resetPhotoPreview();
   showPage('dashboard');
@@ -1177,9 +1185,23 @@ function applyCalorieEstimate(isEdit) {
   const mealType = document.getElementById(isEdit ? 'editMealType' : 'mealType').value;
   const portion = document.getElementById(isEdit ? 'editPortionSize' : 'portionSize').value;
   const estimate = estimateMealCalories(foodInput.value, mealType, portion);
-  document.getElementById(isEdit ? 'editCalories' : 'calories').value = estimate;
-  document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate').textContent = `Estimated ${estimate.toLocaleString()} kcal · confirm before saving.`;
+  setEstimatedCalories(isEdit, estimate);
+  const status = document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate');
+  status.textContent = `Estimated ${estimate.toLocaleString()} kcal · confirm before saving.`;
+  status.classList.add('estimate-success');
   if (!isEdit) updateMealPreview();
+}
+
+function setEstimatedCalories(isEdit, value) {
+  const total = Math.max(0, Math.round(Number(value) || 0));
+  const caloriesInput = document.getElementById(isEdit ? 'editCalories' : 'calories');
+  caloriesInput.value = String(total);
+  caloriesInput.defaultValue = String(total);
+  caloriesInput.setAttribute('value', String(total));
+  caloriesInput.dataset.estimatedCalories = String(total);
+  if (!isEdit) document.getElementById('mealForm').dataset.estimatedCalories = String(total);
+  caloriesInput.dispatchEvent(new Event('input', { bubbles: true }));
+  caloriesInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 async function applyAiCalorieEstimate(isEdit) {
@@ -1209,15 +1231,16 @@ async function applyAiCalorieEstimate(isEdit) {
     const estimate = await response.json();
     if (!response.ok) throw new Error(estimate.error || 'AI estimate failed.');
 
-    const caloriesInput = document.getElementById(isEdit ? 'editCalories' : 'calories');
-    caloriesInput.value = estimate.total_calories;
+    setEstimatedCalories(isEdit, estimate.total_calories);
     if (!foodInput.value.trim() && estimate.foods?.length) {
       foodInput.value = estimate.foods.map((food) => food.name).join(', ');
     }
     const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
     status.textContent = `${foods || 'Food'} = about ${Number(estimate.total_calories).toLocaleString()} kcal · ${estimate.confidence} confidence. Confirm before saving.`;
+    status.classList.add('estimate-success');
     if (!isEdit) updateMealPreview();
   } catch (error) {
+    status.classList.remove('estimate-success');
     status.textContent = error.message || 'AI estimate unavailable. Try the quick estimate.';
   } finally {
     button.disabled = false;
@@ -1303,6 +1326,9 @@ function resetPhotoPreview() {
   document.getElementById('photoIcon').classList.remove('hidden');
   document.getElementById('photoTitle').textContent = 'Tap to snap or upload food';
   document.getElementById('photoHint').textContent = 'Your photo will appear in the meal preview.';
+  const estimateStatus = document.getElementById('calorieEstimate');
+  estimateStatus.classList.remove('estimate-success');
+  estimateStatus.textContent = 'AI Scan analyzes the photo. Quick Estimate uses food name and portion.';
 }
 
 async function handleProfilePhotoChange(event) {
