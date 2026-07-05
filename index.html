@@ -98,30 +98,65 @@
         </header>
 
         <section id="page-dashboard" class="page active-page" data-title="Dashboard" data-kicker="Today">
-          <div class="metrics-grid">
-            <article class="metric-card dark-card">
-              <span>Today's Calories</span>
-              <strong id="todayCalories">0</strong>
-              <div class="progress-track"><i id="calorieProgress"></i></div>
-              <small id="calorieGoalLabel">Goal 2,200 calories</small>
-            </article>
-            <article class="metric-card">
-              <span>Today's Meals</span>
-              <strong id="todayMeals">0</strong>
-              <small id="mealSummary">No meals logged yet</small>
-            </article>
-            <article class="metric-card">
-              <span>Money Spent</span>
-              <strong id="todaySpend">$0</strong>
-              <small>From today's food entries</small>
-            </article>
+          <div class="dashboard-intro">
+            <div>
+              <p class="eyebrow">Good morning, <span id="dashboardMemberName">Family</span>! 👋</p>
+              <h3>Today’s Food & Wellness</h3>
+            </div>
+            <span id="dashboardDate" class="dashboard-date"></span>
           </div>
 
-          <section class="bio-panel">
+          <div class="dashboard-layout">
+            <div class="dashboard-main-column">
+              <section class="today-food-panel dashboard-card">
+                <div class="section-title food-panel-title">
+                  <div>
+                    <p class="eyebrow">Today</p>
+                    <h3>Today's Food</h3>
+                  </div>
+                  <button class="primary-button compact-button" data-page="snap" type="button">+ Add Food</button>
+                </div>
+                <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
+              </section>
+
+              <section class="daily-summary dashboard-card">
+                <div class="section-title"><h3>Today’s Summary</h3></div>
+                <div class="summary-grid">
+                  <article><span>🔥</span><strong id="summaryCalories">0</strong><small>Calories</small></article>
+                  <article><span>⚖️</span><strong id="summaryWeight">--</strong><small>kg Weight</small></article>
+                  <article><span>👟</span><strong id="summarySteps">0</strong><small>Steps</small></article>
+                  <article><span>🩸</span><strong id="summaryGlucose">--</strong><small>mg/dL</small></article>
+                </div>
+                <div class="calorie-overview">
+                  <div class="calorie-copy"><span>Calorie Progress</span><strong><b id="summaryCalorieProgress">0%</b> of daily goal</strong><small id="summaryCalorieGoal">0 / 2,200 cal</small><i><em id="summaryCalorieBar"></em></i></div>
+                  <div class="calorie-ring" id="summaryCalorieRing"><strong id="summaryRingCalories">0</strong><small>cal</small></div>
+                </div>
+                <div class="tip-card"><span>★</span><p><strong>Tip for You</strong><br><span id="summaryTip">Log your first meal to start your daily analysis.</span></p></div>
+              </section>
+
+              <div class="health-metrics-grid">
+                <article class="health-stat-card score-card">
+                  <div class="stat-icon mint">♡</div>
+                  <div><span>Body Health Score</span><strong><b id="bodyHealthScore">0</b><small>/100</small></strong></div>
+                  <span id="healthScoreStatus" class="status-pill">Getting started</span>
+                </article>
+                <article class="health-stat-card glucose-card">
+                  <div class="stat-icon coral">⌁</div>
+                  <div><span>Average Glucose Today</span><strong><b id="averageGlucose">--</b><small> mg/dL</small></strong></div>
+                  <span id="glucoseStatus" class="status-pill">Add reading</span>
+                </article>
+                <article class="health-stat-card nutrition-card">
+                  <div class="stat-icon lavender">◒</div>
+                  <div><span>Nutrition Balance</span><strong><b id="nutritionBalance">0</b><small>%</small></strong></div>
+                  <span id="nutritionStatus" class="status-pill">Log a meal</span>
+                </article>
+              </div>
+
+              <section class="bio-panel dashboard-card">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Bio Stats</p>
-                <h3>Today's health check</h3>
+                <p class="eyebrow">Daily signals</p>
+                <h3>Update your health data</h3>
               </div>
               <button class="primary-button" id="saveBioStats" type="button">Save Bio Stats</button>
             </div>
@@ -144,38 +179,71 @@
               </div>
             </div>
           </section>
+            </div>
 
-          <section class="food-columns">
-            <div>
+          <aside class="dashboard-side-column">
+            <section class="body-impact-panel dashboard-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Today</p>
-                  <h3>Today's Food</h3>
+                  <p class="eyebrow">Live wellness model</p>
+                  <h3>AI Body Impact</h3>
                 </div>
-                <button class="text-button" data-page="snap">+ Add</button>
+                <span class="ai-badge">AI</span>
               </div>
-              <div id="todayFoodList" class="meal-list"></div>
-            </div>
-            <div>
+              <p class="panel-subtitle">Estimated from today's meals and health signals.</p>
+              <div class="body-impact-content">
+                <div class="human-figure" aria-hidden="true">
+                  <svg viewBox="0 0 180 360" role="img">
+                    <defs><linearGradient id="bodyGlow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b9ead6"/><stop offset="1" stop-color="#76bba9"/></linearGradient></defs>
+                    <circle cx="90" cy="39" r="25" fill="url(#bodyGlow)"/>
+                    <path d="M64 73 Q90 59 116 73 L129 157 Q121 185 113 205 L119 324 Q108 340 96 325 L90 222 L84 325 Q72 340 61 324 L67 205 Q59 185 51 157Z" fill="url(#bodyGlow)"/>
+                    <path d="M56 91 L28 184 Q27 200 39 203 Q48 202 51 189 L72 119M124 91 L152 184 Q153 200 141 203 Q132 202 129 189 L108 119" fill="none" stroke="#8acbb9" stroke-width="18" stroke-linecap="round"/>
+                    <circle cx="90" cy="37" r="9" fill="#fff" opacity=".8"/><path d="M73 108 Q90 94 107 108 Q105 130 90 139 Q75 130 73 108" fill="#fff" opacity=".72"/><path d="M75 161 Q90 150 105 161 Q106 189 90 201 Q74 189 75 161" fill="#fff" opacity=".55"/>
+                  </svg>
+                  <span class="body-pulse pulse-brain"></span><span class="body-pulse pulse-heart"></span><span class="body-pulse pulse-core"></span>
+                </div>
+                <div id="bodyImpactList" class="body-impact-list"></div>
+              </div>
+            </section>
+
+            <section class="nutrition-panel dashboard-card">
+              <div class="section-title"><h3>Today’s Nutrition Balance</h3></div>
+              <div class="nutrition-layout">
+                <div class="macro-list">
+                  <div><span>Carbohydrates</span><i><em style="width:55%"></em></i><b>55%</b></div>
+                  <div><span>Protein</span><i><em style="width:20%"></em></i><b>20%</b></div>
+                  <div><span>Fats</span><i><em style="width:25%"></em></i><b>25%</b></div>
+                </div>
+                <div class="nutrition-donut"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
+              </div>
+              <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
+            </section>
+
+            <section class="ai-recommendations dashboard-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Yesterday</p>
-                  <h3>Yesterday's Food</h3>
+                  <p class="eyebrow">Personalized today</p>
+                  <h3>AI Recommendations</h3>
                 </div>
-                <button class="text-button" data-add-meal="yesterday">+ Add</button>
+                <span class="sparkle">✦</span>
               </div>
+              <div id="aiRecommendationList" class="recommendation-list"></div>
+            </section>
+
+            <details class="dashboard-history dashboard-card">
+              <summary>More food insights <span>⌄</span></summary>
+              <div class="history-section"><h4>Yesterday's Food</h4><button class="text-button" data-add-meal="yesterday">+ Add</button></div>
               <div id="yesterdayFoodList" class="meal-list"></div>
-            </div>
-            <div>
-              <div class="section-title">
-                <div>
-                  <p class="eyebrow">Most Loved</p>
-                  <h3>Favorite Foods</h3>
-                </div>
-              </div>
+              <div class="history-section"><h4>Favorite Foods</h4></div>
               <div id="favoriteFoodList" class="meal-list"></div>
-            </div>
-          </section>
+            </details>
+          </aside>
+          </div>
+
+          <div class="dashboard-legacy-values" aria-hidden="true">
+            <span id="todayCalories">0</span><span id="todayMeals">0</span><span id="todaySpend">$0</span>
+            <span id="mealSummary"></span><span id="calorieGoalLabel"></span><i id="calorieProgress"></i>
+          </div>
         </section>
 
         <section id="page-snap" class="page" data-title="Snap Food" data-kicker="Food journal">
