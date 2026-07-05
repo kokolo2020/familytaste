@@ -379,18 +379,16 @@ function renderDashboard() {
   const todayMeals = memberMeals.filter(isToday);
   const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
-  const spend = sum(todayMeals, 'price');
   const goal = Number(appState.profileNutrition[appState.currentMember?.id]?.target_calories || appState.currentMember?.target_calories) || 2200;
   const progress = Math.min(Math.round((calories / goal) * 100), 100);
+  const vitalLog = getTodayBioLog();
 
   document.getElementById('todayCalories').textContent = calories.toLocaleString();
-  document.getElementById('todayMeals').textContent = todayMeals.length.toString();
-  document.getElementById('todaySpend').textContent = formatMoney(spend);
   document.getElementById('calorieProgress').style.width = `${progress}%`;
-  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()} calories`;
-  document.getElementById('mealSummary').textContent = todayMeals.length
-    ? todayMeals.slice(0, 3).map((meal) => meal.food_name).join(', ')
-    : 'No meals logged yet';
+  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()}`;
+  document.getElementById('vitalWeight').textContent = vitalLog.weight_kg ?? appState.currentMember?.weight_kg ?? '—';
+  document.getElementById('vitalSteps').textContent = vitalLog.steps == null ? '—' : Number(vitalLog.steps).toLocaleString();
+  document.getElementById('vitalSugar').textContent = vitalLog.sugar_level ?? '—';
   document.getElementById('bioCalories').textContent = calories.toLocaleString();
 
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
@@ -432,10 +430,11 @@ async function handleSaveBioStats() {
   appState.bioLogs[member.id][todayKey()] = log;
   if (log.weight_kg !== null) member.weight_kg = log.weight_kg;
   saveStoredAppData();
+  renderDashboard();
 
   const button = document.getElementById('saveBioStats');
   button.textContent = 'Saved ✓';
-  setTimeout(() => { button.textContent = 'Save Bio Stats'; }, 1800);
+  setTimeout(() => { button.textContent = 'Save Vital Stats'; }, 1800);
 
   if (window.familyBitesDb?.isConfigured && appState.familyId) {
     if (log.weight_kg !== null) {

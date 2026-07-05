@@ -121,32 +121,20 @@
         </header>
 
         <section id="page-dashboard" class="page active-page" data-title="Dashboard" data-kicker="Today">
-          <div class="metrics-grid">
-            <article class="metric-card dark-card">
-              <span>Today's Calories</span>
-              <strong id="todayCalories">0</strong>
-              <div class="progress-track"><i id="calorieProgress"></i></div>
-              <small id="calorieGoalLabel">Goal 2,200 calories</small>
-            </article>
-            <article class="metric-card">
-              <span>Today's Meals</span>
-              <strong id="todayMeals">0</strong>
-              <small id="mealSummary">No meals logged yet</small>
-            </article>
-            <article class="metric-card">
-              <span>Money Spent</span>
-              <strong id="todaySpend">$0</strong>
-              <small>From today's food entries</small>
-            </article>
-          </div>
+          <section class="vital-summary" aria-label="Today's vital stats">
+            <article class="vital-card vital-calories"><span>🔥</span><div><small>Calories</small><strong id="todayCalories">0</strong><em id="calorieGoalLabel">Goal 2,200</em></div><div class="progress-track"><i id="calorieProgress"></i></div></article>
+            <article class="vital-card"><span>⚖️</span><div><small>Weight</small><strong id="vitalWeight">—</strong><em>kg</em></div></article>
+            <article class="vital-card"><span>👟</span><div><small>Steps</small><strong id="vitalSteps">—</strong><em>today</em></div></article>
+            <article class="vital-card"><span>🩸</span><div><small>Blood Sugar</small><strong id="vitalSugar">—</strong><em>mg/dL</em></div></article>
+          </section>
 
           <section class="bio-panel">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Bio Stats</p>
-                <h3>Today's health check</h3>
+                <p class="eyebrow">Update</p>
+                <h3>Today's vital stats</h3>
               </div>
-              <button class="primary-button" id="saveBioStats" type="button">Save Bio Stats</button>
+              <button class="primary-button" id="saveBioStats" type="button">Save Vital Stats</button>
             </div>
             <div class="bio-grid">
               <label class="bio-field">

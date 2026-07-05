@@ -807,6 +807,81 @@ h1 span {
   margin: 18px 0 28px;
 }
 
+.vital-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+
+.vital-card {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .75);
+  border-radius: 16px;
+  background: rgba(255, 252, 246, .9);
+  box-shadow: var(--soft-shadow);
+}
+
+.vital-card > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #fff0d3;
+  font-size: 20px;
+}
+
+.vital-card small,
+.vital-card strong,
+.vital-card em {
+  display: block;
+  min-width: 0;
+}
+
+.vital-card small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.vital-card strong {
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: clamp(20px, 2.4vw, 29px);
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.vital-card em {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.vital-calories {
+  grid-template-rows: 1fr auto;
+}
+
+.vital-calories .progress-track {
+  grid-column: 1 / -1;
+  height: 5px;
+  margin: 0;
+  background: #eadfce;
+}
+
+.vital-calories .progress-track i {
+  background: linear-gradient(90deg, #f1a21e, #d56b42);
+}
+
 .metric-card {
   padding: 22px;
 }
@@ -2044,6 +2119,30 @@ h1 span {
 }
 
 @media (max-width: 520px) {
+  .vital-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0 14px;
+  }
+
+  .vital-card {
+    min-height: 88px;
+    grid-template-columns: 30px 1fr;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .vital-card > span {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .vital-card strong {
+    font-size: 19px;
+  }
+
   .profile-detail {
     flex-direction: column;
     align-items: flex-start;
