@@ -175,6 +175,8 @@ function bindEvents() {
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
   document.getElementById('estimateCalories').addEventListener('click', () => applyCalorieEstimate(false));
   document.getElementById('estimateEditCalories').addEventListener('click', () => applyCalorieEstimate(true));
+  document.getElementById('aiEstimateCalories').addEventListener('click', () => applyAiCalorieEstimate(false));
+  document.getElementById('aiEstimateEditCalories').addEventListener('click', () => applyAiCalorieEstimate(true));
   document.getElementById('calculateDailyCalories').addEventListener('click', calculateDailyCalories);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     document.getElementById('mealModal').classList.add('hidden');
@@ -1178,6 +1180,49 @@ function applyCalorieEstimate(isEdit) {
   document.getElementById(isEdit ? 'editCalories' : 'calories').value = estimate;
   document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate').textContent = `Estimated ${estimate.toLocaleString()} kcal · confirm before saving.`;
   if (!isEdit) updateMealPreview();
+}
+
+async function applyAiCalorieEstimate(isEdit) {
+  const photoUrl = isEdit
+    ? editingMealPhotoUrl
+    : document.getElementById('photoPreview').dataset.photoUrl || '';
+  const status = document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate');
+  const button = document.getElementById(isEdit ? 'aiEstimateEditCalories' : 'aiEstimateCalories');
+  if (!photoUrl) {
+    status.textContent = 'Add a food photo first.';
+    return;
+  }
+
+  const foodInput = document.getElementById(isEdit ? 'editFoodName' : 'foodName');
+  const portion = document.getElementById(isEdit ? 'editPortionSize' : 'portionSize').value;
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Analyzing…';
+  status.textContent = 'AI is identifying foods and estimating portions…';
+
+  try {
+    const response = await fetch('/.netlify/functions/estimate-calories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: photoUrl, food_name: foodInput.value.trim(), portion_size: portion })
+    });
+    const estimate = await response.json();
+    if (!response.ok) throw new Error(estimate.error || 'AI estimate failed.');
+
+    const caloriesInput = document.getElementById(isEdit ? 'editCalories' : 'calories');
+    caloriesInput.value = estimate.total_calories;
+    if (!foodInput.value.trim() && estimate.foods?.length) {
+      foodInput.value = estimate.foods.map((food) => food.name).join(', ');
+    }
+    const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
+    status.textContent = `${foods || 'Food'} = about ${Number(estimate.total_calories).toLocaleString()} kcal · ${estimate.confidence} confidence. Confirm before saving.`;
+    if (!isEdit) updateMealPreview();
+  } catch (error) {
+    status.textContent = error.message || 'AI estimate unavailable. Try the quick estimate.';
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 async function handlePhotoChange(event) {

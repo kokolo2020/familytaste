@@ -208,7 +208,7 @@
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <label>Portion Size<select id="portionSize" name="portion_size"><option value="small">Small</option><option value="regular" selected>Regular</option><option value="large">Large</option></select></label>
-              <div class="calorie-estimator"><button id="estimateCalories" class="secondary-button" type="button">✨ Estimate Calories</button><small id="calorieEstimate">Enter the foods visible in the photo for an estimate.</small></div>
+              <div class="calorie-estimator"><div class="estimate-button-row"><button id="aiEstimateCalories" class="primary-button" type="button">🤖 Scan Photo</button><button id="estimateCalories" class="secondary-button" type="button">Quick Estimate</button></div><small id="calorieEstimate">AI Scan analyzes the photo. Quick Estimate uses food name and portion.</small></div>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>
@@ -379,7 +379,7 @@
         <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
       </div>
       <label class="modal-field">Portion Size<select id="editPortionSize"><option value="small">Small</option><option value="regular">Regular</option><option value="large">Large</option></select></label>
-      <div class="calorie-estimator modal-calorie-estimator"><button id="estimateEditCalories" class="secondary-button" type="button">✨ Estimate Calories</button><small id="editCalorieEstimate">Estimate from food name and portion.</small></div>
+      <div class="calorie-estimator modal-calorie-estimator"><div class="estimate-button-row"><button id="aiEstimateEditCalories" class="primary-button" type="button">🤖 Scan Photo</button><button id="estimateEditCalories" class="secondary-button" type="button">Quick Estimate</button></div><small id="editCalorieEstimate">AI Scan analyzes the photo. Quick Estimate uses food name and portion.</small></div>
       <label class="modal-field">Date<input id="editDate" type="date"></label>
       <label class="modal-field">Time<input id="editTime" type="time"></label>
       <label class="modal-field">Meal Type<select id="editMealType"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
