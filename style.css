@@ -2628,47 +2628,52 @@ h1 span {
 }
 
 @media (max-width: 640px) {
-  .taste-preview { display: block; padding-bottom: 76px; }
-  .taste-topbar { position: sticky; height: 58px; grid-template-columns: 38px 1fr 36px 38px; padding: 0 10px; }
+  .taste-preview { display: block; height: 100dvh; min-height: 100svh; padding: 0; overflow: hidden; background: #f8f6f2; }
+  .taste-topbar { position: relative; height: 56px; grid-template-columns: 36px 1fr 34px 36px; gap: 6px; padding: 0 10px; }
   .taste-view-button { display: none; }
   .taste-alert { width: 36px; height: 36px; font-size: 17px; }
   .taste-brand { font-size: 25px; letter-spacing: -1.4px; }
   .taste-search,
   .taste-user { width: 36px; height: 36px; }
   .taste-sidebar { display: none; }
-  .taste-dashboard { display: block; padding: 10px; }
-  .taste-primary { gap: 10px; }
-  .taste-welcome { min-height: 66px; grid-template-columns: 48px 1fr auto; gap: 9px; padding: 9px 10px; border-radius: 16px; }
-  .taste-welcome > img { width: 46px; height: 46px; }
-  .taste-welcome h1 { font-size: 17px; letter-spacing: -.4px; }
-  .taste-welcome p { margin-top: 3px; font-size: 11px; }
-  .taste-streak { padding: 7px 9px; border-radius: 12px; }
-  .taste-streak span { font-size: 14px; }
+  .taste-dashboard { display: block; height: calc(100dvh - 56px); padding: 8px 10px 82px; overflow-y: auto; overscroll-behavior: contain; }
+  .taste-primary { gap: 8px; }
+  .taste-welcome { min-height: 60px; grid-template-columns: 44px 1fr auto; gap: 8px; padding: 7px 9px; border-radius: 15px; }
+  .taste-welcome > img { width: 42px; height: 42px; }
+  .taste-welcome h1 { font-size: 15px; letter-spacing: -.35px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .taste-welcome p { margin-top: 2px; font-size: 10px; }
+  .taste-streak { padding: 6px 8px; border-radius: 11px; }
+  .taste-streak span { font-size: 13px; }
   .taste-streak small { font-size: 8px; }
-  .taste-last-meal { min-height: 145px; grid-template-columns: 46% 54%; border-radius: 17px; }
-  .taste-last-meal > img { min-height: 145px; }
-  .taste-meal-copy { padding: 13px; }
-  .taste-meal-copy h2 { margin: 5px 0; font-size: 17px; }
-  .taste-meal-copy p { margin-bottom: 10px; font-size: 10px; }
-  .taste-meal-copy button { min-height: 30px; padding: 0 9px; font-size: 10px; }
-  .taste-metrics { gap: 6px; }
-  .taste-metrics article { min-height: 56px; gap: 6px; padding: 7px 4px; border-radius: 14px; }
-  .taste-metrics article > span { font-size: 18px; }
-  .taste-metrics strong { font-size: 14px; }
+  .taste-last-meal { height: 132px; min-height: 0; grid-template-columns: 45% 55%; border-radius: 16px; }
+  .taste-last-meal > img { width: 100%; height: 132px; min-height: 0; object-fit: cover; }
+  .taste-meal-copy { min-width: 0; padding: 10px 11px; }
+  .taste-meal-copy small { font-size: 8px; }
+  .taste-meal-copy h2 { margin: 4px 0; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .taste-meal-copy p { margin-bottom: 8px; font-size: 9px; }
+  .taste-meal-copy button { min-height: 28px; padding: 0 8px; font-size: 9px; }
+  .taste-metrics { gap: 5px; }
+  .taste-metrics article { min-height: 50px; gap: 5px; padding: 5px 3px; border-radius: 13px; }
+  .taste-metrics article > span { font-size: 16px; }
+  .taste-metrics strong { font-size: 13px; }
   .taste-metrics small { font-size: 8px; }
-  .taste-snap { min-height: 55px; grid-template-columns: 38px 1fr auto; padding: 7px 12px; border-radius: 16px; }
-  .taste-snap > span:first-child { width: 36px; height: 36px; font-size: 18px; }
-  .taste-snap strong { font-size: 14px; }
-  .taste-snap small { font-size: 10px; }
-  .taste-meal-strip { overflow-x: auto; grid-template-columns: repeat(4, minmax(104px, 1fr)); padding-bottom: 3px; }
-  .taste-secondary { display: grid; grid-template-columns: 1fr; margin-top: 10px; gap: 10px; }
-  .taste-panel { padding: 14px; border-radius: 17px; }
-  .taste-favorites { display: none; }
-  .taste-activity article { grid-template-columns: 39px 1fr 34px; gap: 8px; }
-  .taste-activity article > img { width: 38px; height: 38px; }
+  .taste-snap { min-height: 50px; grid-template-columns: 34px 1fr auto; padding: 6px 10px; border-radius: 14px; }
+  .taste-snap > span:first-child { width: 32px; height: 32px; font-size: 16px; }
+  .taste-snap strong { font-size: 13px; }
+  .taste-snap small { font-size: 9px; }
+  .taste-recent,
+  .taste-secondary { display: none; }
   .taste-mobile-nav { position: fixed; right: 8px; bottom: 8px; left: 8px; z-index: 40; display: grid; grid-template-columns: repeat(5, 1fr); padding: 5px; border: 1px solid #eee3d8; border-radius: 18px; background: rgba(255, 253, 250, .96); box-shadow: 0 10px 35px rgba(72, 48, 28, .16); backdrop-filter: blur(18px); }
-  .taste-mobile-nav button { min-height: 53px; display: grid; place-items: center; gap: 1px; padding: 4px; border-radius: 13px; color: #54473e; background: transparent; }
+  .taste-mobile-nav button { min-height: 48px; display: grid; place-items: center; gap: 1px; padding: 3px; border-radius: 13px; color: #54473e; background: transparent; }
   .taste-mobile-nav button.active { color: #754818; background: #fff0da; }
   .taste-mobile-nav span { font-size: 20px; line-height: 1; }
   .taste-mobile-nav small { font-size: 8px; font-weight: 800; }
+}
+
+@media (max-width: 360px), (max-height: 650px) and (max-width: 640px) {
+  .taste-streak { display: none; }
+  .taste-welcome { grid-template-columns: 42px 1fr; }
+  .taste-last-meal { height: 116px; }
+  .taste-last-meal > img { height: 116px; }
+  .taste-dashboard { padding-top: 6px; }
 }
