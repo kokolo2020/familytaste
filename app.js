@@ -153,6 +153,8 @@ function bindEvents() {
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
   document.getElementById('chatForm').addEventListener('submit', sendChat);
   document.getElementById('mealPhoto').addEventListener('change', handlePhotoChange);
+  document.getElementById('editMealPhoto').addEventListener('change', handleEditMealPhotoChange);
+  document.getElementById('removeEditMealPhoto').addEventListener('click', clearEditMealPhoto);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
@@ -449,6 +451,7 @@ function renderFoodList(elementId, meals, emptyMessage) {
 }
 
 let editingMealId = null;
+let editingMealPhotoUrl = '';
 
 function openMealModal(mealId, defaultDay) {
   editingMealId = mealId || null;
@@ -463,6 +466,9 @@ function openMealModal(mealId, defaultDay) {
   document.getElementById('editCalories').value = meal?.calories ?? '';
   document.getElementById('editNotes').value = meal?.notes || '';
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
+  document.getElementById('editMealPhoto').value = '';
+  editingMealPhotoUrl = meal?.photo_url || '';
+  renderEditMealPhoto();
   document.getElementById('mealModal').classList.remove('hidden');
   document.getElementById('editFoodName').focus();
 }
@@ -488,7 +494,8 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
-    notes: document.getElementById('editNotes').value.trim()
+    notes: document.getElementById('editNotes').value.trim(),
+    photo_url: editingMealPhotoUrl
   };
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
@@ -502,6 +509,15 @@ async function handleSaveMealEdit() {
     renderAll();
     if (window.familyBitesDb?.isConfigured) {
       try {
+        if (meal.photo_url?.startsWith('data:')) {
+          const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
+          if (uploadedUrl) {
+            meal.photo_url = uploadedUrl;
+            fields.photo_url = uploadedUrl;
+            saveStoredAppData();
+            renderAll();
+          }
+        }
         await window.familyBitesDb.updateMeal(meal.id, { ...fields, eaten_at: meal.eaten_at });
       } catch (error) {
         console.warn('Meal updated locally but Supabase write failed.', error);
@@ -513,7 +529,7 @@ async function handleSaveMealEdit() {
       family_id: appState.familyId,
       member_id: appState.currentMember.id,
       ...fields,
-      photo_url: '',
+      photo_url: editingMealPhotoUrl,
       eaten_at: mergeDateKeepTime(new Date().toISOString(), dateValue)
     });
   }
@@ -525,6 +541,10 @@ async function persistNewMeal(meal) {
   renderAll();
   if (window.familyBitesDb?.isConfigured) {
     try {
+      if (meal.photo_url?.startsWith('data:')) {
+        const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
+        if (uploadedUrl) meal.photo_url = uploadedUrl;
+      }
       const savedMeal = await window.familyBitesDb.saveMeal(meal);
       appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
       saveStoredAppData();
@@ -1087,6 +1107,41 @@ async function handlePhotoChange(event) {
     event.target.value = '';
     resetPhotoPreview();
   }
+}
+
+async function handleEditMealPhotoChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('Please choose an image file.');
+    event.target.value = '';
+    return;
+  }
+
+  try {
+    editingMealPhotoUrl = await resizeImageFile(file, 900, 0.82);
+    renderEditMealPhoto();
+  } catch (error) {
+    console.warn('Could not load food photo.', error);
+    alert('Could not load that food photo. Please try another image.');
+    event.target.value = '';
+  }
+}
+
+function clearEditMealPhoto() {
+  editingMealPhotoUrl = '';
+  document.getElementById('editMealPhoto').value = '';
+  renderEditMealPhoto();
+}
+
+function renderEditMealPhoto() {
+  const preview = document.getElementById('editMealPhotoPreview');
+  const removeButton = document.getElementById('removeEditMealPhoto');
+  preview.classList.toggle('hidden', !editingMealPhotoUrl);
+  removeButton.classList.toggle('hidden', !editingMealPhotoUrl);
+  if (editingMealPhotoUrl) preview.src = editingMealPhotoUrl;
+  else preview.removeAttribute('src');
 }
 
 function resetPhotoPreview() {

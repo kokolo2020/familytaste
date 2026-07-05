@@ -205,7 +205,7 @@
           <div class="form-layout">
             <form id="mealForm" class="glass-form">
               <label class="photo-drop" for="mealPhoto">
-                <input id="mealPhoto" name="photo" type="file" accept="image/*" capture="environment">
+                <input id="mealPhoto" name="photo" type="file" accept="image/*">
                 <img id="photoPreview" class="photo-preview hidden" alt="Selected food preview">
                 <span id="photoIcon">📷</span>
                 <strong id="photoTitle">Tap to snap or upload food</strong>
@@ -357,6 +357,15 @@
   <div id="mealModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <h3 id="mealModalTitle">Edit Food Entry</h3>
+      <div class="edit-photo-field">
+        <img id="editMealPhotoPreview" class="edit-photo-preview hidden" alt="Food photo preview">
+        <div class="edit-photo-actions">
+          <label class="secondary-button edit-photo-button" for="editMealPhoto">📷 Choose Photo</label>
+          <input id="editMealPhoto" type="file" accept="image/*">
+          <button id="removeEditMealPhoto" class="text-button hidden" type="button">Remove</button>
+        </div>
+        <small>Take a new photo or choose one from your library.</small>
+      </div>
       <label class="modal-field">Food Name<input id="editFoodName" placeholder="Chicken rice" autocomplete="off"></label>
       <label class="modal-field">Restaurant<input id="editRestaurant" placeholder="Optional" autocomplete="off"></label>
       <label class="modal-field">Location<input id="editLocation" placeholder="Optional" autocomplete="off"></label>
