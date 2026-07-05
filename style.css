@@ -679,6 +679,26 @@ h1 span {
   margin-bottom: 24px;
 }
 
+.app-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.workspace-back {
+  display: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  color: #754818;
+  background: #fff0dc;
+  box-shadow: var(--soft-shadow);
+  font-size: 25px;
+  font-weight: 900;
+}
+
 .app-header h2 {
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
@@ -1965,6 +1985,14 @@ h1 span {
 
   .app-header {
     align-items: flex-start;
+  }
+
+  .workspace-back {
+    display: grid;
+  }
+
+  .app-title-row {
+    min-width: 0;
   }
 
   .header-actions {
