@@ -289,6 +289,14 @@ function handleAction(action) {
     selectMember(appState.currentMember || appState.members[0]);
   }
 
+  if (action === 'switch-profile') {
+    const availableMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+    if (!availableMembers.length) return;
+    const currentIndex = availableMembers.findIndex((member) => member.id === appState.currentMember?.id);
+    const nextMember = availableMembers[(currentIndex + 1) % availableMembers.length];
+    selectMember(nextMember);
+  }
+
   if (action === 'add-member') {
     openAddMemberModal();
   }
@@ -343,6 +351,12 @@ function updateProfileUi() {
   document.getElementById('navAvatar').innerHTML = avatarMarkup(member);
   document.getElementById('navName').textContent = member.name;
   document.getElementById('activeAvatar').innerHTML = `${avatarMarkup(member)} <span>${escapeHtml(member.name)}</span>`;
+  const landingAvatar = document.getElementById('tasteHeaderAvatar');
+  if (landingAvatar) {
+    landingAvatar.src = member.photo || defaultProfilePhoto(member);
+    landingAvatar.alt = member.name;
+    landingAvatar.closest('button')?.setAttribute('aria-label', `Switch profile. Currently ${member.name}`);
+  }
 }
 
 function renderDashboard() {

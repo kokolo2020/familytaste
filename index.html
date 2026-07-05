@@ -18,8 +18,8 @@
         <button class="taste-alert" data-page="chat" type="button" aria-label="Open family messages">🔔</button>
         <button class="taste-brand" data-action="home" type="button" aria-label="FamilyTaste home"><span>Family</span><strong>Taste</strong></button>
         <button class="taste-search" data-page="timeline" type="button" aria-label="Search meal history">⌕</button>
-        <button class="taste-user" data-page="profile" type="button" aria-label="Open Dad's profile">
-          <img src="assets/avatars/dad.jpg" alt="Dad">
+        <button class="taste-user" data-action="switch-profile" type="button" aria-label="Switch family profile">
+          <img id="tasteHeaderAvatar" src="assets/avatars/dad.jpg" alt="Dad">
         </button>
       </header>
 
@@ -340,7 +340,7 @@
                 <input id="profilePhotoInput" type="file" accept="image/*">
                 <span>Upload Profile Photo</span>
               </label>
-              <button class="secondary-button" data-action="home">Switch Profile</button>
+              <button class="secondary-button" data-action="switch-profile">Switch Profile</button>
             </div>
           </div>
         </section>
