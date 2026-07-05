@@ -79,6 +79,9 @@ function bindEvents() {
     const actionTarget = event.target.closest('[data-action]');
 
     if (pageTarget) {
+      if (pageTarget.closest('#landing')) {
+        selectMember(appState.currentMember || appState.members[0]);
+      }
       showPage(pageTarget.dataset.page);
     }
 

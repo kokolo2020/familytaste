@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FamilyBites | Every Meal. Every Memory. One Family.</title>
-  <meta name="description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
+  <title>FamilyTaste | Your Family Food & Wellness Hub</title>
+  <meta name="description" content="FamilyTaste is a private family food journal, meal planner, and wellness hub." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
@@ -12,61 +12,84 @@
 </head>
 <body>
   <main id="app" class="site-shell">
-    <section id="landing" class="landing-view">
-      <aside class="landing-sidebar" aria-label="FamilyBites menu preview">
-        <button class="landing-logo" data-action="home" aria-label="FamilyBites home">
-          <span class="logo-house">⌂</span>
-          <span>
-            <strong>FamilyBites</strong>
-          </span>
+    <section id="landing" class="landing-view taste-preview">
+      <header class="taste-topbar">
+        <button class="taste-view-button" data-action="demo-dashboard" type="button">View App</button>
+        <button class="taste-alert" data-page="chat" type="button" aria-label="Open family messages">🔔</button>
+        <button class="taste-brand" data-action="home" type="button" aria-label="FamilyTaste home"><span>Family</span><strong>Taste</strong></button>
+        <button class="taste-search" data-page="timeline" type="button" aria-label="Search meal history">⌕</button>
+        <button class="taste-user" data-page="profile" type="button" aria-label="Open Dad's profile">
+          <img src="assets/avatars/dad.jpg" alt="Dad">
         </button>
-        <nav class="landing-menu" aria-label="Preview navigation">
-          <button class="active" type="button" data-page="dashboard"><span>⌂</span>Home</button>
-          <button type="button" data-page="order"><span>🧑‍🍳</span>Chef Menu</button>
-          <button type="button" data-page="weekly"><span>▥</span>Weekly Recap</button>
-          <button type="button" data-page="chat"><span>☏</span>Family Chat</button>
-          <button type="button" data-page="settings"><span>⚙</span>Settings</button>
+      </header>
+
+      <aside class="taste-sidebar" aria-label="FamilyTaste navigation">
+        <nav class="taste-menu">
+          <button class="active" data-page="dashboard" type="button"><span>⌂</span>Home</button>
+          <button data-page="snap" type="button"><span>▣</span>Snap Food</button>
+          <button data-page="order" type="button"><span>♨</span>Chef Menu</button>
+          <button data-page="chat" type="button"><span>▢</span>Chat</button>
+          <button data-page="timeline" type="button"><span>▦</span>Timeline</button>
+          <button data-page="weekly" type="button"><span>▥</span>Reports</button>
+          <button data-page="profile" type="button"><span>♙</span>Profile</button>
+          <button data-page="settings" type="button"><span>⚙</span>Settings</button>
         </nav>
+        <div id="profileGrid" class="profile-grid taste-profile-grid" aria-label="Choose family member"></div>
       </aside>
 
-      <div class="landing-main">
-        <header class="landing-topbar">
-          <button class="nav-pill" data-action="demo-dashboard">View App</button>
-          <div class="family-account">
-            <span class="bell">●</span>
-            <span class="account-avatar">👨</span>
-            <span>
-              <small>Welcome back!</small>
-              <strong>The Johnson Family</strong>
-            </span>
+      <main class="taste-dashboard">
+        <section class="taste-primary">
+          <div class="taste-welcome">
+            <img src="assets/avatars/dad.jpg" alt="Dad">
+            <div><h1>Good Morning, Dad! ☀️</h1><p>Feeling <strong>Great</strong> 😊</p></div>
+            <div class="taste-streak"><span>🔥 12</span><small>Day Streak</small></div>
           </div>
-        </header>
 
-        <section class="profile-dock">
-          <div id="profileGrid" class="profile-grid"></div>
+          <article class="taste-last-meal">
+            <div class="taste-meal-copy"><small>LAST MEAL</small><h2>Chicken Teriyaki</h2><p>Today · 12:30 PM</p><button data-page="favorites" type="button">♥ &nbsp; Favorite</button></div>
+            <img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=82" alt="Chicken teriyaki with rice and broccoli">
+          </article>
+
+          <div class="taste-metrics">
+            <article><span>🔥</span><div><strong>1,825</strong><small>Calories</small></div></article>
+            <article><span>👟</span><div><strong>8,432</strong><small>Steps</small></div></article>
+            <article><span>💧</span><div><strong>2.3 L</strong><small>Water</small></div></article>
+          </div>
+
+          <button class="taste-snap" data-page="snap" type="button"><span>📷</span><span><strong>SNAP FOOD</strong><small>Take a photo of your meal</small></span><i>›</i></button>
+
+          <section class="taste-recent">
+            <div class="taste-section-title"><strong>RECENT MEALS</strong><button data-page="timeline" type="button">See All</button></div>
+            <div class="taste-meal-strip">
+              <article><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=360&q=80" alt="Burger"><small>2:30 PM</small></article>
+              <article><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=360&q=80" alt="Sushi"><small>7:00 PM</small></article>
+              <article><img src="https://images.unsplash.com/photo-1589984662646-e7b2e4962f18?auto=format&fit=crop&w=360&q=80" alt="Watermelon"><small>8:20 PM</small></article>
+              <article><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=80" alt="Pasta"><small>Yesterday</small></article>
+            </div>
+          </section>
         </section>
 
-        <section class="weekly-preview">
-          <div class="section-title">
-            <button class="text-pill" data-action="demo-dashboard" type="button">View Chef Menu ›</button>
-          </div>
-          <div class="week-strip">
-            <article><span>Mon</span><strong>Spaghetti Bolognese</strong><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=78" alt="Spaghetti Bolognese"></article>
-            <article><span>Tue</span><strong>Chicken Stir Fry</strong><img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=360&q=78" alt="Chicken stir fry"></article>
-            <article><span>Wed</span><strong>Salmon with Asparagus</strong><img src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=360&q=78" alt="Salmon with asparagus"></article>
-            <article><span>Thu</span><strong>Tacos Night</strong><img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=360&q=78" alt="Tacos"></article>
-            <article><span>Fri</span><strong>Lemon Garlic Chicken</strong><img src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=360&q=78" alt="Lemon garlic chicken"></article>
-            <article><span>Sat</span><strong>Homemade Pizza</strong><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=360&q=78" alt="Homemade pizza"></article>
-            <article><span>Sun</span><strong>Family Brunch</strong><img src="https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=360&q=78" alt="Family brunch pancakes"></article>
-          </div>
-        </section>
+        <aside class="taste-secondary">
+          <section class="taste-panel taste-activity">
+            <div class="taste-section-title"><strong>FAMILY ACTIVITY</strong><button data-page="timeline" type="button">See All</button></div>
+            <article><img src="assets/avatars/mom.jpg" alt="Rithyna"><p><strong>Rithyna logged a meal</strong><span>Grilled Salmon Salad</span><small>15m ago</small></p><i>🥗</i></article>
+            <article><img src="assets/avatars/emily.jpg" alt="Emily"><p><strong>Emily drank 1.5L Water</strong><span>Great job! 💧</span><small>1h ago</small></p><i>💧</i></article>
+            <article><img src="assets/avatars/james.jpg" alt="James"><p><strong>James walked 6,200 steps</strong><span>Keep it up! 👏</span><small>2h ago</small></p><i>👟</i></article>
+          </section>
+          <section class="taste-panel taste-favorites">
+            <div class="taste-section-title"><strong>FAVORITE FOODS</strong><button data-page="favorites" type="button">See All</button></div>
+            <div><span>🍣<small>Sushi</small></span><span>🍕<small>Pizza</small></span><span>🍜<small>Ramen</small></span><span>🍉<small>Fruit</small></span><span>🍦<small>Ice Cream</small></span></div>
+          </section>
+        </aside>
+      </main>
 
-        <section class="landing-actions" aria-label="FamilyBites shortcuts">
-          <button data-action="demo-dashboard" type="button"><span>💬</span><strong>Family Chat</strong><i>›</i></button>
-          <button data-action="demo-dashboard" type="button"><span>📅</span><strong>Weekly Recap</strong><i>›</i></button>
-          <button data-action="demo-dashboard" type="button"><span>🧑‍🍳</span><strong>Chef Menu</strong><i>›</i></button>
-        </section>
-      </div>
+      <nav class="taste-mobile-nav" aria-label="Mobile navigation">
+        <button class="active" data-page="dashboard" type="button"><span>⌂</span><small>Home</small></button>
+        <button data-page="snap" type="button"><span>▣</span><small>Snap Food</small></button>
+        <button data-page="order" type="button"><span>♨</span><small>Chef Menu</small></button>
+        <button data-page="chat" type="button"><span>▢</span><small>Chat</small></button>
+        <button data-page="profile" type="button"><span>♙</span><small>Profile</small></button>
+      </nav>
     </section>
 
     <section id="workspace" class="workspace-view hidden">
