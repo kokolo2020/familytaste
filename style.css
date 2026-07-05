@@ -1084,6 +1084,22 @@ h1 span {
   background-size: 5px 5px, 5px 5px;
 }
 
+.calorie-estimator {
+  align-self: end;
+  display: grid;
+  gap: 6px;
+}
+
+.calorie-estimator small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.calorie-estimator .secondary-button {
+  width: 100%;
+}
+
 .glass-form textarea {
   min-height: 110px;
   padding-top: 14px;
@@ -1402,6 +1418,55 @@ h1 span {
   display: grid;
   gap: 10px;
   justify-items: start;
+  width: min(100%, 720px);
+}
+
+.daily-calorie-card {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 248, 235, 0.72);
+}
+
+.daily-calorie-card h4 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.daily-calorie-card > small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.daily-calorie-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.daily-calorie-grid label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.daily-calorie-grid input,
+.daily-calorie-grid select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid #e6d6c5;
+  border-radius: 9px;
+  color: var(--text);
+  background: #fff;
+  font: inherit;
 }
 
 .meal-actions {
@@ -1979,6 +2044,16 @@ h1 span {
 }
 
 @media (max-width: 520px) {
+  .profile-detail {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .profile-detail > div:last-child {
+    width: 100%;
+  }
+
   .modal-overlay {
     place-items: start center;
     padding: max(10px, env(safe-area-inset-top)) 10px max(82px, env(safe-area-inset-bottom));
@@ -2038,6 +2113,14 @@ h1 span {
   .modal-actions button {
     min-width: 0;
     flex: 1;
+  }
+
+  .daily-calorie-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-calorie-card {
+    padding: 14px;
   }
 }
 

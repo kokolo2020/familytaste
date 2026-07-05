@@ -17,7 +17,8 @@ const appState = {
   chefOrders: [],
   cart: [],
   voiceNotes: [],
-  bioLogs: {}
+  bioLogs: {},
+  profileNutrition: {}
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -27,6 +28,14 @@ const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
+const profileNutritionStorageKey = 'familyBites.profileNutrition.v1';
+
+const calorieReference = [
+  ['beef kebab', 400], ['french fries', 365], ['iced latte', 180], ['chicken', 450],
+  ['salmon', 420], ['burger', 650], ['pizza', 700], ['sushi', 450], ['ramen', 500],
+  ['pasta', 600], ['spaghetti', 600], ['rice', 220], ['salad', 250], ['soup', 250],
+  ['egg', 180], ['bread', 160], ['watermelon', 90], ['ice cream', 250], ['smoothie', 220]
+];
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
@@ -164,6 +173,9 @@ function bindEvents() {
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
+  document.getElementById('estimateCalories').addEventListener('click', () => applyCalorieEstimate(false));
+  document.getElementById('estimateEditCalories').addEventListener('click', () => applyCalorieEstimate(true));
+  document.getElementById('calculateDailyCalories').addEventListener('click', calculateDailyCalories);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     document.getElementById('mealModal').classList.add('hidden');
   });
@@ -368,7 +380,7 @@ function renderDashboard() {
   const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
   const spend = sum(todayMeals, 'price');
-  const goal = Number(appState.currentMember?.target_calories) || 2200;
+  const goal = Number(appState.profileNutrition[appState.currentMember?.id]?.target_calories || appState.currentMember?.target_calories) || 2200;
   const progress = Math.min(Math.round((calories / goal) * 100), 100);
 
   document.getElementById('todayCalories').textContent = calories.toLocaleString();
@@ -465,6 +477,7 @@ function openMealModal(mealId, defaultDay) {
   document.getElementById('editLocation').value = meal?.location_name || '';
   document.getElementById('editPrice').value = meal?.price ?? '';
   document.getElementById('editCalories').value = meal?.calories ?? '';
+  document.getElementById('editPortionSize').value = meal?.portion_size || 'regular';
   document.getElementById('editNotes').value = meal?.notes || '';
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
   document.getElementById('editTime').value = timeKey(meal ? new Date(meal.eaten_at) : defaultDate);
@@ -506,6 +519,7 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
+    portion_size: document.getElementById('editPortionSize').value,
     notes: document.getElementById('editNotes').value.trim(),
     meal_type: document.getElementById('editMealType').value,
     photo_url: editingMealPhotoUrl
@@ -951,7 +965,52 @@ function renderProfile() {
   document.getElementById('profileNameLarge').textContent = member.name;
   const nameInput = document.getElementById('profileNameInput');
   if (document.activeElement !== nameInput) nameInput.value = member.name;
+  renderDailyCalorieProfile(member);
   renderAvatarPicker(member);
+}
+
+function renderDailyCalorieProfile(member) {
+  const profile = appState.profileNutrition[member.id] || {};
+  const values = {
+    profileAge: profile.age,
+    profileSex: profile.sex || (member.name.toLowerCase().includes('dad') ? 'male' : 'female'),
+    profileHeight: profile.height_cm,
+    profileWeight: profile.weight_kg ?? member.weight_kg,
+    profileActivity: String(profile.activity || 1.55)
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const input = document.getElementById(id);
+    if (document.activeElement !== input) input.value = value ?? '';
+  });
+  document.getElementById('dailyCalorieGoal').textContent = Number(profile.target_calories || member.target_calories || 2200).toLocaleString();
+}
+
+function calculateDailyCalories() {
+  const member = appState.currentMember;
+  if (!member) return;
+  const age = numberOrNull(document.getElementById('profileAge').value);
+  const height = numberOrNull(document.getElementById('profileHeight').value);
+  const weight = numberOrNull(document.getElementById('profileWeight').value);
+  const sex = document.getElementById('profileSex').value;
+  const activity = Number(document.getElementById('profileActivity').value);
+  if (!age || !height || !weight) {
+    alert('Enter age, height, and weight to estimate daily calories.');
+    return;
+  }
+  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'male' ? 5 : -161);
+  const targetCalories = Math.max(1200, Math.round((bmr * activity) / 50) * 50);
+  appState.profileNutrition[member.id] = {
+    age,
+    sex,
+    height_cm: height,
+    weight_kg: weight,
+    activity,
+    target_calories: targetCalories
+  };
+  member.target_calories = targetCalories;
+  saveStoredAppData();
+  renderDashboard();
+  renderDailyCalorieProfile(member);
 }
 
 async function handleSaveProfileName() {
@@ -995,6 +1054,7 @@ async function saveMeal(event) {
     location_name: formData.get('location_name').trim(),
     price: numberOrNull(formData.get('price')),
     calories: numberOrNull(formData.get('calories')),
+    portion_size: formData.get('portion_size') || 'regular',
     notes: formData.get('notes').trim(),
     meal_type: formData.get('meal_type'),
     photo_url: photoUrl,
@@ -1094,6 +1154,31 @@ function updateMealPreview() {
 
   previewPhoto.classList.toggle('hidden', !photoUrl);
   if (photoUrl) previewPhoto.src = photoUrl;
+}
+
+function estimateMealCalories(foodName, mealType, portionSize) {
+  const normalized = String(foodName || '').toLowerCase();
+  const matchedCalories = calorieReference
+    .filter(([keyword]) => normalized.includes(keyword))
+    .reduce((total, [, calories]) => total + calories, 0);
+  const fallback = { breakfast: 400, lunch: 600, dinner: 700, snack: 250 }[mealType] || 500;
+  const portionMultiplier = { small: 0.75, regular: 1, large: 1.35 }[portionSize] || 1;
+  return Math.round(((matchedCalories || fallback) * portionMultiplier) / 10) * 10;
+}
+
+function applyCalorieEstimate(isEdit) {
+  const foodInput = document.getElementById(isEdit ? 'editFoodName' : 'foodName');
+  if (!foodInput.value.trim()) {
+    foodInput.focus();
+    alert('Enter the foods visible in the photo first.');
+    return;
+  }
+  const mealType = document.getElementById(isEdit ? 'editMealType' : 'mealType').value;
+  const portion = document.getElementById(isEdit ? 'editPortionSize' : 'portionSize').value;
+  const estimate = estimateMealCalories(foodInput.value, mealType, portion);
+  document.getElementById(isEdit ? 'editCalories' : 'calories').value = estimate;
+  document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate').textContent = `Estimated ${estimate.toLocaleString()} kcal · confirm before saving.`;
+  if (!isEdit) updateMealPreview();
 }
 
 async function handlePhotoChange(event) {
@@ -1311,7 +1396,9 @@ function applyStoredAppData() {
   const storedCart = getStoredJson(chefCartStorageKey, []);
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
+  const storedProfileNutrition = getStoredJson(profileNutritionStorageKey, {});
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
+  if (Object.keys(storedProfileNutrition).length) appState.profileNutrition = storedProfileNutrition;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
@@ -1326,6 +1413,7 @@ function saveStoredAppData() {
   setStoredJson(chefCartStorageKey, appState.cart);
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
+  setStoredJson(profileNutritionStorageKey, appState.profileNutrition);
 }
 
 function mergeRecords(primary, fallback) {
@@ -1397,13 +1485,15 @@ function resizeImageFile(file, maxSize, quality) {
 
 function normalizeMeal(meal) {
   const rawNotes = meal.notes || meal.description || '';
-  const mealTypeMatch = rawNotes.match(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i);
+  const mealTypeMatch = rawNotes.match(/\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]/i);
+  const portionMatch = rawNotes.match(/\[\[portion_size:(small|regular|large)\]\]/i);
   return {
     ...meal,
     food_name: meal.food_name || meal.name || 'Meal',
-    notes: rawNotes.replace(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i, ''),
+    notes: rawNotes.replace(/\n?\[\[(?:meal_type:(?:breakfast|lunch|dinner|snack)|portion_size:(?:small|regular|large))\]\]/gi, ''),
     meal_type: meal.meal_type || mealTypeMatch?.[1]?.toLowerCase() || inferMealType(new Date(meal.eaten_at || meal.created_at || Date.now())),
     photo_url: meal.photo_url || '',
+    portion_size: meal.portion_size || portionMatch?.[1]?.toLowerCase() || 'regular',
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };
 }

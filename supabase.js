@@ -68,7 +68,7 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
-        description: serializeMealDescription(meal.notes, meal.meal_type),
+        description: serializeMealDescription(meal.notes, meal.meal_type, meal.portion_size),
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
       };
@@ -83,10 +83,11 @@
     async updateMeal(mealId, fields) {
       if (!client) return null;
       const payload = { ...fields };
-      if ('notes' in payload || 'meal_type' in payload) {
-        payload.description = serializeMealDescription(payload.notes, payload.meal_type);
+      if ('notes' in payload || 'meal_type' in payload || 'portion_size' in payload) {
+        payload.description = serializeMealDescription(payload.notes, payload.meal_type, payload.portion_size);
         delete payload.notes;
         delete payload.meal_type;
+        delete payload.portion_size;
       }
       const { data, error } = await client
         .from('food_entries')
@@ -201,9 +202,13 @@
     }
   };
 
-  function serializeMealDescription(notes, mealType) {
-    const cleanNotes = String(notes || '').replace(/\n?\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]$/i, '');
-    return mealType ? `${cleanNotes}${cleanNotes ? '\n' : ''}[[meal_type:${mealType}]]` : cleanNotes || null;
+  function serializeMealDescription(notes, mealType, portionSize) {
+    const cleanNotes = String(notes || '').replace(/\n?\[\[(?:meal_type:(?:breakfast|lunch|dinner|snack)|portion_size:(?:small|regular|large))\]\]/gi, '');
+    const metadata = [
+      mealType ? `[[meal_type:${mealType}]]` : '',
+      portionSize ? `[[portion_size:${portionSize}]]` : ''
+    ].filter(Boolean).join('\n');
+    return `${cleanNotes}${cleanNotes && metadata ? '\n' : ''}${metadata}` || null;
   }
 
   async function seedMembers(familyId) {

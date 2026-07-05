@@ -219,6 +219,8 @@
               <label>Time<input id="mealTime" name="meal_time" type="time" required></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <label>Portion Size<select id="portionSize" name="portion_size"><option value="small">Small</option><option value="regular" selected>Regular</option><option value="large">Large</option></select></label>
+              <div class="calorie-estimator"><button id="estimateCalories" class="secondary-button" type="button">✨ Estimate Calories</button><small id="calorieEstimate">Enter the foods visible in the photo for an estimate.</small></div>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>
@@ -344,6 +346,18 @@
                 <span>Upload Profile Photo</span>
               </label>
               <button class="secondary-button" data-action="switch-profile">Switch Profile</button>
+              <section class="daily-calorie-card">
+                <div><p class="eyebrow">Daily calorie estimate</p><h4><span id="dailyCalorieGoal">2,200</span> kcal/day</h4></div>
+                <div class="daily-calorie-grid">
+                  <label>Age<input id="profileAge" type="number" min="14" max="100" placeholder="Age"></label>
+                  <label>Sex<select id="profileSex"><option value="male">Male</option><option value="female">Female</option></select></label>
+                  <label>Height (cm)<input id="profileHeight" type="number" min="100" max="250" placeholder="170"></label>
+                  <label>Weight (kg)<input id="profileWeight" type="number" min="30" max="300" step="0.1" placeholder="70"></label>
+                  <label class="wide">Activity<select id="profileActivity"><option value="1.2">Mostly seated</option><option value="1.375">Light exercise</option><option value="1.55" selected>Moderate exercise</option><option value="1.725">Very active</option></select></label>
+                </div>
+                <button id="calculateDailyCalories" class="primary-button" type="button">Calculate Daily Need</button>
+                <small>General maintenance estimate. Health conditions, pregnancy, and specific goals need professional guidance.</small>
+              </section>
             </div>
           </div>
         </section>
@@ -376,6 +390,8 @@
         <label class="modal-field">Price (฿)<input id="editPrice" type="number" min="0" step="0.01" inputmode="decimal"></label>
         <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
       </div>
+      <label class="modal-field">Portion Size<select id="editPortionSize"><option value="small">Small</option><option value="regular">Regular</option><option value="large">Large</option></select></label>
+      <div class="calorie-estimator modal-calorie-estimator"><button id="estimateEditCalories" class="secondary-button" type="button">✨ Estimate Calories</button><small id="editCalorieEstimate">Estimate from food name and portion.</small></div>
       <label class="modal-field">Date<input id="editDate" type="date"></label>
       <label class="modal-field">Time<input id="editTime" type="time"></label>
       <label class="modal-field">Meal Type<select id="editMealType"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
