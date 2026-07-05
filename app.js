@@ -411,19 +411,20 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
 
   const impacts = [
-    ['Brain', clampScore(glucoseScore * .6 + nutrition * .4), '🧠'],
-    ['Heart', clampScore(activityScore * .55 + nutrition * .45), '♡'],
-    ['Muscles', clampScore(activityScore * .65 + calorieScore * .35), '💪'],
-    ['Digestive System', clampScore(nutrition * .75 + Math.min(mealCount * 8, 25)), '◉'],
-    ['Bones', clampScore(activityScore * .45 + nutrition * .55), '🦴'],
-    ['Energy', clampScore(calorieScore * .65 + activityScore * .35), '⚡']
+    ['Brain', clampScore(glucoseScore * .6 + nutrition * .4), '🧠', 'Balanced meals support focus and steady mood.', 'brain'],
+    ['Heart', clampScore(activityScore * .55 + nutrition * .45), '🫀', 'Healthy fats and movement support your heart.', 'heart'],
+    ['Muscles', clampScore(activityScore * .65 + calorieScore * .35), '💪', 'Protein and activity help build and repair muscle.', 'muscles'],
+    ['Digestive System', clampScore(nutrition * .75 + Math.min(mealCount * 8, 25)), '🌙', 'Fiber and whole foods support healthy digestion.', 'digestion'],
+    ['Energy', clampScore(calorieScore * .65 + activityScore * .35), '⚡', 'Carbohydrates and movement provide daily energy.', 'energy'],
+    ['Bones', clampScore(activityScore * .45 + nutrition * .55), '🦴', 'Calcium-rich foods and activity support strong bones.', 'bones']
   ];
   const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon]) => `
-    <div class="impact-row">
-      <span class="impact-icon">${icon}</span>
-      <div><span><b>${name}</b><strong>${score}%</strong></span><i><em style="width:${score}%"></em></i></div>
-    </div>`).join('');
+  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position]) => `
+    <article class="impact-callout impact-${position}">
+      <span class="impact-callout-title">${icon} ${name}</span>
+      <strong>${score}%</strong>
+      <p>${copy}</p>
+    </article>`).join('');
 
   const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
   const recommendationList = document.getElementById('aiRecommendationList');
