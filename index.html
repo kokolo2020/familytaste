@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FamilyTaste | Your Family Food & Wellness Hub</title>
-  <meta name="description" content="FamilyTaste is a private family food journal, meal planner, and wellness hub." />
+  <title>FamilyBites | Every Meal. Every Memory. One Family.</title>
+  <meta name="description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
@@ -12,84 +12,61 @@
 </head>
 <body>
   <main id="app" class="site-shell">
-    <section id="landing" class="landing-view taste-preview">
-      <header class="taste-topbar">
-        <button class="taste-view-button" data-action="demo-dashboard" type="button">View App</button>
-        <button class="taste-alert" data-page="chat" type="button" aria-label="Open family messages">🔔</button>
-        <button class="taste-brand" data-action="home" type="button" aria-label="FamilyTaste home"><span>Family</span><strong>Taste</strong></button>
-        <button class="taste-search" data-page="timeline" type="button" aria-label="Search meal history">⌕</button>
-        <button class="taste-user" data-action="switch-profile" type="button" aria-label="Switch family profile">
-          <img id="tasteHeaderAvatar" src="assets/avatars/dad.jpg" alt="Dad">
+    <section id="landing" class="landing-view">
+      <aside class="landing-sidebar" aria-label="FamilyBites menu preview">
+        <button class="landing-logo" data-action="home" aria-label="FamilyBites home">
+          <span class="logo-house">⌂</span>
+          <span>
+            <strong>FamilyBites</strong>
+          </span>
         </button>
-      </header>
-
-      <aside class="taste-sidebar" aria-label="FamilyTaste navigation">
-        <nav class="taste-menu">
-          <button class="active" data-page="dashboard" type="button"><span>⌂</span>Home</button>
-          <button data-page="snap" type="button"><span>▣</span>Snap Food</button>
-          <button data-page="order" type="button"><span>♨</span>Chef Menu</button>
-          <button data-page="chat" type="button"><span>▢</span>Chat</button>
-          <button data-page="timeline" type="button"><span>▦</span>Timeline</button>
-          <button data-page="weekly" type="button"><span>▥</span>Reports</button>
-          <button data-page="profile" type="button"><span>♙</span>Profile</button>
-          <button data-page="settings" type="button"><span>⚙</span>Settings</button>
+        <nav class="landing-menu" aria-label="Preview navigation">
+          <button class="active" type="button" data-page="dashboard"><span>⌂</span>Home</button>
+          <button type="button" data-page="order"><span>🧑‍🍳</span>Chef Menu</button>
+          <button type="button" data-page="weekly"><span>▥</span>Weekly Recap</button>
+          <button type="button" data-page="chat"><span>☏</span>Family Chat</button>
+          <button type="button" data-page="settings"><span>⚙</span>Settings</button>
         </nav>
-        <div id="profileGrid" class="profile-grid taste-profile-grid" aria-label="Choose family member"></div>
       </aside>
 
-      <main class="taste-dashboard">
-        <section class="taste-primary">
-          <div class="taste-welcome">
-            <img id="tasteWelcomeAvatar" src="assets/avatars/dad.jpg" alt="Dad">
-            <div><h1 id="tasteWelcomeGreeting">Good morning, Dad! ☀️</h1><p>Feeling <strong>Great</strong> 😊</p></div>
-            <div class="taste-streak"><span>🔥 12</span><small>Day Streak</small></div>
+      <div class="landing-main">
+        <header class="landing-topbar">
+          <button class="nav-pill" data-action="demo-dashboard">View App</button>
+          <div class="family-account">
+            <span class="bell">●</span>
+            <span class="account-avatar">👨</span>
+            <span>
+              <small>Welcome back!</small>
+              <strong>The Johnson Family</strong>
+            </span>
           </div>
+        </header>
 
-          <article class="taste-last-meal">
-            <div class="taste-meal-copy"><small>LAST MEAL</small><h2>Chicken Teriyaki</h2><p>Today · 12:30 PM</p><button data-page="favorites" type="button">♥ &nbsp; Favorite</button></div>
-            <img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=82" alt="Chicken teriyaki with rice and broccoli">
-          </article>
-
-          <div class="taste-metrics">
-            <article><span>🔥</span><div><strong>1,825</strong><small>Calories</small></div></article>
-            <article><span>👟</span><div><strong>8,432</strong><small>Steps</small></div></article>
-            <article><span>💧</span><div><strong>2.3 L</strong><small>Water</small></div></article>
-          </div>
-
-          <button class="taste-snap" data-page="snap" type="button"><span>📷</span><span><strong>SNAP FOOD</strong><small>Take a photo of your meal</small></span><i>›</i></button>
-
-          <section class="taste-recent">
-            <div class="taste-section-title"><strong>RECENT MEALS</strong><button data-page="timeline" type="button">See All</button></div>
-            <div class="taste-meal-strip">
-              <article><img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=360&q=80" alt="Burger"><small>2:30 PM</small></article>
-              <article><img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=360&q=80" alt="Sushi"><small>7:00 PM</small></article>
-              <article><img src="https://images.unsplash.com/photo-1589984662646-e7b2e4962f18?auto=format&fit=crop&w=360&q=80" alt="Watermelon"><small>8:20 PM</small></article>
-              <article><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=80" alt="Pasta"><small>Yesterday</small></article>
-            </div>
-          </section>
+        <section class="profile-dock">
+          <div id="profileGrid" class="profile-grid"></div>
         </section>
 
-        <aside class="taste-secondary">
-          <section class="taste-panel taste-activity">
-            <div class="taste-section-title"><strong>FAMILY ACTIVITY</strong><button data-page="timeline" type="button">See All</button></div>
-            <article><img src="assets/avatars/mom.jpg" alt="Rithyna"><p><strong>Rithyna logged a meal</strong><span>Grilled Salmon Salad</span><small>15m ago</small></p><i>🥗</i></article>
-            <article><img src="assets/avatars/emily.jpg" alt="Emily"><p><strong>Emily drank 1.5L Water</strong><span>Great job! 💧</span><small>1h ago</small></p><i>💧</i></article>
-            <article><img src="assets/avatars/james.jpg" alt="James"><p><strong>James walked 6,200 steps</strong><span>Keep it up! 👏</span><small>2h ago</small></p><i>👟</i></article>
-          </section>
-          <section class="taste-panel taste-favorites">
-            <div class="taste-section-title"><strong>FAVORITE FOODS</strong><button data-page="favorites" type="button">See All</button></div>
-            <div><span>🍣<small>Sushi</small></span><span>🍕<small>Pizza</small></span><span>🍜<small>Ramen</small></span><span>🍉<small>Fruit</small></span><span>🍦<small>Ice Cream</small></span></div>
-          </section>
-        </aside>
-      </main>
+        <section class="weekly-preview">
+          <div class="section-title">
+            <button class="text-pill" data-action="demo-dashboard" type="button">View Chef Menu ›</button>
+          </div>
+          <div class="week-strip">
+            <article><span>Mon</span><strong>Spaghetti Bolognese</strong><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=78" alt="Spaghetti Bolognese"></article>
+            <article><span>Tue</span><strong>Chicken Stir Fry</strong><img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=360&q=78" alt="Chicken stir fry"></article>
+            <article><span>Wed</span><strong>Salmon with Asparagus</strong><img src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=360&q=78" alt="Salmon with asparagus"></article>
+            <article><span>Thu</span><strong>Tacos Night</strong><img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=360&q=78" alt="Tacos"></article>
+            <article><span>Fri</span><strong>Lemon Garlic Chicken</strong><img src="https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=360&q=78" alt="Lemon garlic chicken"></article>
+            <article><span>Sat</span><strong>Homemade Pizza</strong><img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=360&q=78" alt="Homemade pizza"></article>
+            <article><span>Sun</span><strong>Family Brunch</strong><img src="https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=360&q=78" alt="Family brunch pancakes"></article>
+          </div>
+        </section>
 
-      <nav class="taste-mobile-nav" aria-label="Mobile navigation">
-        <button class="active" data-page="dashboard" type="button"><span>⌂</span><small>Home</small></button>
-        <button data-page="snap" type="button"><span>▣</span><small>Snap Food</small></button>
-        <button data-page="order" type="button"><span>♨</span><small>Chef Menu</small></button>
-        <button data-page="chat" type="button"><span>▢</span><small>Chat</small></button>
-        <button data-page="profile" type="button"><span>♙</span><small>Profile</small></button>
-      </nav>
+        <section class="landing-actions" aria-label="FamilyBites shortcuts">
+          <button data-action="demo-dashboard" type="button"><span>💬</span><strong>Family Chat</strong><i>›</i></button>
+          <button data-action="demo-dashboard" type="button"><span>📅</span><strong>Weekly Recap</strong><i>›</i></button>
+          <button data-action="demo-dashboard" type="button"><span>🧑‍🍳</span><strong>Chef Menu</strong><i>›</i></button>
+        </section>
+      </div>
     </section>
 
     <section id="workspace" class="workspace-view hidden">
@@ -110,12 +87,9 @@
 
       <div class="content-shell">
         <header class="app-header">
-          <div class="app-title-row">
-            <button class="workspace-back" data-action="home" type="button" aria-label="Back to FamilyTaste landing page">←</button>
-            <div>
-              <p id="activeKicker" class="eyebrow">Dashboard</p>
-              <h2 id="pageTitle">Welcome back</h2>
-            </div>
+          <div>
+            <p id="activeKicker" class="eyebrow">Dashboard</p>
+            <h2 id="pageTitle">Welcome back</h2>
           </div>
           <div class="header-actions">
             <button class="icon-button" data-page="chat" aria-label="Open family chat">💬</button>
@@ -124,20 +98,77 @@
         </header>
 
         <section id="page-dashboard" class="page active-page" data-title="Dashboard" data-kicker="Today">
-          <section class="vital-summary" aria-label="Today's vital stats">
-            <article class="vital-card vital-calories"><span>🔥</span><div><small>Calories</small><strong id="todayCalories">0</strong><em id="calorieGoalLabel">Goal 2,200</em></div><div class="progress-track"><i id="calorieProgress"></i></div></article>
-            <article class="vital-card"><span>⚖️</span><div><small>Weight</small><strong id="vitalWeight">—</strong><em>kg</em></div></article>
-            <article class="vital-card"><span>👟</span><div><small>Steps</small><strong id="vitalSteps">—</strong><em>today</em></div></article>
-            <article class="vital-card"><span>🩸</span><div><small>Blood Sugar</small><strong id="vitalSugar">—</strong><em>mg/dL</em></div></article>
-          </section>
+          <div class="dashboard-layout">
+            <div class="dashboard-main-column">
+              <div class="dashboard-intro">
+                <div>
+                  <p class="eyebrow">Good morning, <span id="dashboardMemberName">Family</span>! 👋</p>
+                  <h3>Today’s Food</h3>
+                  <p class="today-food-totals"><span id="dashboardMealCount">0 meals</span> · <strong id="dashboardCalorieCount">0 cal</strong></p>
+                </div>
+                <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
+              </div>
 
-          <section class="bio-panel">
+              <section class="today-food-panel dashboard-card">
+                <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
+              </section>
+
+              <details class="yesterday-diary-card dashboard-card">
+                <summary>
+                  <span class="yesterday-diary-icon">📅</span>
+                  <span><strong id="foodHistoryTitle">Yesterday’s Food Diary</strong><small id="yesterdayDiarySummary">0 meals · 0 cal</small></span>
+                  <b>View diary</b>
+                </summary>
+                <div class="yesterday-diary-heading">
+                  <div class="food-history-tabs" aria-label="Food history range">
+                    <button class="active" data-history-range="yesterday" type="button">Yesterday</button>
+                    <button data-history-range="week" type="button">Last 7 Days</button>
+                  </div>
+                  <button class="text-button" data-add-meal="yesterday" type="button">＋ Add yesterday’s meal</button>
+                </div>
+                <div id="yesterdayFoodList" class="meal-list dashboard-meal-list"></div>
+              </details>
+
+              <section class="daily-summary dashboard-card">
+                <div class="section-title"><h3>Today’s Summary</h3></div>
+                <div class="summary-grid">
+                  <article><span>🔥</span><strong id="summaryCalories">0</strong><small>Calories</small></article>
+                  <article><span>⚖️</span><strong id="summaryWeight">--</strong><small>kg Weight</small></article>
+                  <article><span>👟</span><strong id="summarySteps">0</strong><small>Steps</small></article>
+                  <article><span>🩸</span><strong id="summaryGlucose">--</strong><small>mg/dL</small></article>
+                </div>
+                <div class="calorie-overview">
+                  <div class="calorie-copy"><span>Calorie Progress</span><strong><b id="summaryCalorieProgress">0%</b> of daily goal</strong><small id="summaryCalorieGoal">0 / 2,200 cal</small><i><em id="summaryCalorieBar"></em></i></div>
+                  <div class="calorie-ring" id="summaryCalorieRing"><strong id="summaryRingCalories">0</strong><small>cal</small></div>
+                </div>
+                <div class="tip-card"><span>★</span><p><strong>Tip for You</strong><br><span id="summaryTip">Log your first meal to start your daily analysis.</span></p></div>
+              </section>
+
+              <div class="health-metrics-grid">
+                <article class="health-stat-card score-card">
+                  <div class="stat-icon mint">♡</div>
+                  <div><span>Body Health Score</span><strong><b id="bodyHealthScore">0</b><small>/100</small></strong></div>
+                  <span id="healthScoreStatus" class="status-pill">Getting started</span>
+                </article>
+                <article class="health-stat-card glucose-card">
+                  <div class="stat-icon coral">⌁</div>
+                  <div><span>Average Glucose Today</span><strong><b id="averageGlucose">--</b><small> mg/dL</small></strong></div>
+                  <span id="glucoseStatus" class="status-pill">Add reading</span>
+                </article>
+                <article class="health-stat-card nutrition-card">
+                  <div class="stat-icon lavender">◒</div>
+                  <div><span>Nutrition Balance</span><strong><b id="nutritionBalance">0</b><small>%</small></strong></div>
+                  <span id="nutritionStatus" class="status-pill">Log a meal</span>
+                </article>
+              </div>
+
+              <section class="bio-panel dashboard-card">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Update</p>
-                <h3>Today's vital stats</h3>
+                <p class="eyebrow">Daily signals</p>
+                <h3>Update your health data</h3>
               </div>
-              <button class="primary-button" id="saveBioStats" type="button">Save Vital Stats</button>
+              <button class="primary-button" id="saveBioStats" type="button">Save Bio Stats</button>
             </div>
             <div class="bio-grid">
               <label class="bio-field">
@@ -158,60 +189,101 @@
               </div>
             </div>
           </section>
+            </div>
 
-          <section class="food-columns">
-            <div>
+          <aside class="dashboard-side-column">
+            <section class="body-impact-panel dashboard-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Today</p>
-                  <h3>Today's Food</h3>
+                  <h3>✨ AI Food Impact</h3>
                 </div>
-                <button class="text-button" data-page="snap">+ Add</button>
+                <span class="ai-badge">AI</span>
               </div>
-              <div id="todayFoodList" class="meal-list"></div>
-            </div>
-            <div>
+              <p class="panel-subtitle">See how your food nourishes your body.</p>
+              <p class="eyebrow body-analysis-label">✦ AI Analysis</p>
+              <div class="body-impact-content">
+                <div class="human-figure" aria-hidden="true">
+                  <img src="assets/illustrations/anatomical-body.png" alt="Anatomical wellness illustration showing the brain, heart, digestive organs, muscles, energy and bones">
+                </div>
+                <div id="bodyImpactList" class="body-impact-list"></div>
+              </div>
+              <p class="body-impact-note">ⓘ Percentages show how much of today’s logged food contributes to each body system.</p>
+            </section>
+
+            <section class="nutrition-panel dashboard-card">
+              <div class="section-title"><h3>Today’s Nutrition Balance</h3></div>
+              <div class="nutrition-layout">
+                <div class="macro-list">
+                  <div><span>Carbohydrates</span><i><em style="width:55%"></em></i><b>55%</b></div>
+                  <div><span>Protein</span><i><em style="width:20%"></em></i><b>20%</b></div>
+                  <div><span>Fats</span><i><em style="width:25%"></em></i><b>25%</b></div>
+                </div>
+                <div class="nutrition-donut"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
+              </div>
+              <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
+            </section>
+
+            <section class="ai-recommendations dashboard-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Yesterday</p>
-                  <h3>Yesterday's Food</h3>
+                  <p class="eyebrow">Personalized today</p>
+                  <h3>AI Recommendations</h3>
                 </div>
-                <button class="text-button" data-add-meal="yesterday">+ Add</button>
+                <span class="sparkle">✦</span>
               </div>
-              <div id="yesterdayFoodList" class="meal-list"></div>
-            </div>
-            <div>
-              <div class="section-title">
-                <div>
-                  <p class="eyebrow">Most Loved</p>
-                  <h3>Favorite Foods</h3>
-                </div>
-              </div>
+              <div id="aiRecommendationList" class="recommendation-list"></div>
+            </section>
+
+            <details class="dashboard-history dashboard-card">
+              <summary>More food insights <span>⌄</span></summary>
+              <div class="history-section"><h4>Favorite Foods</h4></div>
               <div id="favoriteFoodList" class="meal-list"></div>
-            </div>
-          </section>
+            </details>
+          </aside>
+          </div>
+
+          <div class="dashboard-legacy-values" aria-hidden="true">
+            <span id="todayCalories">0</span><span id="todayMeals">0</span><span id="todaySpend">$0</span>
+            <span id="mealSummary"></span><span id="calorieGoalLabel"></span><i id="calorieProgress"></i>
+          </div>
         </section>
 
         <section id="page-snap" class="page" data-title="Snap Food" data-kicker="Food journal">
           <div class="form-layout">
             <form id="mealForm" class="glass-form">
-              <label class="photo-drop" for="mealPhoto">
-                <input id="mealPhoto" name="photo" type="file" accept="image/*">
+              <div class="photo-drop">
+                <input id="mealPhotoUpload" name="photo" type="file" accept="image/*">
+                <input id="mealPhotoCamera" type="file" accept="image/*" capture="environment">
                 <img id="photoPreview" class="photo-preview hidden" alt="Selected food preview">
                 <span id="photoIcon">📷</span>
-                <strong id="photoTitle">Tap to snap or upload food</strong>
-                <small id="photoHint">Your photo will appear in the meal preview.</small>
-              </label>
+                <strong id="photoTitle">Add a food photo</strong>
+                <small id="photoHint">Choose where your photo comes from.</small>
+                <div class="photo-choice-row">
+                  <label class="photo-choice" for="mealPhotoUpload">⬆️ Upload Photo</label>
+                  <label class="photo-choice photo-choice-primary" for="mealPhotoCamera">📷 Take Photo</label>
+                </div>
+              </div>
               <label>Food Name<input id="foodName" name="food_name" required placeholder="Chicken rice"></label>
+              <label class="meal-type-field">Meal Type <span class="required-hint">Required</span>
+                <select id="mealType" name="meal_type" required>
+                  <option value="" selected disabled>Choose meal type</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="brunch">Brunch</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                  <option value="dessert">Dessert</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
               <label>Restaurant<input id="restaurantName" name="restaurant_name" placeholder="Favorite local spot"></label>
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
-              <label>Meal Type<select id="mealType" name="meal_type"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
-              <label>Date<input id="mealDate" name="meal_date" type="date" required></label>
-              <label>Time<input id="mealTime" name="meal_time" type="time" required></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
-              <label>Portion Size<select id="portionSize" name="portion_size"><option value="small">Small</option><option value="regular" selected>Regular</option><option value="large">Large</option></select></label>
-              <div class="calorie-estimator"><div class="estimate-button-row"><button id="aiEstimateCalories" class="primary-button" type="button">🤖 Scan Photo</button><button id="estimateCalories" class="secondary-button" type="button">Quick Estimate</button></div><small id="calorieEstimate">AI Scan analyzes the photo. Quick Estimate uses food name and portion.</small></div>
+              <div class="calorie-scanner wide">
+                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories</button>
+                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories.</small>
+              </div>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>
@@ -288,20 +360,51 @@
         </section>
 
         <section id="page-weekly" class="page" data-title="Weekly AI Report" data-kicker="Nutrition recap">
-          <div class="report-grid">
-            <article><span>Meals</span><strong id="reportMeals">0</strong></article>
-            <article><span>Calories</span><strong id="reportCalories">0</strong></article>
-            <article><span>Money Spent</span><strong id="reportSpend">$0</strong></article>
-            <article><span>Favorite Restaurant</span><strong id="reportRestaurant">-</strong></article>
-            <article><span>Favorite Food</span><strong id="reportFood">-</strong></article>
-            <article><span>Protein Score</span><strong>82</strong></article>
-            <article><span>Vegetable Score</span><strong>64</strong></article>
-            <article><span>Fruit Score</span><strong>58</strong></article>
-          </div>
-          <div class="recommendation-card">
-            <p class="eyebrow">AI Recommendation</p>
-            <h3>Build a brighter plate</h3>
-            <p id="weeklyRecommendation">Log a few meals and the weekly AI report will summarize nutrition, habits, restaurants, and spending.</p>
+          <div class="weekly-report-shell">
+            <header class="weekly-report-hero">
+              <div>
+                <p class="eyebrow">FamilyTaste insights</p>
+                <h3>Weekly Report</h3>
+                <p id="weeklyDateRange" class="weekly-date-range">Last 7 days</p>
+              </div>
+              <div class="weekly-hero-art" aria-hidden="true">🥬 <span>🍅</span> 🍊</div>
+            </header>
+
+            <div class="weekly-stat-strip">
+              <article><span>Meals</span><strong id="reportMeals">0</strong></article>
+              <article><span>Calories</span><strong id="reportCalories">0</strong></article>
+              <article><span>Spent</span><strong id="reportSpend">฿0</strong></article>
+              <article><span>Top food</span><strong id="reportFood">-</strong></article>
+            </div>
+
+            <section class="weekly-chart-card meal-balance-card">
+              <div class="weekly-card-title"><span class="weekly-card-icon orange">◔</span><div><h4>Meal Balance</h4><p>How your meals were spread this week</p></div></div>
+              <div class="meal-balance-layout">
+                <div id="mealBalanceChart" class="meal-donut" role="img" aria-label="No meal balance data"><div><strong id="mealBalanceTotal">0</strong><span>meals</span></div></div>
+                <div id="mealBalanceLegend" class="meal-balance-legend"></div>
+              </div>
+            </section>
+
+            <section class="weekly-chart-card">
+              <div class="weekly-card-title"><span class="weekly-card-icon peach">♨</span><div><h4>Calories This Week</h4><p>Your daily food energy</p></div></div>
+              <div id="weeklyCalorieChart" class="weekly-bars" aria-label="Calories by day"></div>
+            </section>
+
+            <section class="weekly-chart-card">
+              <div class="weekly-card-title"><span class="weekly-card-icon green">◆</span><div><h4>Food Variety</h4><p>Color and balance across your plate</p></div></div>
+              <div id="foodVarietyGrid" class="food-variety-grid"></div>
+            </section>
+
+            <section class="weekly-favorites-card">
+              <div><span>Favorite restaurant</span><strong id="reportRestaurant">-</strong></div>
+              <div><span>Most repeated dish</span><strong id="reportFavoriteDish">-</strong></div>
+            </section>
+
+            <div class="recommendation-card weekly-ai-card">
+              <span class="weekly-ai-icon">✦</span>
+              <div><p class="eyebrow">AI Weekly Insight</p><h3>Small choices, stronger week</h3><p id="weeklyRecommendation">Log a few meals and the weekly AI report will summarize nutrition, habits, restaurants, and spending.</p></div>
+              <span class="weekly-fruit-art" aria-hidden="true">🍎🍇🍌</span>
+            </div>
           </div>
         </section>
 
@@ -336,19 +439,7 @@
                 <input id="profilePhotoInput" type="file" accept="image/*">
                 <span>Upload Profile Photo</span>
               </label>
-              <button class="secondary-button" data-action="switch-profile">Switch Profile</button>
-              <section class="daily-calorie-card">
-                <div><p class="eyebrow">Daily calorie estimate</p><h4><span id="dailyCalorieGoal">2,200</span> kcal/day</h4></div>
-                <div class="daily-calorie-grid">
-                  <label>Age<input id="profileAge" type="number" min="14" max="100" placeholder="Age"></label>
-                  <label>Sex<select id="profileSex"><option value="male">Male</option><option value="female">Female</option></select></label>
-                  <label>Height (cm)<input id="profileHeight" type="number" min="100" max="250" placeholder="170"></label>
-                  <label>Weight (kg)<input id="profileWeight" type="number" min="30" max="300" step="0.1" placeholder="70"></label>
-                  <label class="wide">Activity<select id="profileActivity"><option value="1.2">Mostly seated</option><option value="1.375">Light exercise</option><option value="1.55" selected>Moderate exercise</option><option value="1.725">Very active</option></select></label>
-                </div>
-                <button id="calculateDailyCalories" class="primary-button" type="button">Calculate Daily Need</button>
-                <small>General maintenance estimate. Health conditions, pregnancy, and specific goals need professional guidance.</small>
-              </section>
+              <button class="secondary-button" data-action="home">Switch Profile</button>
             </div>
           </div>
         </section>
@@ -365,27 +456,26 @@
   <div id="mealModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
       <h3 id="mealModalTitle">Edit Food Entry</h3>
-      <div class="edit-photo-field">
-        <img id="editMealPhotoPreview" class="edit-photo-preview hidden" alt="Food photo preview">
-        <div class="edit-photo-actions">
-          <label class="secondary-button edit-photo-button" for="editMealPhoto">📷 Choose Photo</label>
-          <input id="editMealPhoto" type="file" accept="image/*">
-          <button id="removeEditMealPhoto" class="text-button hidden" type="button">Remove</button>
-        </div>
-        <small>Take a new photo or choose one from your library.</small>
-      </div>
       <label class="modal-field">Food Name<input id="editFoodName" placeholder="Chicken rice" autocomplete="off"></label>
+      <label class="modal-field meal-type-field">Meal Type <span class="required-hint">Required</span>
+        <select id="editMealType">
+          <option value="" selected disabled>Choose meal type</option>
+          <option value="breakfast">Breakfast</option>
+          <option value="brunch">Brunch</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+          <option value="dessert">Dessert</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
       <label class="modal-field">Restaurant<input id="editRestaurant" placeholder="Optional" autocomplete="off"></label>
       <label class="modal-field">Location<input id="editLocation" placeholder="Optional" autocomplete="off"></label>
       <div class="modal-field-row">
         <label class="modal-field">Price (฿)<input id="editPrice" type="number" min="0" step="0.01" inputmode="decimal"></label>
         <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
       </div>
-      <label class="modal-field">Portion Size<select id="editPortionSize"><option value="small">Small</option><option value="regular">Regular</option><option value="large">Large</option></select></label>
-      <div class="calorie-estimator modal-calorie-estimator"><div class="estimate-button-row"><button id="aiEstimateEditCalories" class="primary-button" type="button">🤖 Scan Photo</button><button id="estimateEditCalories" class="secondary-button" type="button">Quick Estimate</button></div><small id="editCalorieEstimate">AI Scan analyzes the photo. Quick Estimate uses food name and portion.</small></div>
       <label class="modal-field">Date<input id="editDate" type="date"></label>
-      <label class="modal-field">Time<input id="editTime" type="time"></label>
-      <label class="modal-field">Meal Type<select id="editMealType"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
       <label class="modal-field">Notes<input id="editNotes" placeholder="Optional" autocomplete="off"></label>
       <div class="modal-actions">
         <button class="primary-button" id="saveMealEdit">Save</button>

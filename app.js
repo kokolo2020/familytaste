@@ -17,8 +17,7 @@ const appState = {
   chefOrders: [],
   cart: [],
   voiceNotes: [],
-  bioLogs: {},
-  profileNutrition: {}
+  bioLogs: {}
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -28,14 +27,6 @@ const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
-const profileNutritionStorageKey = 'familyBites.profileNutrition.v1';
-
-const calorieReference = [
-  ['beef kebab', 400], ['french fries', 365], ['iced latte', 180], ['chicken', 450],
-  ['salmon', 420], ['burger', 650], ['pizza', 700], ['sushi', 450], ['ramen', 500],
-  ['pasta', 600], ['spaghetti', 600], ['rice', 220], ['salad', 250], ['soup', 250],
-  ['egg', 180], ['bread', 160], ['watermelon', 90], ['ice cream', 250], ['smoothie', 220]
-];
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
@@ -57,6 +48,7 @@ const menuItems = [
 
 let voiceRecorder = null;
 let voiceChunks = [];
+let dashboardHistoryRange = 'yesterday';
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
@@ -71,7 +63,13 @@ const navItems = [
   { page: 'settings', icon: '⚙️', label: 'Settings' }
 ];
 
-const mobileItems = navItems.filter((item) => ['dashboard', 'order', 'snap', 'chef', 'chat'].includes(item.page));
+const mobileItems = [
+  { page: 'dashboard', icon: '⌂', label: 'Home' },
+  { page: 'timeline', icon: '♜', label: 'Meals' },
+  { page: 'snap', icon: '📷', label: 'Snap Food' },
+  { page: 'chat', icon: '◌', label: 'Chat' },
+  { page: 'settings', icon: '•••', label: 'More' }
+];
 
 document.addEventListener('DOMContentLoaded', () => {
   applyStoredAppData();
@@ -79,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProfiles();
   renderNavigation();
   bindEvents();
-  resetMealDateTime();
   hydrateFromSupabase();
 });
 
@@ -89,9 +86,6 @@ function bindEvents() {
     const actionTarget = event.target.closest('[data-action]');
 
     if (pageTarget) {
-      if (pageTarget.closest('#landing')) {
-        selectMember(appState.currentMember || appState.members[0]);
-      }
       showPage(pageTarget.dataset.page);
     }
 
@@ -144,6 +138,12 @@ function bindEvents() {
       openMealModal(null, addMealTarget.dataset.addMeal);
     }
 
+    const historyRangeTarget = event.target.closest('[data-history-range]');
+    if (historyRangeTarget) {
+      dashboardHistoryRange = historyRangeTarget.dataset.historyRange;
+      renderDashboard();
+    }
+
     const logAgainTarget = event.target.closest('[data-log-again]');
     if (logAgainTarget) {
       handleLogAgain(logAgainTarget.dataset.logAgain);
@@ -162,9 +162,9 @@ function bindEvents() {
 
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
   document.getElementById('chatForm').addEventListener('submit', sendChat);
-  document.getElementById('mealPhoto').addEventListener('change', handlePhotoChange);
-  document.getElementById('editMealPhoto').addEventListener('change', handleEditMealPhotoChange);
-  document.getElementById('removeEditMealPhoto').addEventListener('click', clearEditMealPhoto);
+  document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
+  document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
+  document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
@@ -173,11 +173,6 @@ function bindEvents() {
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
-  document.getElementById('estimateCalories').addEventListener('click', () => applyCalorieEstimate(false));
-  document.getElementById('estimateEditCalories').addEventListener('click', () => applyCalorieEstimate(true));
-  document.getElementById('aiEstimateCalories').addEventListener('click', () => applyAiCalorieEstimate(false));
-  document.getElementById('aiEstimateEditCalories').addEventListener('click', () => applyAiCalorieEstimate(true));
-  document.getElementById('calculateDailyCalories').addEventListener('click', calculateDailyCalories);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     document.getElementById('mealModal').classList.add('hidden');
   });
@@ -185,7 +180,7 @@ function bindEvents() {
     if (event.key === 'Enter') handleSaveProfileName();
   });
 
-  ['foodName', 'restaurantName', 'calories', 'mealType'].forEach((id) => {
+  ['foodName', 'mealType', 'restaurantName', 'calories'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
 }
@@ -306,14 +301,6 @@ function handleAction(action) {
     selectMember(appState.currentMember || appState.members[0]);
   }
 
-  if (action === 'switch-profile') {
-    const availableMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
-    if (!availableMembers.length) return;
-    const currentIndex = availableMembers.findIndex((member) => member.id === appState.currentMember?.id);
-    const nextMember = availableMembers[(currentIndex + 1) % availableMembers.length];
-    selectMember(nextMember);
-  }
-
   if (action === 'add-member') {
     openAddMemberModal();
   }
@@ -368,20 +355,6 @@ function updateProfileUi() {
   document.getElementById('navAvatar').innerHTML = avatarMarkup(member);
   document.getElementById('navName').textContent = member.name;
   document.getElementById('activeAvatar').innerHTML = `${avatarMarkup(member)} <span>${escapeHtml(member.name)}</span>`;
-  const landingAvatar = document.getElementById('tasteHeaderAvatar');
-  const welcomeAvatar = document.getElementById('tasteWelcomeAvatar');
-  const welcomeGreeting = document.getElementById('tasteWelcomeGreeting');
-  const profilePhoto = member.photo || defaultProfilePhoto(member);
-  if (landingAvatar) {
-    landingAvatar.src = profilePhoto;
-    landingAvatar.alt = member.name;
-    landingAvatar.closest('button')?.setAttribute('aria-label', `Switch profile. Currently ${member.name}`);
-  }
-  if (welcomeAvatar) {
-    welcomeAvatar.src = profilePhoto;
-    welcomeAvatar.alt = member.name;
-  }
-  if (welcomeGreeting) welcomeGreeting.textContent = `${getGreeting()}, ${member.name}! ☀️`;
 }
 
 function renderDashboard() {
@@ -389,22 +362,159 @@ function renderDashboard() {
   const todayMeals = memberMeals.filter(isToday);
   const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
-  const goal = Number(appState.profileNutrition[appState.currentMember?.id]?.target_calories || appState.currentMember?.target_calories) || 2200;
+  const spend = sum(todayMeals, 'price');
+  const goal = Number(appState.currentMember?.target_calories) || 2200;
   const progress = Math.min(Math.round((calories / goal) * 100), 100);
-  const vitalLog = getTodayBioLog();
+
+  document.getElementById('dashboardMealCount').textContent = `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
+  document.getElementById('dashboardCalorieCount').textContent = `${calories.toLocaleString()} cal`;
 
   document.getElementById('todayCalories').textContent = calories.toLocaleString();
+  document.getElementById('todayMeals').textContent = todayMeals.length.toString();
+  document.getElementById('todaySpend').textContent = formatMoney(spend);
   document.getElementById('calorieProgress').style.width = `${progress}%`;
-  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()}`;
-  document.getElementById('vitalWeight').textContent = vitalLog.weight_kg ?? appState.currentMember?.weight_kg ?? '—';
-  document.getElementById('vitalSteps').textContent = vitalLog.steps == null ? '—' : Number(vitalLog.steps).toLocaleString();
-  document.getElementById('vitalSugar').textContent = vitalLog.sugar_level ?? '—';
+  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()} calories`;
+  document.getElementById('mealSummary').textContent = todayMeals.length
+    ? todayMeals.slice(0, 3).map((meal) => meal.food_name).join(', ')
+    : 'No meals logged yet';
   document.getElementById('bioCalories').textContent = calories.toLocaleString();
 
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
-  renderFoodList('yesterdayFoodList', yesterdayMeals, 'Nothing was logged yesterday.');
+  renderDashboardHistory(memberMeals, yesterdayMeals);
   renderFavoriteFoods(memberMeals);
   renderBioInputs();
+  renderHealthInsights(todayMeals, calories, goal);
+}
+
+function renderDashboardHistory(memberMeals, yesterdayMeals) {
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const historyMeals = dashboardHistoryRange === 'week'
+    ? memberMeals.filter((meal) => new Date(meal.eaten_at || meal.created_at).getTime() >= weekAgo)
+    : yesterdayMeals;
+  const isWeek = dashboardHistoryRange === 'week';
+  const historyCalories = sum(historyMeals, 'calories');
+  document.getElementById('foodHistoryTitle').textContent = isWeek ? 'Last 7 Days Food Diary' : 'Yesterday’s Food Diary';
+  document.getElementById('yesterdayDiarySummary').textContent = `${historyMeals.length} meal${historyMeals.length === 1 ? '' : 's'} · ${historyCalories.toLocaleString()} cal`;
+  document.querySelectorAll('[data-history-range]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.historyRange === dashboardHistoryRange);
+  });
+  const addYesterdayButton = document.querySelector('.yesterday-diary-heading [data-add-meal="yesterday"]');
+  if (addYesterdayButton) addYesterdayButton.classList.toggle('hidden', isWeek);
+  renderFoodList('yesterdayFoodList', historyMeals, isWeek ? 'No food logged in the last 7 days.' : 'Nothing was logged yesterday.');
+}
+
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function renderHealthInsights(todayMeals, calories, calorieGoal) {
+  const log = getTodayBioLog();
+  const steps = Number(log.steps) || 0;
+  const glucose = Number(log.sugar_level) || 0;
+  const mealCount = todayMeals.length;
+  const calorieRatio = calorieGoal ? calories / calorieGoal : 0;
+  const calorieScore = calories === 0 ? 35 : clampScore(100 - Math.abs(1 - calorieRatio) * 82);
+  const activityScore = clampScore(38 + (steps / 10000) * 62);
+  const glucoseScore = glucose ? clampScore(100 - Math.abs(glucose - 100) * 1.25) : 55;
+  const mealVariety = new Set(todayMeals.map((meal) => meal.food_name?.toLowerCase()).filter(Boolean)).size;
+  const nutrition = clampScore((calorieScore * .55) + Math.min(mealVariety * 10, 30) + (mealCount ? 15 : 0));
+  const health = clampScore((nutrition * .35) + (activityScore * .35) + (glucoseScore * .3));
+  const progress = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
+
+  setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
+  setText('dashboardMemberName', appState.currentMember?.name || 'Family');
+  setText('summaryCalories', calories.toLocaleString());
+  setText('summaryWeight', log.weight_kg ? Number(log.weight_kg).toLocaleString() : '--');
+  setText('summarySteps', steps.toLocaleString());
+  setText('summaryGlucose', glucose ? Math.round(glucose).toLocaleString() : '--');
+  setText('summaryCalorieProgress', `${progress}%`);
+  setText('summaryCalorieGoal', `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
+  setText('summaryRingCalories', calories.toLocaleString());
+  setText('nutritionDonutCalories', calories.toLocaleString());
+  setText('summaryTip', mealCount
+    ? `You’re ${progress}% of the way to your daily calorie goal.`
+    : 'Log your first meal to start your daily analysis.');
+  const summaryBar = document.getElementById('summaryCalorieBar');
+  if (summaryBar) summaryBar.style.width = `${progress}%`;
+  const summaryRing = document.getElementById('summaryCalorieRing');
+  if (summaryRing) summaryRing.style.setProperty('--ring-progress', `${progress * 3.6}deg`);
+  setText('bodyHealthScore', health);
+  setText('healthScoreStatus', health >= 80 ? 'Excellent' : health >= 65 ? 'On track' : health >= 45 ? 'Building up' : 'Needs attention');
+  setText('averageGlucose', glucose ? Math.round(glucose) : '--');
+  setText('glucoseStatus', !glucose ? 'Add reading' : glucose < 70 ? 'Below range' : glucose <= 140 ? 'In range' : 'Above range');
+  setText('nutritionBalance', nutrition);
+  setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
+
+  const impacts = buildFoodBodyImpacts(todayMeals, calories);
+  const impactList = document.getElementById('bodyImpactList');
+  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position]) => `
+    <article class="impact-callout impact-${position}">
+      <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
+      <strong>${score}%</strong>
+      <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
+    </article>`).join('');
+
+  const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
+  const recommendationList = document.getElementById('aiRecommendationList');
+  if (recommendationList) recommendationList.innerHTML = recommendations.map((item) => `
+    <article class="recommendation-item">
+      <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
+    </article>`).join('');
+}
+
+function buildFoodBodyImpacts(todayMeals, totalCalories) {
+  const systems = [
+    { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate'], benefit: 'supports focus and steady brain fuel' },
+    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], benefit: 'provides heart-supporting fats and fiber' },
+    { name: 'Muscles', icon: '💪', position: 'muscles', words: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'egg', 'tofu', 'nuts', 'yogurt', 'milk', 'protein'], benefit: 'provides protein for muscle repair' },
+    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], benefit: 'moves through digestion for nutrient absorption' },
+    { name: 'Energy', icon: '⚡', position: 'energy', words: [], benefit: 'supplies energy for the whole body', includeAll: true },
+    { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy'], benefit: 'can contribute calcium and bone nutrients' }
+  ];
+
+  return systems.map((system) => {
+    const matched = system.includeAll
+      ? todayMeals
+      : todayMeals.filter((meal) => system.words.some((word) => foodSearchText(meal).includes(word)));
+    const matchedCalories = matched.reduce((sumValue, meal) => sumValue + (Number(meal.calories) || 0), 0);
+    const score = totalCalories ? clampScore((matchedCalories / totalCalories) * 100) : 0;
+    const names = matched.map((meal) => meal.food_name).filter(Boolean);
+    const foodList = names.length ? names.join(', ') : 'No matching food logged';
+    const copy = names.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
+    return [system.name, score, system.icon, copy, system.position];
+  });
+}
+
+function foodSearchText(meal) {
+  return [meal.food_name, meal.notes, meal.restaurant_name]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
+  const items = [];
+  if (!mealCount) items.push({ icon: '🥗', title: 'Start with a balanced meal', copy: 'Add protein, vegetables, and a steady-energy carbohydrate.' });
+  else if (calories < calorieGoal * .55) items.push({ icon: '🍲', title: 'Fuel the rest of your day', copy: `You have about ${Math.max(calorieGoal - calories, 0).toLocaleString()} calories remaining toward your goal.` });
+  else if (calories > calorieGoal * 1.05) items.push({ icon: '🥬', title: 'Keep the next meal light', copy: 'Favor vegetables, lean protein, and water for the rest of today.' });
+  else items.push({ icon: '✓', title: 'Calories are pacing well', copy: 'Your intake is tracking close to today’s energy target.' });
+
+  if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
+  else if (glucose > 140) items.push({ icon: '🥦', title: 'Choose steady-energy foods', copy: 'Pair fiber and protein, and avoid another sugary snack right now.' });
+  else if (glucose < 70) items.push({ icon: '🍌', title: 'Glucose looks low', copy: 'Consider a quick carbohydrate and recheck based on your care plan.' });
+  else items.push({ icon: '🩸', title: 'Glucose is in range', copy: 'Keep the momentum with water and a fiber-rich next meal.' });
+
+  const remainingSteps = Math.max(10000 - steps, 0);
+  items.push(steps >= 10000
+    ? { icon: '👟', title: 'Movement goal reached', copy: 'Great work—gentle recovery and hydration are a good finish.' }
+    : { icon: '🚶', title: 'Take a short walk', copy: `${remainingSteps.toLocaleString()} steps remain; even 10 minutes after a meal can help.` });
+  if (nutrition < 65 && mealCount) items.push({ icon: '🌈', title: 'Add more color', copy: 'A fruit or vegetable can improve today’s nutrition balance.' });
+  return items.slice(0, 3);
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
 }
 
 function getTodayBioLog() {
@@ -440,11 +550,11 @@ async function handleSaveBioStats() {
   appState.bioLogs[member.id][todayKey()] = log;
   if (log.weight_kg !== null) member.weight_kg = log.weight_kg;
   saveStoredAppData();
-  renderDashboard();
 
   const button = document.getElementById('saveBioStats');
   button.textContent = 'Saved ✓';
-  setTimeout(() => { button.textContent = 'Save Vital Stats'; }, 1800);
+  setTimeout(() => { button.textContent = 'Save Bio Stats'; }, 1800);
+  renderDashboard();
 
   if (window.familyBitesDb?.isConfigured && appState.familyId) {
     if (log.weight_kg !== null) {
@@ -473,7 +583,6 @@ function renderFoodList(elementId, meals, emptyMessage) {
 }
 
 let editingMealId = null;
-let editingMealPhotoUrl = '';
 
 function openMealModal(mealId, defaultDay) {
   editingMealId = mealId || null;
@@ -482,23 +591,13 @@ function openMealModal(mealId, defaultDay) {
 
   document.getElementById('mealModalTitle').textContent = meal ? 'Edit Food Entry' : 'Add Food Entry';
   document.getElementById('editFoodName').value = meal?.food_name || '';
+  document.getElementById('editMealType').value = getMealType(meal) || '';
   document.getElementById('editRestaurant').value = meal?.restaurant_name || '';
   document.getElementById('editLocation').value = meal?.location_name || '';
   document.getElementById('editPrice').value = meal?.price ?? '';
-  const editCaloriesInput = document.getElementById('editCalories');
-  editCaloriesInput.value = meal?.calories ?? '';
-  delete editCaloriesInput.dataset.estimatedCalories;
-  const editEstimateStatus = document.getElementById('editCalorieEstimate');
-  editEstimateStatus.classList.remove('estimate-success');
-  editEstimateStatus.textContent = 'AI Scan analyzes the photo. Quick Estimate uses food name and portion.';
-  document.getElementById('editPortionSize').value = meal?.portion_size || 'regular';
-  document.getElementById('editNotes').value = meal?.notes || '';
+  document.getElementById('editCalories').value = meal?.calories ?? '';
+  document.getElementById('editNotes').value = notesWithoutMealType(meal?.notes);
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
-  document.getElementById('editTime').value = timeKey(meal ? new Date(meal.eaten_at) : defaultDate);
-  document.getElementById('editMealType').value = meal?.meal_type || inferMealType(meal ? new Date(meal.eaten_at) : defaultDate);
-  document.getElementById('editMealPhoto').value = '';
-  editingMealPhotoUrl = meal?.photo_url || '';
-  renderEditMealPhoto();
   document.getElementById('mealModal').classList.remove('hidden');
   document.getElementById('editFoodName').focus();
 }
@@ -511,19 +610,15 @@ function mergeDateKeepTime(originalIso, dateValue) {
   return original.toISOString();
 }
 
-function mergeDateAndTime(originalIso, dateValue, timeValue) {
-  const merged = new Date(mergeDateKeepTime(originalIso, dateValue));
-  if (timeValue) {
-    const [hours, minutes] = timeValue.split(':').map(Number);
-    merged.setHours(hours, minutes, 0, 0);
-  }
-  return merged.toISOString();
-}
-
 async function handleSaveMealEdit() {
   const foodName = document.getElementById('editFoodName').value.trim();
   if (!foodName) {
     document.getElementById('editFoodName').focus();
+    return;
+  }
+  const mealType = document.getElementById('editMealType').value;
+  if (!mealType) {
+    document.getElementById('editMealType').focus();
     return;
   }
 
@@ -532,35 +627,21 @@ async function handleSaveMealEdit() {
     restaurant_name: document.getElementById('editRestaurant').value.trim(),
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
-    calories: numberOrNull(document.getElementById('editCalories').value)
-      ?? numberOrNull(document.getElementById('editCalories').dataset.estimatedCalories),
-    portion_size: document.getElementById('editPortionSize').value,
-    notes: document.getElementById('editNotes').value.trim(),
-    meal_type: document.getElementById('editMealType').value,
-    photo_url: editingMealPhotoUrl
+    calories: numberOrNull(document.getElementById('editCalories').value),
+    notes: notesWithMealType(document.getElementById('editNotes').value, mealType)
   };
   const dateValue = document.getElementById('editDate').value;
-  const timeValue = document.getElementById('editTime').value;
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
     const meal = appState.meals.find((item) => item.id === editingMealId);
     if (!meal) return;
     Object.assign(meal, fields);
-    meal.eaten_at = mergeDateAndTime(meal.eaten_at, dateValue, timeValue);
+    meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
     saveStoredAppData();
     renderAll();
     if (window.familyBitesDb?.isConfigured) {
       try {
-        if (meal.photo_url?.startsWith('data:')) {
-          const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
-          if (uploadedUrl) {
-            meal.photo_url = uploadedUrl;
-            fields.photo_url = uploadedUrl;
-            saveStoredAppData();
-            renderAll();
-          }
-        }
         await window.familyBitesDb.updateMeal(meal.id, { ...fields, eaten_at: meal.eaten_at });
       } catch (error) {
         console.warn('Meal updated locally but Supabase write failed.', error);
@@ -572,8 +653,8 @@ async function handleSaveMealEdit() {
       family_id: appState.familyId,
       member_id: appState.currentMember.id,
       ...fields,
-      photo_url: editingMealPhotoUrl,
-      eaten_at: mergeDateAndTime(new Date().toISOString(), dateValue, timeValue)
+      photo_url: '',
+      eaten_at: mergeDateKeepTime(new Date().toISOString(), dateValue)
     });
   }
 }
@@ -584,10 +665,6 @@ async function persistNewMeal(meal) {
   renderAll();
   if (window.familyBitesDb?.isConfigured) {
     try {
-      if (meal.photo_url?.startsWith('data:')) {
-        const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
-        if (uploadedUrl) meal.photo_url = uploadedUrl;
-      }
       const savedMeal = await window.familyBitesDb.saveMeal(meal);
       appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
       saveStoredAppData();
@@ -705,7 +782,11 @@ function renderMeals() {
       <span class="timeline-date">${formatDate(meal.eaten_at)}</span>
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(formatMealType(meal.meal_type))} · ${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.location_name || 'No location')}</p>
+        <p>${escapeHtml(mealDisplayMeta(meal))} · ${escapeHtml(meal.location_name || 'No location')}</p>
+        <div class="meal-actions timeline-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+          <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+          <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+        </div>
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -714,9 +795,9 @@ function renderMeals() {
 
 function mealTemplate(meal, withActions = false) {
   const actions = withActions ? `
-        <div class="meal-actions">
-          <button type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
-          <button type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+        <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+          <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+          <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
@@ -724,11 +805,33 @@ function mealTemplate(meal, withActions = false) {
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(formatMealType(meal.meal_type))} · ${escapeHtml(meal.restaurant_name || 'Family meal')} · ${escapeHtml(meal.notes || 'Saved to FamilyTaste')}</p>${actions}
+        <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
   `;
+}
+
+function mealDisplayMeta(meal) {
+  const storedType = getMealType(meal);
+  const label = storedType
+    ? storedType.charAt(0).toUpperCase() + storedType.slice(1)
+    : meal.restaurant_name || 'Family meal';
+  const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(meal.eaten_at));
+  return `${label} · ${time}`;
+}
+
+function getMealType(meal) {
+  return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || '';
+}
+
+function notesWithoutMealType(notes) {
+  return String(notes || '').replace(/\s*\[\[meal_type:[^\]]+\]\]\s*/ig, ' ').trim();
+}
+
+function notesWithMealType(notes, mealType) {
+  const cleanNotes = notesWithoutMealType(notes);
+  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${mealType}]]`;
 }
 
 function renderFavorites() {
@@ -933,7 +1036,81 @@ function renderReport() {
   document.getElementById('reportSpend').textContent = formatMoney(spend);
   document.getElementById('reportRestaurant').textContent = favoriteRestaurant || '-';
   document.getElementById('reportFood').textContent = favoriteFood || '-';
+  document.getElementById('reportFavoriteDish').textContent = favoriteFood || '-';
   document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood);
+  renderWeeklyDateRange();
+  renderMealBalance(meals);
+  renderWeeklyCalories(meals);
+  renderFoodVariety(meals);
+}
+
+function renderWeeklyDateRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
+  const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const endLabel = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  document.getElementById('weeklyDateRange').textContent = `${startLabel} – ${endLabel}`;
+}
+
+function renderMealBalance(meals) {
+  const colors = { breakfast: '#f36b20', brunch: '#f59b24', lunch: '#ffb51f', dinner: '#79994b', snack: '#963b69', dessert: '#df6a7b', other: '#8d8177' };
+  const labels = { breakfast: 'Breakfast', brunch: 'Brunch', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snacks', dessert: 'Dessert', other: 'Other' };
+  const counts = {};
+  meals.forEach((meal) => {
+    const type = getMealType(meal) || 'other';
+    counts[type] = (counts[type] || 0) + 1;
+  });
+  const total = meals.length;
+  const entries = Object.keys(labels).filter((type) => counts[type]);
+  let cursor = 0;
+  const slices = entries.map((type) => {
+    const start = cursor;
+    cursor += (counts[type] / Math.max(total, 1)) * 100;
+    return `${colors[type]} ${start}% ${cursor}%`;
+  });
+  const chart = document.getElementById('mealBalanceChart');
+  chart.style.background = total ? `conic-gradient(${slices.join(', ')})` : 'conic-gradient(#eee8e1 0 100%)';
+  chart.setAttribute('aria-label', total ? entries.map((type) => `${labels[type]} ${Math.round(counts[type] / total * 100)} percent`).join(', ') : 'No meal balance data');
+  document.getElementById('mealBalanceTotal').textContent = total.toString();
+  document.getElementById('mealBalanceLegend').innerHTML = total ? entries.map((type) => `
+    <div class="meal-legend-item"><i style="background:${colors[type]}"></i><span>${labels[type]}</span><strong>${Math.round(counts[type] / total * 100)}%</strong></div>
+  `).join('') : '<p class="muted">Add meals with a meal type to see your balance.</p>';
+}
+
+function renderWeeklyCalories(meals) {
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (6 - index));
+    return { date, calories: 0 };
+  });
+  meals.forEach((meal) => {
+    const mealDate = new Date(meal.eaten_at || meal.created_at);
+    mealDate.setHours(0, 0, 0, 0);
+    const day = days.find((item) => item.date.getTime() === mealDate.getTime());
+    if (day) day.calories += Number(meal.calories) || 0;
+  });
+  const maxCalories = Math.max(...days.map((day) => day.calories), 1);
+  document.getElementById('weeklyCalorieChart').innerHTML = days.map((day) => {
+    const height = day.calories ? Math.max(8, Math.round(day.calories / maxCalories * 100)) : 2;
+    return `<div class="weekly-bar-day"><strong>${day.calories ? Math.round(day.calories).toLocaleString() : '0'}</strong><div class="weekly-bar-track"><i class="weekly-bar" style="height:${height}%"></i></div><span>${day.date.toLocaleDateString('en-US', { weekday: 'short' })}</span></div>`;
+  }).join('');
+}
+
+function renderFoodVariety(meals) {
+  const groups = [
+    { label: 'Protein', emoji: '🍗', words: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'egg', 'tofu', 'shrimp', 'protein'] },
+    { label: 'Vegetables', emoji: '🥦', words: ['vegetable', 'salad', 'broccoli', 'spinach', 'tomato', 'carrot', 'greens', 'asparagus'] },
+    { label: 'Fruit', emoji: '🍎', words: ['fruit', 'apple', 'banana', 'orange', 'berry', 'mango', 'grape', 'melon'] },
+    { label: 'Carbs', emoji: '🍞', words: ['rice', 'bread', 'pasta', 'noodle', 'potato', 'pizza', 'taco', 'oat'] }
+  ];
+  document.getElementById('foodVarietyGrid').innerHTML = groups.map((group) => {
+    const matches = meals.filter((meal) => group.words.some((word) => foodSearchText(meal).includes(word))).length;
+    const score = Math.min(5, matches);
+    const dots = Array.from({ length: 5 }, (_, index) => `<i class="${index < score ? 'active' : ''}"></i>`).join('');
+    return `<article class="food-variety-item"><span class="food-variety-emoji">${group.emoji}</span><strong>${group.label}</strong><div class="variety-dots" aria-label="${score} out of 5">${dots}</div></article>`;
+  }).join('');
 }
 
 function buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood) {
@@ -980,52 +1157,7 @@ function renderProfile() {
   document.getElementById('profileNameLarge').textContent = member.name;
   const nameInput = document.getElementById('profileNameInput');
   if (document.activeElement !== nameInput) nameInput.value = member.name;
-  renderDailyCalorieProfile(member);
   renderAvatarPicker(member);
-}
-
-function renderDailyCalorieProfile(member) {
-  const profile = appState.profileNutrition[member.id] || {};
-  const values = {
-    profileAge: profile.age,
-    profileSex: profile.sex || (member.name.toLowerCase().includes('dad') ? 'male' : 'female'),
-    profileHeight: profile.height_cm,
-    profileWeight: profile.weight_kg ?? member.weight_kg,
-    profileActivity: String(profile.activity || 1.55)
-  };
-  Object.entries(values).forEach(([id, value]) => {
-    const input = document.getElementById(id);
-    if (document.activeElement !== input) input.value = value ?? '';
-  });
-  document.getElementById('dailyCalorieGoal').textContent = Number(profile.target_calories || member.target_calories || 2200).toLocaleString();
-}
-
-function calculateDailyCalories() {
-  const member = appState.currentMember;
-  if (!member) return;
-  const age = numberOrNull(document.getElementById('profileAge').value);
-  const height = numberOrNull(document.getElementById('profileHeight').value);
-  const weight = numberOrNull(document.getElementById('profileWeight').value);
-  const sex = document.getElementById('profileSex').value;
-  const activity = Number(document.getElementById('profileActivity').value);
-  if (!age || !height || !weight) {
-    alert('Enter age, height, and weight to estimate daily calories.');
-    return;
-  }
-  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'male' ? 5 : -161);
-  const targetCalories = Math.max(1200, Math.round((bmr * activity) / 50) * 50);
-  appState.profileNutrition[member.id] = {
-    age,
-    sex,
-    height_cm: height,
-    weight_kg: weight,
-    activity,
-    target_calories: targetCalories
-  };
-  member.target_calories = targetCalories;
-  saveStoredAppData();
-  renderDashboard();
-  renderDailyCalorieProfile(member);
 }
 
 async function handleSaveProfileName() {
@@ -1059,7 +1191,6 @@ async function saveMeal(event) {
   const form = event.currentTarget;
   const formData = new FormData(form);
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
-  const eatenAt = mergeDateAndTime(new Date().toISOString(), formData.get('meal_date'), formData.get('meal_time'));
   const meal = {
     id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
     family_id: appState.familyId,
@@ -1068,13 +1199,10 @@ async function saveMeal(event) {
     restaurant_name: formData.get('restaurant_name').trim(),
     location_name: formData.get('location_name').trim(),
     price: numberOrNull(formData.get('price')),
-    calories: numberOrNull(formData.get('calories'))
-      ?? numberOrNull(form.dataset.estimatedCalories),
-    portion_size: formData.get('portion_size') || 'regular',
-    notes: formData.get('notes').trim(),
-    meal_type: formData.get('meal_type'),
+    calories: numberOrNull(formData.get('calories')),
+    notes: notesWithMealType(formData.get('notes'), formData.get('meal_type')),
     photo_url: photoUrl,
-    eaten_at: eatenAt
+    eaten_at: new Date().toISOString()
   };
 
   if (!meal.food_name) return;
@@ -1082,8 +1210,6 @@ async function saveMeal(event) {
   appState.meals.unshift(meal);
   saveStoredAppData();
   form.reset();
-  delete form.dataset.estimatedCalories;
-  resetMealDateTime();
   resetPhotoPreview();
   showPage('dashboard');
 
@@ -1157,103 +1283,20 @@ async function sendChat(event) {
 
 function updateMealPreview() {
   const food = document.getElementById('foodName').value.trim();
+  const mealType = document.getElementById('mealType').value;
   const restaurant = document.getElementById('restaurantName').value.trim();
   const calories = document.getElementById('calories').value.trim();
-  const mealType = document.getElementById('mealType').value;
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const previewPhoto = document.getElementById('previewPhoto');
   document.getElementById('previewFood').textContent = food || 'New family bite';
   document.getElementById('previewMeta').textContent = [
+    mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal type not selected',
     restaurant || 'Restaurant not set',
-    formatMealType(mealType),
     calories ? `${calories} calories` : 'Calories pending'
   ].join(' · ');
 
   previewPhoto.classList.toggle('hidden', !photoUrl);
   if (photoUrl) previewPhoto.src = photoUrl;
-}
-
-function estimateMealCalories(foodName, mealType, portionSize) {
-  const normalized = String(foodName || '').toLowerCase();
-  const matchedCalories = calorieReference
-    .filter(([keyword]) => normalized.includes(keyword))
-    .reduce((total, [, calories]) => total + calories, 0);
-  const fallback = { breakfast: 400, lunch: 600, dinner: 700, snack: 250 }[mealType] || 500;
-  const portionMultiplier = { small: 0.75, regular: 1, large: 1.35 }[portionSize] || 1;
-  return Math.round(((matchedCalories || fallback) * portionMultiplier) / 10) * 10;
-}
-
-function applyCalorieEstimate(isEdit) {
-  const foodInput = document.getElementById(isEdit ? 'editFoodName' : 'foodName');
-  if (!foodInput.value.trim()) {
-    foodInput.focus();
-    alert('Enter the foods visible in the photo first.');
-    return;
-  }
-  const mealType = document.getElementById(isEdit ? 'editMealType' : 'mealType').value;
-  const portion = document.getElementById(isEdit ? 'editPortionSize' : 'portionSize').value;
-  const estimate = estimateMealCalories(foodInput.value, mealType, portion);
-  setEstimatedCalories(isEdit, estimate);
-  const status = document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate');
-  status.textContent = `Estimated ${estimate.toLocaleString()} kcal · confirm before saving.`;
-  status.classList.add('estimate-success');
-  if (!isEdit) updateMealPreview();
-}
-
-function setEstimatedCalories(isEdit, value) {
-  const total = Math.max(0, Math.round(Number(value) || 0));
-  const caloriesInput = document.getElementById(isEdit ? 'editCalories' : 'calories');
-  caloriesInput.value = String(total);
-  caloriesInput.defaultValue = String(total);
-  caloriesInput.setAttribute('value', String(total));
-  caloriesInput.dataset.estimatedCalories = String(total);
-  if (!isEdit) document.getElementById('mealForm').dataset.estimatedCalories = String(total);
-  caloriesInput.dispatchEvent(new Event('input', { bubbles: true }));
-  caloriesInput.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
-async function applyAiCalorieEstimate(isEdit) {
-  const photoUrl = isEdit
-    ? editingMealPhotoUrl
-    : document.getElementById('photoPreview').dataset.photoUrl || '';
-  const status = document.getElementById(isEdit ? 'editCalorieEstimate' : 'calorieEstimate');
-  const button = document.getElementById(isEdit ? 'aiEstimateEditCalories' : 'aiEstimateCalories');
-  if (!photoUrl) {
-    status.textContent = 'Add a food photo first.';
-    return;
-  }
-
-  const foodInput = document.getElementById(isEdit ? 'editFoodName' : 'foodName');
-  const portion = document.getElementById(isEdit ? 'editPortionSize' : 'portionSize').value;
-  const originalLabel = button.textContent;
-  button.disabled = true;
-  button.textContent = 'Analyzing…';
-  status.textContent = 'AI is identifying foods and estimating portions…';
-
-  try {
-    const response = await fetch('/.netlify/functions/estimate-calories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: photoUrl, food_name: foodInput.value.trim(), portion_size: portion })
-    });
-    const estimate = await response.json();
-    if (!response.ok) throw new Error(estimate.error || 'AI estimate failed.');
-
-    setEstimatedCalories(isEdit, estimate.total_calories);
-    if (!foodInput.value.trim() && estimate.foods?.length) {
-      foodInput.value = estimate.foods.map((food) => food.name).join(', ');
-    }
-    const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
-    status.textContent = `${foods || 'Food'} = about ${Number(estimate.total_calories).toLocaleString()} kcal · ${estimate.confidence} confidence. Confirm before saving.`;
-    status.classList.add('estimate-success');
-    if (!isEdit) updateMealPreview();
-  } catch (error) {
-    status.classList.remove('estimate-success');
-    status.textContent = error.message || 'AI estimate unavailable. Try the quick estimate.';
-  } finally {
-    button.disabled = false;
-    button.textContent = originalLabel;
-  }
 }
 
 async function handlePhotoChange(event) {
@@ -1270,6 +1313,14 @@ async function handlePhotoChange(event) {
     return;
   }
 
+  // Do not let the previous meal's AI result remain visible while a new
+  // photo is being analyzed. Clearing the file input also allows the same
+  // image to be selected again and rescanned.
+  event.target.value = '';
+  document.getElementById('foodName').value = '';
+  document.getElementById('calories').value = '';
+  updateMealPreview();
+
   try {
     const photoUrl = await resizeImageFile(file, 900, 0.82);
     const photoPreview = document.getElementById('photoPreview');
@@ -1278,49 +1329,15 @@ async function handlePhotoChange(event) {
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
     document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'Tap again to replace it.';
+    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories…';
     updateMealPreview();
+    await applyAiCalorieEstimate();
   } catch (error) {
     console.warn('Could not load food photo.', error);
     alert('Could not load that food photo. Please try another image.');
     event.target.value = '';
     resetPhotoPreview();
   }
-}
-
-async function handleEditMealPhotoChange(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    alert('Please choose an image file.');
-    event.target.value = '';
-    return;
-  }
-
-  try {
-    editingMealPhotoUrl = await resizeImageFile(file, 900, 0.82);
-    renderEditMealPhoto();
-  } catch (error) {
-    console.warn('Could not load food photo.', error);
-    alert('Could not load that food photo. Please try another image.');
-    event.target.value = '';
-  }
-}
-
-function clearEditMealPhoto() {
-  editingMealPhotoUrl = '';
-  document.getElementById('editMealPhoto').value = '';
-  renderEditMealPhoto();
-}
-
-function renderEditMealPhoto() {
-  const preview = document.getElementById('editMealPhotoPreview');
-  const removeButton = document.getElementById('removeEditMealPhoto');
-  preview.classList.toggle('hidden', !editingMealPhotoUrl);
-  removeButton.classList.toggle('hidden', !editingMealPhotoUrl);
-  if (editingMealPhotoUrl) preview.src = editingMealPhotoUrl;
-  else preview.removeAttribute('src');
 }
 
 function resetPhotoPreview() {
@@ -1332,11 +1349,64 @@ function resetPhotoPreview() {
   previewPhoto.removeAttribute('src');
   previewPhoto.classList.add('hidden');
   document.getElementById('photoIcon').classList.remove('hidden');
-  document.getElementById('photoTitle').textContent = 'Tap to snap or upload food';
-  document.getElementById('photoHint').textContent = 'Your photo will appear in the meal preview.';
+  document.getElementById('photoTitle').textContent = 'Add a food photo';
+  document.getElementById('photoHint').textContent = 'Choose where your photo comes from.';
   const estimateStatus = document.getElementById('calorieEstimate');
-  estimateStatus.classList.remove('estimate-success');
-  estimateStatus.textContent = 'AI Scan analyzes the photo. Quick Estimate uses food name and portion.';
+  estimateStatus.classList.remove('estimate-success', 'estimate-error');
+  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food and calories.';
+}
+
+async function applyAiCalorieEstimate() {
+  const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
+  const status = document.getElementById('calorieEstimate');
+  const button = document.getElementById('aiEstimateCalories');
+  if (!photoUrl) {
+    status.textContent = 'Upload or take a food photo first.';
+    status.classList.add('estimate-error');
+    return;
+  }
+
+  const originalLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Scanning…';
+  status.classList.remove('estimate-success', 'estimate-error');
+  status.textContent = 'AI is identifying the food and estimating portions…';
+
+  try {
+    const response = await fetch('/.netlify/functions/estimate-calories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: photoUrl,
+        food_name: document.getElementById('foodName').value.trim(),
+        portion_size: 'regular'
+      })
+    });
+    const estimate = await response.json();
+    if (!response.ok) throw new Error(estimate.error || 'AI calorie scan failed.');
+
+    // Ignore an older scan if the user selected another photo while it ran.
+    if (document.getElementById('photoPreview').dataset.photoUrl !== photoUrl) return;
+
+    const calories = Math.max(0, Math.round(Number(estimate.total_calories) || 0));
+    document.getElementById('calories').value = String(calories);
+    const foodInput = document.getElementById('foodName');
+    if (estimate.foods?.length) {
+      foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
+    }
+    const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
+    status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
+    status.classList.add('estimate-success');
+    document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
+    updateMealPreview();
+  } catch (error) {
+    status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
+    status.classList.add('estimate-error');
+    document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 async function handleProfilePhotoChange(event) {
@@ -1474,9 +1544,7 @@ function applyStoredAppData() {
   const storedCart = getStoredJson(chefCartStorageKey, []);
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
-  const storedProfileNutrition = getStoredJson(profileNutritionStorageKey, {});
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
-  if (Object.keys(storedProfileNutrition).length) appState.profileNutrition = storedProfileNutrition;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
@@ -1491,7 +1559,6 @@ function saveStoredAppData() {
   setStoredJson(chefCartStorageKey, appState.cart);
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
-  setStoredJson(profileNutritionStorageKey, appState.profileNutrition);
 }
 
 function mergeRecords(primary, fallback) {
@@ -1562,41 +1629,13 @@ function resizeImageFile(file, maxSize, quality) {
 }
 
 function normalizeMeal(meal) {
-  const rawNotes = meal.notes || meal.description || '';
-  const mealTypeMatch = rawNotes.match(/\[\[meal_type:(breakfast|lunch|dinner|snack)\]\]/i);
-  const portionMatch = rawNotes.match(/\[\[portion_size:(small|regular|large)\]\]/i);
   return {
     ...meal,
     food_name: meal.food_name || meal.name || 'Meal',
-    notes: rawNotes.replace(/\n?\[\[(?:meal_type:(?:breakfast|lunch|dinner|snack)|portion_size:(?:small|regular|large))\]\]/gi, ''),
-    meal_type: meal.meal_type || mealTypeMatch?.[1]?.toLowerCase() || inferMealType(new Date(meal.eaten_at || meal.created_at || Date.now())),
+    notes: meal.notes || meal.description || '',
     photo_url: meal.photo_url || '',
-    portion_size: meal.portion_size || portionMatch?.[1]?.toLowerCase() || 'regular',
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };
-}
-
-function timeKey(date = new Date()) {
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function inferMealType(date = new Date()) {
-  const hour = date.getHours();
-  if (hour < 10) return 'breakfast';
-  if (hour < 15) return 'lunch';
-  if (hour < 21) return 'dinner';
-  return 'snack';
-}
-
-function formatMealType(value = '') {
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Meal';
-}
-
-function resetMealDateTime() {
-  const now = new Date();
-  document.getElementById('mealDate').value = dateKey(now);
-  document.getElementById('mealTime').value = timeKey(now);
-  document.getElementById('mealType').value = inferMealType(now);
 }
 
 function normalizeChat(message) {
