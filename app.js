@@ -369,11 +369,19 @@ function updateProfileUi() {
   document.getElementById('navName').textContent = member.name;
   document.getElementById('activeAvatar').innerHTML = `${avatarMarkup(member)} <span>${escapeHtml(member.name)}</span>`;
   const landingAvatar = document.getElementById('tasteHeaderAvatar');
+  const welcomeAvatar = document.getElementById('tasteWelcomeAvatar');
+  const welcomeGreeting = document.getElementById('tasteWelcomeGreeting');
+  const profilePhoto = member.photo || defaultProfilePhoto(member);
   if (landingAvatar) {
-    landingAvatar.src = member.photo || defaultProfilePhoto(member);
+    landingAvatar.src = profilePhoto;
     landingAvatar.alt = member.name;
     landingAvatar.closest('button')?.setAttribute('aria-label', `Switch profile. Currently ${member.name}`);
   }
+  if (welcomeAvatar) {
+    welcomeAvatar.src = profilePhoto;
+    welcomeAvatar.alt = member.name;
+  }
+  if (welcomeGreeting) welcomeGreeting.textContent = `${getGreeting()}, ${member.name}! ☀️`;
 }
 
 function renderDashboard() {
