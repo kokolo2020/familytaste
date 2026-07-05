@@ -365,6 +365,97 @@ function renderDashboard() {
   renderFoodList('yesterdayFoodList', yesterdayMeals, 'Nothing was logged yesterday.');
   renderFavoriteFoods(memberMeals);
   renderBioInputs();
+  renderHealthInsights(todayMeals, calories, goal);
+}
+
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function renderHealthInsights(todayMeals, calories, calorieGoal) {
+  const log = getTodayBioLog();
+  const steps = Number(log.steps) || 0;
+  const glucose = Number(log.sugar_level) || 0;
+  const mealCount = todayMeals.length;
+  const calorieRatio = calorieGoal ? calories / calorieGoal : 0;
+  const calorieScore = calories === 0 ? 35 : clampScore(100 - Math.abs(1 - calorieRatio) * 82);
+  const activityScore = clampScore(38 + (steps / 10000) * 62);
+  const glucoseScore = glucose ? clampScore(100 - Math.abs(glucose - 100) * 1.25) : 55;
+  const mealVariety = new Set(todayMeals.map((meal) => meal.food_name?.toLowerCase()).filter(Boolean)).size;
+  const nutrition = clampScore((calorieScore * .55) + Math.min(mealVariety * 10, 30) + (mealCount ? 15 : 0));
+  const health = clampScore((nutrition * .35) + (activityScore * .35) + (glucoseScore * .3));
+  const progress = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
+
+  setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
+  setText('dashboardMemberName', appState.currentMember?.name || 'Family');
+  setText('summaryCalories', calories.toLocaleString());
+  setText('summaryWeight', log.weight_kg ? Number(log.weight_kg).toLocaleString() : '--');
+  setText('summarySteps', steps.toLocaleString());
+  setText('summaryGlucose', glucose ? Math.round(glucose).toLocaleString() : '--');
+  setText('summaryCalorieProgress', `${progress}%`);
+  setText('summaryCalorieGoal', `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
+  setText('summaryRingCalories', calories.toLocaleString());
+  setText('nutritionDonutCalories', calories.toLocaleString());
+  setText('summaryTip', mealCount
+    ? `You’re ${progress}% of the way to your daily calorie goal.`
+    : 'Log your first meal to start your daily analysis.');
+  const summaryBar = document.getElementById('summaryCalorieBar');
+  if (summaryBar) summaryBar.style.width = `${progress}%`;
+  const summaryRing = document.getElementById('summaryCalorieRing');
+  if (summaryRing) summaryRing.style.setProperty('--ring-progress', `${progress * 3.6}deg`);
+  setText('bodyHealthScore', health);
+  setText('healthScoreStatus', health >= 80 ? 'Excellent' : health >= 65 ? 'On track' : health >= 45 ? 'Building up' : 'Needs attention');
+  setText('averageGlucose', glucose ? Math.round(glucose) : '--');
+  setText('glucoseStatus', !glucose ? 'Add reading' : glucose < 70 ? 'Below range' : glucose <= 140 ? 'In range' : 'Above range');
+  setText('nutritionBalance', nutrition);
+  setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
+
+  const impacts = [
+    ['Brain', clampScore(glucoseScore * .6 + nutrition * .4), '🧠'],
+    ['Heart', clampScore(activityScore * .55 + nutrition * .45), '♡'],
+    ['Muscles', clampScore(activityScore * .65 + calorieScore * .35), '💪'],
+    ['Digestive System', clampScore(nutrition * .75 + Math.min(mealCount * 8, 25)), '◉'],
+    ['Bones', clampScore(activityScore * .45 + nutrition * .55), '🦴'],
+    ['Energy', clampScore(calorieScore * .65 + activityScore * .35), '⚡']
+  ];
+  const impactList = document.getElementById('bodyImpactList');
+  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon]) => `
+    <div class="impact-row">
+      <span class="impact-icon">${icon}</span>
+      <div><span><b>${name}</b><strong>${score}%</strong></span><i><em style="width:${score}%"></em></i></div>
+    </div>`).join('');
+
+  const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
+  const recommendationList = document.getElementById('aiRecommendationList');
+  if (recommendationList) recommendationList.innerHTML = recommendations.map((item) => `
+    <article class="recommendation-item">
+      <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
+    </article>`).join('');
+}
+
+function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
+  const items = [];
+  if (!mealCount) items.push({ icon: '🥗', title: 'Start with a balanced meal', copy: 'Add protein, vegetables, and a steady-energy carbohydrate.' });
+  else if (calories < calorieGoal * .55) items.push({ icon: '🍲', title: 'Fuel the rest of your day', copy: `You have about ${Math.max(calorieGoal - calories, 0).toLocaleString()} calories remaining toward your goal.` });
+  else if (calories > calorieGoal * 1.05) items.push({ icon: '🥬', title: 'Keep the next meal light', copy: 'Favor vegetables, lean protein, and water for the rest of today.' });
+  else items.push({ icon: '✓', title: 'Calories are pacing well', copy: 'Your intake is tracking close to today’s energy target.' });
+
+  if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
+  else if (glucose > 140) items.push({ icon: '🥦', title: 'Choose steady-energy foods', copy: 'Pair fiber and protein, and avoid another sugary snack right now.' });
+  else if (glucose < 70) items.push({ icon: '🍌', title: 'Glucose looks low', copy: 'Consider a quick carbohydrate and recheck based on your care plan.' });
+  else items.push({ icon: '🩸', title: 'Glucose is in range', copy: 'Keep the momentum with water and a fiber-rich next meal.' });
+
+  const remainingSteps = Math.max(10000 - steps, 0);
+  items.push(steps >= 10000
+    ? { icon: '👟', title: 'Movement goal reached', copy: 'Great work—gentle recovery and hydration are a good finish.' }
+    : { icon: '🚶', title: 'Take a short walk', copy: `${remainingSteps.toLocaleString()} steps remain; even 10 minutes after a meal can help.` });
+  if (nutrition < 65 && mealCount) items.push({ icon: '🌈', title: 'Add more color', copy: 'A fruit or vegetable can improve today’s nutrition balance.' });
+  return items.slice(0, 3);
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
 }
 
 function getTodayBioLog() {
@@ -404,6 +495,7 @@ async function handleSaveBioStats() {
   const button = document.getElementById('saveBioStats');
   button.textContent = 'Saved ✓';
   setTimeout(() => { button.textContent = 'Save Bio Stats'; }, 1800);
+  renderDashboard();
 
   if (window.familyBitesDb?.isConfigured && appState.familyId) {
     if (log.weight_kg !== null) {
