@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FamilyTaste v2 | Pich Family Wellness</title>
+  <meta name="description" content="FamilyTaste v2 is the Pich Family wellness, food intelligence, and AI health coach app." />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <main class="phone-shell">
+    <section id="authView" class="screen auth-screen">
+      <div class="brand-lockup">
+        <span class="brand-icon">🍽️</span>
+        <div>
+          <p>FamilyTaste v2</p>
+          <h1>Pich Family Wellness</h1>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <p class="eyebrow">Private family access</p>
+        <h2>Sign in with Gmail</h2>
+        <p>Dad can manage everyone. Each family member sees their own food, wellness, and AI coach.</p>
+        <button id="googleSignIn" class="primary-action" type="button">Continue with Google</button>
+        <button id="demoAdmin" class="secondary-action" type="button">Preview as Dad Admin</button>
+        <button id="demoMember" class="secondary-action" type="button">Preview as Family Member</button>
+      </div>
+    </section>
+
+    <section id="appView" class="screen app-screen hidden">
+      <header class="topbar">
+        <div>
+          <p id="roleLabel" class="eyebrow">Pich Family</p>
+          <h2 id="welcomeTitle">Good morning</h2>
+        </div>
+        <button id="signOut" class="avatar-button" type="button" aria-label="Sign out">👨</button>
+      </header>
+
+      <section class="wellness-score-card">
+        <div>
+          <p class="eyebrow">Today</p>
+          <h3>Pich Family Wellness</h3>
+          <span id="visibilityNote">Admin view · Everyone</span>
+        </div>
+        <strong id="wellnessScore">87</strong>
+      </section>
+
+      <section class="quick-actions" aria-label="Quick actions">
+        <button type="button">📸<span>Add Meal</span></button>
+        <button type="button">🥗<span>Balanced Diet</span></button>
+        <button type="button">📊<span>Food Stats</span></button>
+      </section>
+
+      <section class="body-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">AI Body Map</p>
+            <h3>How food supports your body</h3>
+          </div>
+          <span class="ai-pill">AI</span>
+        </div>
+
+        <div class="body-layout">
+          <div class="body-figure" aria-hidden="true">
+            <div class="body-head"></div>
+            <div class="body-torso"></div>
+            <div class="body-core"></div>
+          </div>
+          <div id="bodySystems" class="body-systems"></div>
+        </div>
+      </section>
+
+      <section class="insight-grid">
+        <article>
+          <span>🍜</span>
+          <div><strong>Most repeated</strong><small id="repeatDish">Pad Thai · 4x this month</small></div>
+        </article>
+        <article>
+          <span>🏪</span>
+          <div><strong>Top restaurant</strong><small id="topRestaurant">Sushi Zanmai · 3 visits</small></div>
+        </article>
+        <article>
+          <span>🌈</span>
+          <div><strong>Variety goal</strong><small>12 food colors this week</small></div>
+        </article>
+      </section>
+
+      <section class="coach-card">
+        <p class="eyebrow">AI Coach</p>
+        <h3>Balanced diet suggestion</h3>
+        <p id="coachText">You are doing well with protein. Add one fruit and one leafy vegetable today to improve digestion and heart scores.</p>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <button class="active" type="button">⌂<span>Home</span></button>
+        <button type="button">📷<span>Meal</span></button>
+        <button type="button">❤️<span>Body</span></button>
+        <button type="button">📊<span>Stats</span></button>
+      </nav>
+    </section>
+  </main>
+
+  <div id="bodySheet" class="bottom-sheet hidden" role="dialog" aria-modal="true">
+    <button id="closeSheet" type="button" aria-label="Close">×</button>
+    <p id="sheetKicker" class="eyebrow">Body system</p>
+    <h3 id="sheetTitle">Brain</h3>
+    <strong id="sheetScore">76%</strong>
+    <p id="sheetFoods">Foods helping: salmon, egg, tea.</p>
+    <p id="sheetSuggestion">Suggestion: add blueberries or walnuts this week.</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
