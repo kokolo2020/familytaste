@@ -366,7 +366,8 @@ function renderDashboard() {
   const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
   const spend = sum(todayMeals, 'price');
-  const goal = Number(appState.currentMember?.target_calories) || 2200;
+  const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
+  const goal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
   const progress = Math.min(Math.round((calories / goal) * 100), 100);
 
   document.getElementById('dashboardMealCount').textContent = `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
@@ -1163,8 +1164,19 @@ function renderProfile() {
   const measurements = appState.profileMeasurements[member.id] || {};
   const heightInput = document.getElementById('profileHeight');
   const weightInput = document.getElementById('profileWeight');
+  const ageInput = document.getElementById('profileAge');
+  const sexInput = document.getElementById('profileSex');
+  const activityInput = document.getElementById('profileActivity');
+  const goalInput = document.getElementById('profileGoal');
   if (document.activeElement !== heightInput) heightInput.value = measurements.height_cm ?? member.height_cm ?? '';
   if (document.activeElement !== weightInput) weightInput.value = measurements.weight_kg ?? member.weight_kg ?? '';
+  if (document.activeElement !== ageInput) ageInput.value = measurements.age ?? '';
+  if (document.activeElement !== sexInput) sexInput.value = measurements.sex || (member.name.toLowerCase().includes('dad') || member.name.toLowerCase().includes('papa') ? 'male' : 'female');
+  if (document.activeElement !== activityInput) activityInput.value = String(measurements.activity || 1.55);
+  if (document.activeElement !== goalInput) goalInput.value = measurements.goal || 'maintain';
+  document.getElementById('profileCalorieTarget').textContent = measurements.target_calories ? Number(measurements.target_calories).toLocaleString() : '—';
+  document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
+  document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
   renderAvatarPicker(member);
 }
 
@@ -1173,14 +1185,36 @@ async function handleSaveProfileMeasurements() {
   if (!member) return;
   const height = numberOrNull(document.getElementById('profileHeight').value);
   const weight = numberOrNull(document.getElementById('profileWeight').value);
-  if (!height || !weight || height < 50 || weight < 10) {
-    alert('Enter a valid height and weight.');
+  const age = numberOrNull(document.getElementById('profileAge').value);
+  const sex = document.getElementById('profileSex').value;
+  const activity = Number(document.getElementById('profileActivity').value);
+  const goal = document.getElementById('profileGoal').value;
+  if (!height || !weight || !age || height < 50 || weight < 10 || age < 14) {
+    alert('Enter a valid height, weight, and age.');
     return;
   }
 
-  appState.profileMeasurements[member.id] = { height_cm: height, weight_kg: weight };
+  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'male' ? 5 : -161);
+  const adjustment = goal === 'lose' ? -400 : goal === 'gain' ? 300 : 0;
+  const minimumCalories = sex === 'male' ? 1500 : 1200;
+  const targetCalories = Math.max(minimumCalories, Math.round(((bmr * activity) + adjustment) / 50) * 50);
+  const proteinMultiplier = goal === 'maintain' ? 1.2 : 1.6;
+  const proteinGrams = Math.round(weight * proteinMultiplier);
+  const waterLiters = Math.round(weight * 0.035 * 10) / 10;
+  appState.profileMeasurements[member.id] = {
+    height_cm: height,
+    weight_kg: weight,
+    age,
+    sex,
+    activity,
+    goal,
+    target_calories: targetCalories,
+    protein_grams: proteinGrams,
+    water_liters: waterLiters
+  };
   member.height_cm = height;
   member.weight_kg = weight;
+  member.target_calories = targetCalories;
   if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
   appState.bioLogs[member.id][todayKey()] = {
     ...(appState.bioLogs[member.id][todayKey()] || {}),
@@ -1188,13 +1222,15 @@ async function handleSaveProfileMeasurements() {
   };
   saveStoredAppData();
   renderDashboard();
+  renderProfile();
 
   const button = document.getElementById('saveProfileMeasurements');
   button.textContent = 'Saved ✓';
-  setTimeout(() => { button.textContent = 'Save Measurements'; }, 1600);
+  setTimeout(() => { button.textContent = 'Save & Calculate'; }, 1600);
 
   await syncMemberToSupabase(member.id, { weight_kg: weight });
   await syncMemberToSupabase(member.id, { height_cm: height });
+  await syncMemberToSupabase(member.id, { target_calories: targetCalories });
 }
 
 async function handleSaveProfileName() {

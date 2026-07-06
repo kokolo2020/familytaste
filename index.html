@@ -434,14 +434,23 @@
               <section class="profile-measurements" aria-labelledby="profileMeasurementsTitle">
                 <div>
                   <p class="eyebrow">Body measurements</p>
-                  <h4 id="profileMeasurementsTitle">Height &amp; weight</h4>
+                  <h4 id="profileMeasurementsTitle">Personal health targets</h4>
                 </div>
                 <div class="profile-measurement-grid">
                   <label>Height (cm)<input id="profileHeight" type="number" min="50" max="260" step="0.1" inputmode="decimal" placeholder="170"></label>
                   <label>Weight (kg)<input id="profileWeight" type="number" min="10" max="400" step="0.1" inputmode="decimal" placeholder="70"></label>
+                  <label>Age<input id="profileAge" type="number" min="14" max="100" step="1" inputmode="numeric" placeholder="35"></label>
+                  <label>Sex<select id="profileSex"><option value="male">Male</option><option value="female">Female</option></select></label>
+                  <label>Activity<select id="profileActivity"><option value="1.2">Mostly seated</option><option value="1.375">Light exercise</option><option value="1.55">Moderate exercise</option><option value="1.725">Very active</option></select></label>
+                  <label>Goal<select id="profileGoal"><option value="maintain">Maintain weight</option><option value="lose">Lose weight</option><option value="gain">Gain weight</option></select></label>
                 </div>
-                <button class="primary-button" id="saveProfileMeasurements" type="button">Save Measurements</button>
-                <small>Saved separately for each family profile.</small>
+                <div class="profile-target-results" aria-live="polite">
+                  <article><span>Daily calories</span><strong id="profileCalorieTarget">—</strong><small>kcal</small></article>
+                  <article><span>Protein</span><strong id="profileProteinTarget">—</strong><small>grams</small></article>
+                  <article><span>Water</span><strong id="profileWaterTarget">—</strong><small>liters</small></article>
+                </div>
+                <button class="primary-button" id="saveProfileMeasurements" type="button">Save &amp; Calculate</button>
+                <small>General estimates for adults. Medical conditions and pregnancy require professional guidance.</small>
               </section>
               <div class="avatar-picker-wrap">
                 <strong>Choose Avatar</strong>

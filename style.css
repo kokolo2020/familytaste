@@ -1776,12 +1776,22 @@ h1 span {
 .profile-measurements > small { color: var(--muted); font-size: 10px; }
 .profile-measurement-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .profile-measurement-grid label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 850; }
-.profile-measurement-grid input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #dfd2c5; border-radius: 9px; color: var(--text); background: #fff; font: inherit; }
+.profile-measurement-grid input,
+.profile-measurement-grid select { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #dfd2c5; border-radius: 9px; color: var(--text); background: #fff; font: inherit; }
+.profile-target-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.profile-target-results article { min-width: 0; padding: 11px 8px; border-radius: 10px; background: #fff; text-align: center; }
+.profile-target-results span,
+.profile-target-results strong,
+.profile-target-results small { display: block; }
+.profile-target-results span { color: var(--muted); font-size: 9px; font-weight: 800; }
+.profile-target-results strong { margin-top: 4px; color: #d76717; font-size: 20px; }
+.profile-target-results small { color: var(--muted); font-size: 8px; }
 
 @media (max-width: 520px) {
   .profile-detail { align-items: flex-start; flex-direction: column; padding: 16px; }
   .profile-detail > div:last-child { width: 100%; }
   .profile-measurement-grid { grid-template-columns: 1fr; }
+  .profile-target-results { grid-template-columns: repeat(3, 1fr); }
 }
 
 .meal-actions {
