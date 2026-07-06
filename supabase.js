@@ -219,3 +219,10 @@
     if (insertError) throw insertError;
   }
 })();
+
+window.addEventListener('load', () => {
+  const script = document.createElement('script');
+  script.src = 'meal-date-patch.js?v=1';
+  script.defer = true;
+  document.body.appendChild(script);
+});
