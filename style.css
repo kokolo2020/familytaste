@@ -2050,22 +2050,23 @@ h1 span {
     z-index: 45;
     display: flex;
     align-items: center;
-    gap: 7px;
-    width: calc(100% - 20px);
-    min-height: 42px;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
     margin: 8px 10px 0;
-    padding: 0 14px;
+    padding: 0;
     border: 1px solid #eadfd3;
     border-radius: 14px;
     color: #6f4318;
     background: rgba(255, 251, 245, .96);
     box-shadow: 0 8px 24px rgba(78, 48, 24, .1);
     backdrop-filter: blur(14px);
-    font-size: 13px;
+    font-size: 0;
     font-weight: 900;
   }
 
-  .mobile-landing-button span { font-size: 20px; }
+  .mobile-landing-button span { font-size: 25px; line-height: 1; }
 
   .landing-view {
     min-height: 100svh;
