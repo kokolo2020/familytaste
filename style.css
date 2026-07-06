@@ -2552,3 +2552,90 @@ h1 span {
   .mobile-nav .nav-item { font-size: 9px; }
   .mobile-nav .nav-item[data-page="snap"] { width: 66px; height: 66px; margin: -24px auto 0; border: 5px solid #fff; border-radius: 50%; color: #fff; background: #ff6716; }
 }
+
+function showHealthInsight(part, score){
+
+const info={
+
+Brain:{
+icon:"🧠",
+title:"Brain",
+tip:"Brain health improves with Omega-3, berries and quality sleep."
+},
+
+Heart:{
+icon:"❤️",
+title:"Heart",
+tip:"Heart health benefits from low sodium and healthy fats."
+},
+
+Muscles:{
+icon:"💪",
+title:"Muscles",
+tip:"Protein and recovery meals help muscle growth."
+},
+
+Bones:{
+icon:"🦴",
+title:"Bones",
+tip:"Calcium and Vitamin D strengthen bones."
+},
+
+Digestive:{
+icon:"🍽️",
+title:"Digestive",
+tip:"Fiber and probiotics improve gut health."
+},
+
+Energy:{
+icon:"⚡",
+title:"Energy",
+tip:"Balanced meals provide sustained energy."
+}
+
+};
+
+const item=info[part];
+
+document.getElementById("healthInsightBody").innerHTML=`
+
+<h2>${item.icon} ${item.title}</h2>
+
+<h3>${score}%</h3>
+
+<p>${item.tip}</p>
+
+`;
+
+document
+.getElementById("healthInsightModal")
+.classList.add("show");
+
+}
+
+function closeHealthInsight(){
+
+document
+.getElementById("healthInsightModal")
+.classList.remove("show");
+
+}
+
+window.onclick=function(e){
+
+const modal=document.getElementById("healthInsightModal");
+
+if(e.target===modal){
+
+closeHealthInsight();
+
+}
+
+}
+
+function healthImprove(){
+
+alert("AI recommendations coming in Sprint 002.");
+
+  }
+
