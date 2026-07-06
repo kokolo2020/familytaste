@@ -524,5 +524,31 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="app.js"></script>
+
+<!-- Health Insight Modal -->
+<div id="healthInsightModal" class="health-modal">
+    <div class="health-modal-card">
+
+        <button class="health-close"
+                onclick="closeHealthInsight()">
+            ×
+        </button>
+
+        <div id="healthInsightBody"></div>
+
+        <div class="health-footer">
+            <button
+                class="health-improve-btn"
+                onclick="healthImprove()">
+                💡 How can I improve?
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
+
+  
 </body>
 </html>
