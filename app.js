@@ -17,7 +17,8 @@ const appState = {
   chefOrders: [],
   cart: [],
   voiceNotes: [],
-  bioLogs: {}
+  bioLogs: {},
+  profileMeasurements: {}
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -27,6 +28,7 @@ const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
+const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
@@ -171,6 +173,7 @@ function bindEvents() {
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
+  document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
@@ -1157,7 +1160,41 @@ function renderProfile() {
   document.getElementById('profileNameLarge').textContent = member.name;
   const nameInput = document.getElementById('profileNameInput');
   if (document.activeElement !== nameInput) nameInput.value = member.name;
+  const measurements = appState.profileMeasurements[member.id] || {};
+  const heightInput = document.getElementById('profileHeight');
+  const weightInput = document.getElementById('profileWeight');
+  if (document.activeElement !== heightInput) heightInput.value = measurements.height_cm ?? member.height_cm ?? '';
+  if (document.activeElement !== weightInput) weightInput.value = measurements.weight_kg ?? member.weight_kg ?? '';
   renderAvatarPicker(member);
+}
+
+async function handleSaveProfileMeasurements() {
+  const member = appState.currentMember;
+  if (!member) return;
+  const height = numberOrNull(document.getElementById('profileHeight').value);
+  const weight = numberOrNull(document.getElementById('profileWeight').value);
+  if (!height || !weight || height < 50 || weight < 10) {
+    alert('Enter a valid height and weight.');
+    return;
+  }
+
+  appState.profileMeasurements[member.id] = { height_cm: height, weight_kg: weight };
+  member.height_cm = height;
+  member.weight_kg = weight;
+  if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
+  appState.bioLogs[member.id][todayKey()] = {
+    ...(appState.bioLogs[member.id][todayKey()] || {}),
+    weight_kg: weight
+  };
+  saveStoredAppData();
+  renderDashboard();
+
+  const button = document.getElementById('saveProfileMeasurements');
+  button.textContent = 'Saved ✓';
+  setTimeout(() => { button.textContent = 'Save Measurements'; }, 1600);
+
+  await syncMemberToSupabase(member.id, { weight_kg: weight });
+  await syncMemberToSupabase(member.id, { height_cm: height });
 }
 
 async function handleSaveProfileName() {
@@ -1488,6 +1525,7 @@ function normalizeMember(member) {
     photo: member.photo_url || member.photo || defaultProfilePhoto(member),
     role: member.role || 'Family member',
     weight_kg: member.weight_kg ?? null,
+    height_cm: member.height_cm ?? null,
     target_calories: member.target_calories ?? null
   };
 }
@@ -1544,7 +1582,9 @@ function applyStoredAppData() {
   const storedCart = getStoredJson(chefCartStorageKey, []);
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
+  const storedProfileMeasurements = getStoredJson(profileMeasurementsStorageKey, {});
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
+  if (Object.keys(storedProfileMeasurements).length) appState.profileMeasurements = storedProfileMeasurements;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
@@ -1559,6 +1599,7 @@ function saveStoredAppData() {
   setStoredJson(chefCartStorageKey, appState.cart);
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
+  setStoredJson(profileMeasurementsStorageKey, appState.profileMeasurements);
 }
 
 function mergeRecords(primary, fallback) {

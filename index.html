@@ -431,6 +431,18 @@
                 <input id="profileNameInput" type="text" maxlength="30" placeholder="Display name" autocomplete="off">
                 <button class="primary-button" id="saveProfileName" type="button">Save Name</button>
               </div>
+              <section class="profile-measurements" aria-labelledby="profileMeasurementsTitle">
+                <div>
+                  <p class="eyebrow">Body measurements</p>
+                  <h4 id="profileMeasurementsTitle">Height &amp; weight</h4>
+                </div>
+                <div class="profile-measurement-grid">
+                  <label>Height (cm)<input id="profileHeight" type="number" min="50" max="260" step="0.1" inputmode="decimal" placeholder="170"></label>
+                  <label>Weight (kg)<input id="profileWeight" type="number" min="10" max="400" step="0.1" inputmode="decimal" placeholder="70"></label>
+                </div>
+                <button class="primary-button" id="saveProfileMeasurements" type="button">Save Measurements</button>
+                <small>Saved separately for each family profile.</small>
+              </section>
               <div class="avatar-picker-wrap">
                 <strong>Choose Avatar</strong>
                 <div id="avatarPicker" class="avatar-picker" aria-label="Choose profile avatar"></div>

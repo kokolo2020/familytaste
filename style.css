@@ -1758,6 +1758,30 @@ h1 span {
   display: grid;
   gap: 10px;
   justify-items: start;
+  width: min(100%, 620px);
+}
+
+.profile-measurements {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  margin: 8px 0;
+  padding: 16px;
+  border: 1px solid #eadfd4;
+  border-radius: 14px;
+  background: #fffaf4;
+}
+
+.profile-measurements h4 { margin: 2px 0 0; font-size: 18px; }
+.profile-measurements > small { color: var(--muted); font-size: 10px; }
+.profile-measurement-grid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.profile-measurement-grid label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 850; }
+.profile-measurement-grid input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #dfd2c5; border-radius: 9px; color: var(--text); background: #fff; font: inherit; }
+
+@media (max-width: 520px) {
+  .profile-detail { align-items: flex-start; flex-direction: column; padding: 16px; }
+  .profile-detail > div:last-child { width: 100%; }
+  .profile-measurement-grid { grid-template-columns: 1fr; }
 }
 
 .meal-actions {
