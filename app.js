@@ -452,7 +452,15 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
   const impactList = document.getElementById('bodyImpactList');
   if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position]) => `
-    <article class="impact-callout impact-${position}">
+    
+    <article
+  class="impact-callout impact-${position}"
+  data-part="${escapeAttr(name)}"
+  data-score="${score}"
+  data-copy="${escapeAttr(copy)}"
+  tabindex="0"
+>
+  
       <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
       <strong>${score}%</strong>
       <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
