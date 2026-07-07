@@ -485,25 +485,17 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('nutritionBalance', nutrition);
   setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
 
-  const impacts = buildFoodBodyImpacts(todayMeals, calories);
+  const impacts = [
+    ...buildFoodBodyImpacts(todayMeals, calories),
+    ...buildSecondaryFoodBodyImpacts(todayMeals, calories)
+  ];
   const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position]) => `
-    <article class="impact-callout impact-${position}">
-      <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
-      <strong>${score}%</strong>
-      <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
-    </article>`).join('');
-  const secondaryImpactList = document.getElementById('secondaryBodyImpactList');
-  if (secondaryImpactList) secondaryImpactList.innerHTML = buildSecondaryFoodBodyImpacts(todayMeals, calories).map((impact) => `
-    <article class="secondary-impact-card">
-      <span class="secondary-impact-icon">${impact.icon}</span>
-      <div>
-        <strong>${escapeHtml(impact.name)}</strong>
-        <small>${impact.score}% support</small>
-      </div>
+  if (impactList) impactList.innerHTML = impacts.map((impact) => `
+    <article class="impact-callout impact-${impact.position}${impact.compact ? ' impact-compact' : ''}">
+      <span class="impact-callout-title">${impact.icon} ${escapeHtml(impact.name)}</span>
+      <strong>${impact.score}%</strong>
       <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>
-    </article>
-  `).join('');
+    </article>`).join('');
 
   const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
   const recommendationList = document.getElementById('aiRecommendationList');
@@ -532,7 +524,7 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
     const names = matched.map((meal) => meal.food_name).filter(Boolean);
     const foodList = names.length ? names.join(', ') : 'No matching food logged';
     const copy = names.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
-    return [system.name, score, system.icon, copy, system.position];
+    return { name: system.name, score, icon: system.icon, copy, position: system.position, compact: false };
   });
 }
 
@@ -541,6 +533,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Liver',
       icon: '🧽',
+      position: 'liver',
       supportWords: ['coffee', 'tea', 'greens', 'broccoli', 'spinach', 'garlic', 'walnut', 'salmon', 'fish', 'tofu', 'berry'],
       cautionWords: ['fried', 'fries', 'soda', 'soft serve', 'dessert', 'bacon'],
       benefit: 'foods logged today include ingredients commonly associated with liver-supportive nutrients'
@@ -548,6 +541,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Eyes',
       icon: '👁️',
+      position: 'eyes',
       supportWords: ['carrot', 'spinach', 'leafy', 'egg', 'salmon', 'tuna', 'mango', 'orange', 'pumpkin'],
       cautionWords: ['soda', 'dessert'],
       benefit: 'foods logged today include nutrients often linked to eye support'
@@ -555,6 +549,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Joints / Knees',
       icon: '🦵',
+      position: 'joints',
       supportWords: ['salmon', 'tuna', 'ginger', 'olive', 'berry', 'nuts', 'turmeric', 'yogurt'],
       cautionWords: ['fried', 'burger', 'fries'],
       benefit: 'foods logged today include ingredients often associated with joint-friendly eating'
@@ -562,6 +557,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Skin',
       icon: '✨',
+      position: 'skin',
       supportWords: ['avocado', 'salmon', 'nuts', 'berry', 'tomato', 'yogurt', 'orange', 'mango'],
       cautionWords: ['soda', 'dessert', 'frappe'],
       benefit: 'foods logged today include nutrients commonly linked to skin support'
@@ -569,6 +565,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Immunity',
       icon: '🛡️',
+      position: 'immunity',
       supportWords: ['orange', 'berry', 'fruit', 'yogurt', 'garlic', 'ginger', 'tea', 'vegetable', 'greens'],
       cautionWords: ['soda'],
       benefit: 'foods logged today include ingredients often associated with immune support'
@@ -576,6 +573,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
     {
       name: 'Recovery',
       icon: '🔧',
+      position: 'recovery',
       supportWords: ['chicken', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'protein', 'milk', 'beef'],
       cautionWords: ['dessert'],
       benefit: 'foods logged today include protein and recovery-oriented building blocks'
@@ -596,6 +594,8 @@ function buildSecondaryImpact(system, meals, totalCalories) {
   return {
     name: system.name,
     icon: system.icon,
+    position: system.position,
+    compact: true,
     score,
     copy: foodList
       ? `${foodList} — ${system.benefit}.`
