@@ -30,6 +30,8 @@ const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
+const APP_VERSION = 'v0.7.0';
+const APP_BUILD_DATE = '2026-07-07';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna']);
 
@@ -1438,10 +1440,11 @@ function saveVoiceNote(blob) {
 }
 
 function renderReport() {
+  const member = appState.currentMember || appState.members[0];
+  if (!member) return;
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const inThisWeek = (meal) => new Date(meal.eaten_at || meal.created_at).getTime() >= weekAgo;
   const meals = getMemberMeals().filter(inThisWeek);
-  const familyMeals = appState.meals.filter(inThisWeek);
   const calories = sum(meals, 'calories');
   const spend = sum(meals, 'price');
   const favoriteRestaurant = mostCommon(meals.map((meal) => meal.restaurant_name).filter(Boolean));
@@ -1453,9 +1456,9 @@ function renderReport() {
   document.getElementById('reportRestaurant').textContent = favoriteRestaurant || '-';
   document.getElementById('reportFood').textContent = favoriteFood || '-';
   document.getElementById('reportFavoriteDish').textContent = favoriteFood || '-';
-  document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood);
+  document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, calories, spend, favoriteFood);
   renderWeeklyDateRange();
-  renderFamilyWeeklyHealth(familyMeals);
+  renderProfileWeeklyHealth(member, meals);
   renderMealBalance(meals);
   renderWeeklyCalories(meals);
   renderFoodVariety(meals);
@@ -1530,22 +1533,18 @@ function renderFoodVariety(meals) {
   }).join('');
 }
 
-function renderFamilyWeeklyHealth(familyMeals) {
-  const familyMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
-  const memberStats = familyMembers.map((member) => buildMemberWeeklyStats(member, familyMeals));
-  const activeMembers = memberStats.filter((stats) => stats.mealCount > 0);
-  const familyAverage = activeMembers.length
-    ? Math.round(activeMembers.reduce((total, stats) => total + stats.avgHealth, 0) / activeMembers.length)
-    : 0;
-  const sugaryDrinkCount = memberStats.reduce((total, stats) => total + stats.sugaryDrinks, 0);
-  const lateMealCount = memberStats.reduce((total, stats) => total + stats.lateMeals, 0);
+function renderProfileWeeklyHealth(member, meals) {
+  const stats = buildMemberWeeklyStats(member, meals, { alreadyFiltered: true });
+  const avgCaloriesPerDay = stats.activeDays ? Math.round(stats.calories / Math.max(stats.activeDays, 1)) : 0;
 
-  document.getElementById('familyWeeklyAverage').textContent = familyAverage.toString();
-  document.getElementById('familyWeeklyActive').textContent = activeMembers.length.toString();
-  document.getElementById('familyWeeklySugary').textContent = sugaryDrinkCount.toString();
-  document.getElementById('familyWeeklyLate').textContent = lateMealCount.toString();
-  document.getElementById('familyWeeklyHighlights').innerHTML = buildFamilyWeeklyHighlights(memberStats);
-  document.getElementById('familyWeeklyMembers').innerHTML = memberStats.map((stats) => `
+  setText('weeklyHealthSnapshotTitle', `${member.name}'s Weekly Health Snapshot`);
+  setText('weeklyHealthSnapshotSubtitle', 'Selected profile only');
+  document.getElementById('familyWeeklyAverage').textContent = stats.avgHealth.toString();
+  document.getElementById('familyWeeklyActive').textContent = stats.activeDays.toString();
+  document.getElementById('familyWeeklySugary').textContent = stats.sugaryDrinks.toString();
+  document.getElementById('familyWeeklyLate').textContent = stats.lateMeals.toString();
+  document.getElementById('familyWeeklyHighlights').innerHTML = buildProfileWeeklyHighlights(stats, avgCaloriesPerDay);
+  document.getElementById('familyWeeklyMembers').innerHTML = stats.mealCount ? `
     <article class="family-member-health">
       <div class="family-member-health-head">
         <span class="avatar">${avatarMarkup(stats.member)}</span>
@@ -1553,20 +1552,22 @@ function renderFamilyWeeklyHealth(familyMeals) {
           <strong>${escapeHtml(stats.member.name)}</strong>
           <small>${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} · ${stats.mealCount} meal${stats.mealCount === 1 ? '' : 's'}</small>
         </div>
-        <span class="family-member-health-score ${stats.mealCount ? healthTone(stats.avgHealth) : 'fair'}">${stats.mealCount ? `${stats.avgHealth}/100` : '—'}</span>
+        <span class="family-member-health-score ${healthTone(stats.avgHealth)}">${stats.avgHealth}/100</span>
       </div>
       <div class="family-member-metrics">
-        <span><i>Calories</i><strong>${stats.activeDays ? Math.round(stats.calories / Math.max(stats.activeDays, 1)).toLocaleString() : '0'}/day</strong></span>
+        <span><i>Calories</i><strong>${avgCaloriesPerDay.toLocaleString()}/day</strong></span>
         <span><i>Sugary drinks</i><strong>${stats.sugaryDrinks}</strong></span>
         <span><i>Late meals</i><strong>${stats.lateMeals}</strong></span>
       </div>
       <p>${escapeHtml(stats.note)}</p>
     </article>
-  `).join('') || '<p class="muted">No family meals logged in the last 7 days.</p>';
+  ` : '<p class="muted">No meals logged for this profile in the last 7 days.</p>';
 }
 
-function buildMemberWeeklyStats(member, familyMeals) {
-  const meals = familyMeals.filter((meal) => mealBelongsToMember(meal, member, false));
+function buildMemberWeeklyStats(member, mealPool, options = {}) {
+  const meals = options.alreadyFiltered
+    ? mealPool
+    : mealPool.filter((meal) => mealBelongsToMember(meal, member, false));
   const activeDays = new Set(meals.map((meal) => mealDayKey(meal)).filter(Boolean)).size;
   const avgHealth = meals.length
     ? Math.round(meals.reduce((total, meal) => total + estimateMealHealthScore(meal, member), 0) / meals.length)
@@ -1600,55 +1601,53 @@ function buildMemberWeeklyNote({ mealCount, activeDays, avgHealth, sugaryDrinks,
   return 'Steady week overall with room for a few more vegetables or protein-forward meals.';
 }
 
-function buildFamilyWeeklyHighlights(memberStats) {
-  const activeMembers = memberStats.filter((stats) => stats.mealCount > 0);
-  if (!activeMembers.length) {
+function buildProfileWeeklyHighlights(stats, avgCaloriesPerDay) {
+  if (!stats.mealCount) {
     return `
       <article>
-        <span>Family view</span>
-        <strong>Waiting for weekly data</strong>
-        <p>Once meals are logged, this section will show who is on track and where the family needs support.</p>
+        <span>Weekly view</span>
+        <strong>Waiting for meals</strong>
+        <p>Log a few meals for this profile and the weekly trend cards will fill in automatically.</p>
       </article>
     `;
   }
 
-  const topMember = [...activeMembers].sort((left, right) => right.avgHealth - left.avgHealth || right.mealCount - left.mealCount)[0];
-  const attentionMember = [...activeMembers].sort((left, right) => {
-    const leftRisk = (left.sugaryDrinks * 8) + (left.lateMeals * 7) + (100 - left.avgHealth);
-    const rightRisk = (right.sugaryDrinks * 8) + (right.lateMeals * 7) + (100 - right.avgHealth);
-    return rightRisk - leftRisk;
-  })[0];
-  const restaurantMeals = activeMembers.reduce((total, stats) => total + stats.restaurantMeals, 0);
-  const sugaryDrinks = activeMembers.reduce((total, stats) => total + stats.sugaryDrinks, 0);
+  const scoreLabel = stats.avgHealth >= 80 ? 'Strong balance' : stats.avgHealth >= 60 ? 'Good baseline' : 'Needs attention';
+  const watchLabel = stats.sugaryDrinks >= 2
+    ? `${stats.sugaryDrinks} sugary drink${stats.sugaryDrinks === 1 ? '' : 's'}`
+    : stats.lateMeals >= 2
+      ? `${stats.lateMeals} late meal${stats.lateMeals === 1 ? '' : 's'}`
+      : stats.restaurantMeals >= Math.max(3, Math.ceil(stats.mealCount * 0.6))
+        ? `${stats.restaurantMeals} restaurant meal${stats.restaurantMeals === 1 ? '' : 's'}`
+        : 'No major flags';
+  const watchCopy = stats.sugaryDrinks >= 2
+    ? 'Sugary drinks were the clearest drag on the week.'
+    : stats.lateMeals >= 2
+      ? 'Late eating was the clearest pattern to tighten up.'
+      : stats.restaurantMeals >= Math.max(3, Math.ceil(stats.mealCount * 0.6))
+        ? 'Restaurant meals were frequent, so home meals could help with control.'
+        : 'This profile stayed fairly steady without a big warning signal.';
 
   return `
     <article>
-      <span>Best balance</span>
-      <strong>${escapeHtml(topMember.member.name)}</strong>
-      <p>${topMember.avgHealth}/100 average health score across ${topMember.mealCount} meal${topMember.mealCount === 1 ? '' : 's'}.</p>
+      <span>Weekly score</span>
+      <strong>${scoreLabel}</strong>
+      <p>${stats.avgHealth}/100 average health score across ${stats.mealCount} meal${stats.mealCount === 1 ? '' : 's'}.</p>
     </article>
     <article>
-      <span>Needs attention</span>
-      <strong>${escapeHtml(attentionMember.member.name)}</strong>
-      <p>${buildAttentionHighlight(attentionMember)}</p>
+      <span>Main watchout</span>
+      <strong>${watchLabel}</strong>
+      <p>${watchCopy}</p>
     </article>
     <article>
-      <span>Family pattern</span>
-      <strong>${restaurantMeals} restaurant meal${restaurantMeals === 1 ? '' : 's'}</strong>
-      <p>${sugaryDrinks} sugary drink${sugaryDrinks === 1 ? '' : 's'} and ${activeMembers.length} active family member${activeMembers.length === 1 ? '' : 's'} were logged this week.</p>
+      <span>Eating rhythm</span>
+      <strong>${avgCaloriesPerDay.toLocaleString()} cal/day</strong>
+      <p>${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} were logged this week.</p>
     </article>
   `;
 }
 
-function buildAttentionHighlight(stats) {
-  if (stats.sugaryDrinks >= 2) return `${stats.sugaryDrinks} sugary drinks pulled the week off balance.`;
-  if (stats.lateMeals >= 2) return `${stats.lateMeals} late meals were logged after 9pm.`;
-  if (stats.avgHealth < 60) return `${stats.avgHealth}/100 average score suggests heavier or more processed meals.`;
-  if (stats.activeDays <= 2) return `Only ${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} were logged this week.`;
-  return `${stats.avgHealth}/100 average score leaves room for steadier meal choices.`;
-}
-
-function buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood) {
+function buildWeeklySummary(meals, calories, spend, favoriteFood) {
   if (!meals.length) {
     return 'No meals logged in the last 7 days. Log a few meals and this report will summarize your real nutrition, habits, and spending.';
   }
@@ -1666,8 +1665,6 @@ function buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood) {
   }
   if (favoriteFood) parts.push(`Most repeated dish: ${favoriteFood}.`);
   if (spend > 0) parts.push(`Food spending recorded this week: ${formatMoney(spend)}.`);
-  const familyCount = familyMeals.length - meals.length;
-  if (familyCount > 0) parts.push(`The rest of the family logged ${familyCount} more meal${familyCount !== 1 ? 's' : ''}.`);
   return parts.join(' ');
 }
 
@@ -2678,6 +2675,12 @@ function renderSettings() {
       <h3>Clear all local data</h3>
       <p>Removes all meals, chat messages, orders, and cart saved in this browser. This cannot be undone.</p>
       <button class="danger-button" data-action="clear-all-data">🗑️ Clear All Data</button>
+    </div>
+
+    <div class="settings-section app-version-card">
+      <p class="eyebrow">Release</p>
+      <h3>${APP_VERSION}</h3>
+      <p>Build date: ${APP_BUILD_DATE}</p>
     </div>
   `;
 }

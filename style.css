@@ -2590,6 +2590,14 @@ h1 span {
 
 .danger-zone { border-color: rgba(217, 94, 49, 0.22); }
 
+.app-version-card {
+  border-style: dashed;
+}
+
+.app-version-card h3 {
+  margin-bottom: 6px;
+}
+
 .danger-button {
   min-height: 44px;
   padding: 0 20px;
