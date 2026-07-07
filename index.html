@@ -212,6 +212,12 @@
               <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
             </section>
 
+            <section class="nutrition-panel dashboard-card">
+              <div class="section-title"><h3>Micronutrient Focus</h3></div>
+              <div class="macro-list" id="nutrientGapList"></div>
+              <p class="analysis-note">From AI-scanned meals today, vs. daily targets.</p>
+            </section>
+
             <section class="ai-recommendations dashboard-card">
               <div class="section-title">
                 <div>
@@ -254,6 +260,14 @@
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <div class="calorie-scanner wide">
+                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories &amp; Nutrients</button>
+                <small id="calorieEstimate">Add a photo and AI will estimate calories, fiber, iron, calcium, and vitamin D.</small>
+              </div>
+              <input id="fiberG" type="hidden">
+              <input id="ironMg" type="hidden">
+              <input id="calciumMg" type="hidden">
+              <input id="vitaminDMcg" type="hidden">
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>

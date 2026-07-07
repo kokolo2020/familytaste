@@ -934,6 +934,20 @@ h1 span {
   background: #fff0d3;
 }
 
+.calorie-scanner {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #eadbc9;
+  border-radius: 8px;
+  background: #fffaf3;
+}
+
+.calorie-scanner small { color: var(--muted); line-height: 1.45; }
+.calorie-scanner .estimate-success { color: #39752b; font-weight: 750; }
+.calorie-scanner .estimate-error { color: #a43a28; font-weight: 750; }
+.calorie-scanner button:disabled { opacity: .65; cursor: wait; }
+
 .text-button {
   color: #7a4707;
   background: transparent;

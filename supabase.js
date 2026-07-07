@@ -68,6 +68,10 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
+        fiber_g: meal.fiber_g ?? null,
+        iron_mg: meal.iron_mg ?? null,
+        calcium_mg: meal.calcium_mg ?? null,
+        vitamin_d_mcg: meal.vitamin_d_mcg ?? null,
         description: meal.notes || null,
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
