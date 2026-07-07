@@ -629,8 +629,9 @@ async function handleSaveBioStats() {
 }
 
 function renderFoodList(elementId, meals, emptyMessage) {
+  const orderedMeals = [...meals].sort(compareDashboardMealOrder);
   document.getElementById(elementId).innerHTML =
-    meals.map((meal) => mealTemplate(meal, true)).join('') || emptyState(emptyMessage);
+    orderedMeals.map((meal) => mealTemplate(meal, true)).join('') || emptyState(emptyMessage);
 }
 
 let editingMealId = null;
@@ -1007,6 +1008,25 @@ function getMealTypeLabel(meal) {
 
 function getMealType(meal) {
   return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || '';
+}
+
+function compareDashboardMealOrder(left, right) {
+  const typeDelta = dashboardMealTypePriority(right) - dashboardMealTypePriority(left);
+  if (typeDelta !== 0) return typeDelta;
+  return new Date(right.eaten_at || right.created_at) - new Date(left.eaten_at || left.created_at);
+}
+
+function dashboardMealTypePriority(meal) {
+  const priorities = {
+    dinner: 60,
+    lunch: 50,
+    brunch: 40,
+    breakfast: 30,
+    snack: 20,
+    dessert: 10,
+    other: 0
+  };
+  return priorities[getMealType(meal)] ?? priorities.other;
 }
 
 function notesWithoutMealType(notes) {
