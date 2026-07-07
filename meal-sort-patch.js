@@ -120,7 +120,7 @@
     };
 
     if (typeof renderAll === 'function') renderAll();
-    loadScriptOnce('body-details-patch.js');
+    loadScriptOnce('profile-save-fix.js');
     return true;
   }
 
