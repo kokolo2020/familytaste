@@ -126,6 +126,11 @@ function bindEvents() {
       handleDeleteMeal(deleteMealTarget.dataset.deleteMeal);
     }
 
+    const rescanMealTarget = event.target.closest('[data-rescan-meal]');
+    if (rescanMealTarget) {
+      handleRescanMealNutrients(rescanMealTarget.dataset.rescanMeal, rescanMealTarget);
+    }
+
     const addMealTarget = event.target.closest('[data-add-meal]');
     if (addMealTarget) {
       openMealModal(null, addMealTarget.dataset.addMeal);
@@ -760,9 +765,11 @@ function renderMeals() {
 }
 
 function mealTemplate(meal, withActions = false) {
+  const missingNutrients = meal.photo_url && meal.fiber_g == null && meal.iron_mg == null && meal.calcium_mg == null && meal.vitamin_d_mcg == null;
   const actions = withActions ? `
         <div class="meal-actions">
           <button type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+          ${missingNutrients ? `<button type="button" data-rescan-meal="${escapeAttr(meal.id)}">🌱 Scan Nutrients</button>` : ''}
           <button type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
   return `
@@ -776,6 +783,61 @@ function mealTemplate(meal, withActions = false) {
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
   `;
+}
+
+async function handleRescanMealNutrients(mealId, buttonElement) {
+  const meal = appState.meals.find((item) => item.id === mealId);
+  if (!meal || !meal.photo_url) return;
+
+  const originalLabel = buttonElement.textContent;
+  buttonElement.disabled = true;
+  buttonElement.textContent = 'Scanning…';
+
+  try {
+    const response = await fetch('/.netlify/functions/estimate-calories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: meal.photo_url,
+        food_name: meal.food_name,
+        description_context: buildEstimateDescription({ restaurantName: meal.restaurant_name, notes: meal.notes }),
+        portion_size: 'regular'
+      })
+    });
+    const rawResponse = await response.text();
+    let estimate = null;
+    try {
+      estimate = rawResponse ? JSON.parse(rawResponse) : null;
+    } catch (parseError) {
+      estimate = null;
+    }
+    if (!response.ok || !estimate) throw new Error(estimate?.error || 'AI scan is unavailable right now. Please try again later.');
+
+    meal.fiber_g = estimate.fiber_g ?? null;
+    meal.iron_mg = estimate.iron_mg ?? null;
+    meal.calcium_mg = estimate.calcium_mg ?? null;
+    meal.vitamin_d_mcg = estimate.vitamin_d_mcg ?? null;
+    saveStoredAppData();
+    renderAll();
+
+    if (window.familyBitesDb?.isConfigured) {
+      try {
+        await window.familyBitesDb.updateMeal(meal.id, {
+          fiber_g: meal.fiber_g,
+          iron_mg: meal.iron_mg,
+          calcium_mg: meal.calcium_mg,
+          vitamin_d_mcg: meal.vitamin_d_mcg
+        });
+      } catch (syncError) {
+        console.warn('Nutrient rescan saved locally but Supabase sync failed.', syncError);
+      }
+    }
+  } catch (error) {
+    console.warn('Nutrient rescan failed.', error);
+    alert(error.message || 'Could not scan nutrients for this meal. Please try again.');
+    buttonElement.disabled = false;
+    buttonElement.textContent = originalLabel;
+  }
 }
 
 function renderFavorites() {
