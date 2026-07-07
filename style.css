@@ -1630,6 +1630,33 @@ h1 span {
 .weekly-card-icon.orange { color: #dc641d; background: #fff0df; }
 .weekly-card-icon.peach { color: #e46627; background: #ffeadf; }
 .weekly-card-icon.green { color: #628a3c; background: #eaf4df; }
+.family-weekly-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.family-weekly-overview article { min-width: 0; padding: 15px 16px; border: 1px solid #f0e4d6; border-radius: 12px; background: #fffcf8; }
+.family-weekly-overview span,
+.family-weekly-highlights span,
+.family-weekly-members small,
+.family-member-metrics i { display: block; color: #8c8177; font-size: 11px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; font-style: normal; }
+.family-weekly-overview strong { display: block; margin-top: 4px; color: #39271c; font-size: 24px; }
+.family-weekly-overview small { color: #8c8177; font-size: 11px; }
+.family-weekly-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.family-weekly-highlights article { min-width: 0; padding: 16px 18px; border-radius: 14px; background: linear-gradient(135deg, #fffaf2, #f6fbef); border: 1px solid #e7dccd; }
+.family-weekly-highlights strong { display: block; margin: 5px 0 7px; color: #3b2417; font-size: 18px; }
+.family-weekly-highlights p,
+.family-weekly-members p { margin: 0; color: #67584c; font-size: 13px; line-height: 1.5; }
+.family-weekly-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.family-member-health { padding: 16px 18px; border: 1px solid #eee2d4; border-radius: 14px; background: #fff; }
+.family-member-health-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.family-member-health-head .avatar { display: grid; place-items: center; width: 46px; height: 46px; overflow: hidden; border-radius: 50%; background: #f7efe5; }
+.family-member-health-head .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.family-member-health-head strong { display: block; color: #40281b; font-size: 16px; }
+.family-member-health-score { padding: 8px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; }
+.family-member-health-score.excellent { color: #2f6a24; background: #e7f4df; }
+.family-member-health-score.good { color: #7a5b10; background: #fff3cf; }
+.family-member-health-score.fair { color: #8a5318; background: #ffe7cf; }
+.family-member-health-score.needs-attention { color: #8f2f2f; background: #fbe3e3; }
+.family-member-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 10px; }
+.family-member-metrics span { min-width: 0; padding: 10px; border-radius: 10px; background: #fcf7f1; }
+.family-member-metrics strong { display: block; margin-top: 4px; color: #4b3427; font-size: 14px; }
 .meal-balance-layout { display: grid; grid-template-columns: minmax(210px, 330px) 1fr; align-items: center; gap: clamp(28px, 7vw, 90px); max-width: 750px; margin: 0 auto; }
 .meal-donut { display: grid; place-items: center; width: min(100%, 320px); aspect-ratio: 1; margin: auto; border-radius: 50%; background: conic-gradient(#eee 0 100%); box-shadow: inset 0 0 0 1px rgba(80, 50, 20, .04); }
 .meal-donut::before { content: ""; grid-area: 1 / 1; width: 53%; aspect-ratio: 1; border-radius: 50%; background: #fff; box-shadow: 0 0 20px rgba(60, 35, 15, .05); }
@@ -1673,6 +1700,9 @@ h1 span {
   .weekly-report-hero h3 { font-size: 39px; }
   .weekly-hero-art { font-size: 32px; }
   .weekly-stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .family-weekly-overview,
+  .family-weekly-highlights,
+  .family-weekly-members { grid-template-columns: 1fr; }
   .weekly-chart-card { padding: 17px 14px; border-radius: 12px; }
   .meal-balance-layout { grid-template-columns: 1fr; gap: 24px; }
   .meal-donut { width: min(260px, 78vw); }
@@ -1684,6 +1714,7 @@ h1 span {
   .food-variety-item { border: 0; background: #fff; }
   .weekly-ai-card { grid-template-columns: auto 1fr; }
   .weekly-fruit-art { display: none; }
+  .family-member-metrics { grid-template-columns: 1fr; }
 }
 
 .chat-list {

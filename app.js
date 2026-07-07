@@ -231,7 +231,7 @@ async function hydrateFromSupabase() {
     });
 
     if (members.length) {
-      appState.members = [...members.map(normalizeMember), appState.members.find((member) => member.id === 'add')];
+      appState.members = mergeMembers(appState.members, members.map(normalizeMember));
       applyStoredProfilePhotos();
     }
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
@@ -242,10 +242,12 @@ async function hydrateFromSupabase() {
       const bioLogs = await window.familyBitesDb.getBioLogs(todayKey());
       bioLogs.forEach((log) => {
         if (!appState.bioLogs[log.member_id]) appState.bioLogs[log.member_id] = {};
+        const existingLog = appState.bioLogs[log.member_id][log.log_date] || {};
         appState.bioLogs[log.member_id][log.log_date] = {
           weight_kg: log.weight_kg,
           steps: log.steps,
-          sugar_level: log.sugar_level
+          sugar_level: log.sugar_level,
+          ...existingLog
         };
       });
     } catch (bioError) {
@@ -562,13 +564,14 @@ function getTodayBioLog() {
 
 function getMemberWeight(member) {
   if (!member) return null;
-  if (member.weight_kg !== null && member.weight_kg !== undefined) return member.weight_kg;
   const measurements = appState.profileMeasurements[member.id];
   if (measurements?.weight_kg !== null && measurements?.weight_kg !== undefined) return measurements.weight_kg;
   const weights = Object.values(appState.bioLogs[member.id] || {})
     .map((log) => log?.weight_kg)
     .filter((value) => value !== null && value !== undefined);
-  return weights.length ? weights[weights.length - 1] : null;
+  if (weights.length) return weights[weights.length - 1];
+  if (member.weight_kg !== null && member.weight_kg !== undefined) return member.weight_kg;
+  return null;
 }
 
 function renderBioInputs() {
@@ -1312,6 +1315,7 @@ function renderReport() {
   document.getElementById('reportFavoriteDish').textContent = favoriteFood || '-';
   document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood);
   renderWeeklyDateRange();
+  renderFamilyWeeklyHealth(familyMeals);
   renderMealBalance(meals);
   renderWeeklyCalories(meals);
   renderFoodVariety(meals);
@@ -1384,6 +1388,124 @@ function renderFoodVariety(meals) {
     const dots = Array.from({ length: 5 }, (_, index) => `<i class="${index < score ? 'active' : ''}"></i>`).join('');
     return `<article class="food-variety-item"><span class="food-variety-emoji">${group.emoji}</span><strong>${group.label}</strong><div class="variety-dots" aria-label="${score} out of 5">${dots}</div></article>`;
   }).join('');
+}
+
+function renderFamilyWeeklyHealth(familyMeals) {
+  const familyMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  const memberStats = familyMembers.map((member) => buildMemberWeeklyStats(member, familyMeals));
+  const activeMembers = memberStats.filter((stats) => stats.mealCount > 0);
+  const familyAverage = activeMembers.length
+    ? Math.round(activeMembers.reduce((total, stats) => total + stats.avgHealth, 0) / activeMembers.length)
+    : 0;
+  const sugaryDrinkCount = memberStats.reduce((total, stats) => total + stats.sugaryDrinks, 0);
+  const lateMealCount = memberStats.reduce((total, stats) => total + stats.lateMeals, 0);
+
+  document.getElementById('familyWeeklyAverage').textContent = familyAverage.toString();
+  document.getElementById('familyWeeklyActive').textContent = activeMembers.length.toString();
+  document.getElementById('familyWeeklySugary').textContent = sugaryDrinkCount.toString();
+  document.getElementById('familyWeeklyLate').textContent = lateMealCount.toString();
+  document.getElementById('familyWeeklyHighlights').innerHTML = buildFamilyWeeklyHighlights(memberStats);
+  document.getElementById('familyWeeklyMembers').innerHTML = memberStats.map((stats) => `
+    <article class="family-member-health">
+      <div class="family-member-health-head">
+        <span class="avatar">${avatarMarkup(stats.member)}</span>
+        <div>
+          <strong>${escapeHtml(stats.member.name)}</strong>
+          <small>${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} · ${stats.mealCount} meal${stats.mealCount === 1 ? '' : 's'}</small>
+        </div>
+        <span class="family-member-health-score ${stats.mealCount ? healthTone(stats.avgHealth) : 'fair'}">${stats.mealCount ? `${stats.avgHealth}/100` : '—'}</span>
+      </div>
+      <div class="family-member-metrics">
+        <span><i>Calories</i><strong>${stats.activeDays ? Math.round(stats.calories / Math.max(stats.activeDays, 1)).toLocaleString() : '0'}/day</strong></span>
+        <span><i>Sugary drinks</i><strong>${stats.sugaryDrinks}</strong></span>
+        <span><i>Late meals</i><strong>${stats.lateMeals}</strong></span>
+      </div>
+      <p>${escapeHtml(stats.note)}</p>
+    </article>
+  `).join('') || '<p class="muted">No family meals logged in the last 7 days.</p>';
+}
+
+function buildMemberWeeklyStats(member, familyMeals) {
+  const meals = familyMeals.filter((meal) => mealBelongsToMember(meal, member, false));
+  const activeDays = new Set(meals.map((meal) => mealDayKey(meal)).filter(Boolean)).size;
+  const avgHealth = meals.length
+    ? Math.round(meals.reduce((total, meal) => total + estimateMealHealthScore(meal, member), 0) / meals.length)
+    : 0;
+  const calories = sum(meals, 'calories');
+  const sugaryDrinks = meals.filter(isSugaryDrinkMeal).length;
+  const lateMeals = meals.filter(isLateMeal).length;
+  const restaurantMeals = meals.filter((meal) => Boolean(String(meal.restaurant_name || '').trim())).length;
+  return {
+    member,
+    meals,
+    mealCount: meals.length,
+    activeDays,
+    avgHealth,
+    calories,
+    sugaryDrinks,
+    lateMeals,
+    restaurantMeals,
+    note: buildMemberWeeklyNote({ mealCount: meals.length, activeDays, avgHealth, sugaryDrinks, lateMeals, restaurantMeals })
+  };
+}
+
+function buildMemberWeeklyNote({ mealCount, activeDays, avgHealth, sugaryDrinks, lateMeals, restaurantMeals }) {
+  if (!mealCount) return 'No meals logged this week yet.';
+  if (sugaryDrinks >= 2) return `${sugaryDrinks} sugary drinks were logged this week.`;
+  if (lateMeals >= 2) return `${lateMeals} meals were logged after 9pm this week.`;
+  if (avgHealth >= 80) return `Strong meal balance across ${activeDays} active day${activeDays === 1 ? '' : 's'}.`;
+  if (avgHealth < 60) return 'Meal quality trended low; lighter and less processed choices would help.';
+  if (restaurantMeals >= Math.max(3, Math.ceil(mealCount * 0.6))) return 'Restaurant meals were frequent this week, so home meals could help with control.';
+  if (activeDays <= 2) return `Only ${activeDays} active day${activeDays === 1 ? '' : 's'} were logged; more entries will sharpen the trend.`;
+  return 'Steady week overall with room for a few more vegetables or protein-forward meals.';
+}
+
+function buildFamilyWeeklyHighlights(memberStats) {
+  const activeMembers = memberStats.filter((stats) => stats.mealCount > 0);
+  if (!activeMembers.length) {
+    return `
+      <article>
+        <span>Family view</span>
+        <strong>Waiting for weekly data</strong>
+        <p>Once meals are logged, this section will show who is on track and where the family needs support.</p>
+      </article>
+    `;
+  }
+
+  const topMember = [...activeMembers].sort((left, right) => right.avgHealth - left.avgHealth || right.mealCount - left.mealCount)[0];
+  const attentionMember = [...activeMembers].sort((left, right) => {
+    const leftRisk = (left.sugaryDrinks * 8) + (left.lateMeals * 7) + (100 - left.avgHealth);
+    const rightRisk = (right.sugaryDrinks * 8) + (right.lateMeals * 7) + (100 - right.avgHealth);
+    return rightRisk - leftRisk;
+  })[0];
+  const restaurantMeals = activeMembers.reduce((total, stats) => total + stats.restaurantMeals, 0);
+  const sugaryDrinks = activeMembers.reduce((total, stats) => total + stats.sugaryDrinks, 0);
+
+  return `
+    <article>
+      <span>Best balance</span>
+      <strong>${escapeHtml(topMember.member.name)}</strong>
+      <p>${topMember.avgHealth}/100 average health score across ${topMember.mealCount} meal${topMember.mealCount === 1 ? '' : 's'}.</p>
+    </article>
+    <article>
+      <span>Needs attention</span>
+      <strong>${escapeHtml(attentionMember.member.name)}</strong>
+      <p>${buildAttentionHighlight(attentionMember)}</p>
+    </article>
+    <article>
+      <span>Family pattern</span>
+      <strong>${restaurantMeals} restaurant meal${restaurantMeals === 1 ? '' : 's'}</strong>
+      <p>${sugaryDrinks} sugary drink${sugaryDrinks === 1 ? '' : 's'} and ${activeMembers.length} active family member${activeMembers.length === 1 ? '' : 's'} were logged this week.</p>
+    </article>
+  `;
+}
+
+function buildAttentionHighlight(stats) {
+  if (stats.sugaryDrinks >= 2) return `${stats.sugaryDrinks} sugary drinks pulled the week off balance.`;
+  if (stats.lateMeals >= 2) return `${stats.lateMeals} late meals were logged after 9pm.`;
+  if (stats.avgHealth < 60) return `${stats.avgHealth}/100 average score suggests heavier or more processed meals.`;
+  if (stats.activeDays <= 2) return `Only ${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} were logged this week.`;
+  return `${stats.avgHealth}/100 average score leaves room for steadier meal choices.`;
 }
 
 function buildWeeklySummary(meals, familyMeals, calories, spend, favoriteFood) {
@@ -1934,8 +2056,38 @@ function getMemberMeals() {
   const member = appState.currentMember;
   if (!member) return [];
   return appState.meals
-    .filter((meal) => !meal.member_id || meal.member_id === member.id || meal.member_name === member.name)
+    .filter((meal) => mealBelongsToMember(meal, member, true))
     .sort((a, b) => new Date(b.eaten_at || b.created_at) - new Date(a.eaten_at || a.created_at));
+}
+
+function mealBelongsToMember(meal, member, includeUnassigned = false) {
+  if (!meal || !member) return false;
+  if (meal.member_id && meal.member_id === member.id) return true;
+  if (meal.member_name && meal.member_name === member.name) return true;
+  return includeUnassigned && !meal.member_id && !meal.member_name;
+}
+
+function mealDayKey(meal) {
+  const value = meal?.eaten_at || meal?.created_at;
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toDateString();
+}
+
+function isLateMeal(meal) {
+  const value = meal?.eaten_at || meal?.created_at;
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const hours = date.getHours();
+  return hours >= 21 || hours <= 4;
+}
+
+function isSugaryDrinkMeal(meal) {
+  const text = foodSearchText(meal);
+  const keywords = ['soda', 'cola', 'frappe', 'milk tea', 'boba', 'bubble tea', 'sweet tea', 'shake', 'slush', 'juice', 'smoothie', 'mocha', 'sweet coffee'];
+  return keywords.some((word) => text.includes(word));
 }
 
 function normalizeMember(member) {
