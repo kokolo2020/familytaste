@@ -74,8 +74,100 @@
     return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || 'other';
   }
 
+  function getStoredHealthScore(meal) {
+    const match = String(meal?.notes || '').match(/\[\[health_score:([0-9.]+)\]\]/i);
+    return match ? Number(match[1]) : null;
+  }
+
+  function stripHealthScore(notes) {
+    return String(notes || '').replace(/\s*\[\[health_score:[^\]]+\]\]\s*/ig, ' ').trim();
+  }
+
+  function notesWithHealthScore(notes, score) {
+    const cleanNotes = stripHealthScore(notes);
+    return `${cleanNotes}${cleanNotes ? ' ' : ''}[[health_score:${Number(score).toFixed(1)}]]`;
+  }
+
+  function clampScore(value) {
+    return Math.max(1, Math.min(10, Number(value) || 5));
+  }
+
+  function healthScoreForMeal(meal) {
+    const saved = getStoredHealthScore(meal);
+    if (saved !== null && !Number.isNaN(saved)) return clampScore(saved);
+
+    const name = `${meal?.food_name || ''} ${meal?.restaurant_name || ''} ${meal?.notes || ''}`.toLowerCase();
+    const calories = Number(meal?.calories) || 0;
+    let score = 6.4;
+
+    const excellentFoods = ['salmon', 'fish', 'tuna', 'sardine', 'chicken breast', 'grilled chicken', 'egg', 'tofu', 'beans', 'lentil', 'oat', 'brown rice', 'quinoa', 'salad', 'vegetable', 'veggie', 'broccoli', 'spinach', 'kale', 'avocado', 'fruit', 'apple', 'banana', 'berry', 'yogurt', 'milk'];
+    const poorFoods = ['fried', 'fries', 'burger', 'pizza', 'soda', 'cola', 'coke', 'cake', 'donut', 'doughnut', 'candy', 'ice cream', 'chips', 'instant noodle', 'processed', 'sausage', 'bacon'];
+    const mealType = getStoredMealType(meal);
+
+    excellentFoods.forEach((word) => {
+      if (name.includes(word)) score += 0.35;
+    });
+    poorFoods.forEach((word) => {
+      if (name.includes(word)) score -= 0.45;
+    });
+
+    if (name.includes('grilled') || name.includes('steamed') || name.includes('boiled') || name.includes('baked')) score += 0.6;
+    if (name.includes('deep fried') || name.includes('fried')) score -= 0.7;
+    if (name.includes('water')) score += 0.2;
+    if (name.includes('vegetable') || name.includes('salad') || name.includes('greens')) score += 0.8;
+    if (name.includes('fruit') || name.includes('apple') || name.includes('banana') || name.includes('berry')) score += 0.5;
+    if (name.includes('soda') || name.includes('cola') || name.includes('sweet tea')) score -= 0.9;
+
+    if (calories > 0) {
+      if (mealType === 'snack' || mealType === 'dessert') {
+        if (calories <= 250) score += 0.4;
+        if (calories > 450) score -= 0.8;
+      } else {
+        if (calories >= 350 && calories <= 850) score += 0.3;
+        if (calories > 1000) score -= 0.9;
+        if (calories > 1400) score -= 0.8;
+        if (calories < 180) score -= 0.3;
+      }
+    }
+
+    return Math.round(clampScore(score) * 10) / 10;
+  }
+
+  function healthScoreMeta(score) {
+    if (score >= 8.5) return { label: 'Excellent', tone: 'excellent', dot: '🟢' };
+    if (score >= 7) return { label: 'Healthy', tone: 'healthy', dot: '🟢' };
+    if (score >= 5.5) return { label: 'Fair', tone: 'fair', dot: '🟡' };
+    if (score >= 4) return { label: 'Improve', tone: 'improve', dot: '🟠' };
+    return { label: 'Poor', tone: 'poor', dot: '🔴' };
+  }
+
+  function healthScoreBadge(meal) {
+    const score = healthScoreForMeal(meal);
+    const meta = healthScoreMeta(score);
+    return `<span class="health-score-badge ${meta.tone}" title="Health Score: ${score.toFixed(1)}/10">${meta.dot} ${score.toFixed(1)}</span>`;
+  }
+
   function mealCaloriesTotal(meals) {
     return meals.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+  }
+
+  function mealCardTemplate(meal, withActions = false) {
+    const actions = withActions ? `
+        <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+          <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+          <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+        </div>` : '';
+    return `
+      <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
+        <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
+        ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
+        <div>
+          <h4 class="meal-title-with-score"><span>${escapeHtml(meal.food_name)}</span>${healthScoreBadge(meal)}</h4>
+          <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
+        </div>
+        <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
+      </article>
+    `;
   }
 
   function installMealDisplayPatch() {
@@ -93,6 +185,7 @@
       return [prefix, label, time].filter(Boolean).join(' · ');
     };
 
+    window.mealTemplate = mealCardTemplate;
     return true;
   }
 
@@ -132,7 +225,7 @@
                   <strong>${mealTypeLabels[type] || mealTypeLabels.other}</strong>
                   <span>${groupMeals.length} item${groupMeals.length === 1 ? '' : 's'} · ${mealCaloriesTotal(groupMeals).toLocaleString()} cal</span>
                 </div>
-                ${groupMeals.map((meal) => mealTemplate(meal, true)).join('')}
+                ${groupMeals.map((meal) => mealCardTemplate(meal, true)).join('')}
               </section>
             `;
           }).join('');
@@ -197,6 +290,12 @@
       .meal-day-heading span,.meal-type-heading span{color:#7d6d5d;font-size:12px;font-weight:800;white-space:nowrap}
       .meal-type-group{display:grid;gap:8px;padding:10px;border-radius:18px;background:rgba(255,248,237,.72);border:1px solid rgba(77,54,31,.08)}
       .meal-type-heading strong{font-size:13px;color:#5a3b1c}
+      .meal-title-with-score{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .health-score-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:999px;font-size:11px;font-weight:900;line-height:1;border:1px solid transparent;white-space:nowrap}
+      .health-score-badge.excellent,.health-score-badge.healthy{background:#e8f7e8;color:#1f7a3a;border-color:#bfe8c4}
+      .health-score-badge.fair{background:#fff7d6;color:#9a6a00;border-color:#f2dc82}
+      .health-score-badge.improve{background:#fff0dd;color:#b75600;border-color:#f0c08a}
+      .health-score-badge.poor{background:#ffe7e5;color:#b52d24;border-color:#f1aaa4}
       @media(max-width:520px){.meal-date-time-row{grid-template-columns:1fr}.meal-day-heading,.meal-type-heading{align-items:flex-start;flex-direction:column;gap:3px}.meal-day-heading span,.meal-type-heading span{white-space:normal}}
     `;
     document.head.appendChild(style);
@@ -232,16 +331,24 @@
       const foodName = String(formData.get('food_name') || '').trim();
       if (!foodName) return;
 
+      const baseMeal = {
+        food_name: foodName,
+        restaurant_name: String(formData.get('restaurant_name') || '').trim(),
+        calories: numberOrNull(formData.get('calories')),
+        notes: notesWithMealType(formData.get('notes'), formData.get('meal_type'))
+      };
+      const healthScore = healthScoreForMeal(baseMeal);
+
       const meal = {
         id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
         family_id: appState.familyId,
         member_id: appState.currentMember.id,
         food_name: foodName,
-        restaurant_name: String(formData.get('restaurant_name') || '').trim(),
+        restaurant_name: baseMeal.restaurant_name,
         location_name: String(formData.get('location_name') || '').trim(),
         price: numberOrNull(formData.get('price')),
-        calories: numberOrNull(formData.get('calories')),
-        notes: notesWithMealType(formData.get('notes'), formData.get('meal_type')),
+        calories: baseMeal.calories,
+        notes: notesWithHealthScore(baseMeal.notes, healthScore),
         photo_url: photoUrl,
         eaten_at: localDateTimeToIso(formData.get('meal_date'), formData.get('meal_time'))
       };
