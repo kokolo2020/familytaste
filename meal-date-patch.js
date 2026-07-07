@@ -277,6 +277,124 @@
     return true;
   }
 
+  function mealText(meal) {
+    return `${meal?.food_name || ''} ${meal?.restaurant_name || ''} ${meal?.notes || ''}`.toLowerCase();
+  }
+
+  function mealsSince(daysBack) {
+    const cutoff = Date.now() - daysBack * 24 * 60 * 60 * 1000;
+    const meals = typeof getMemberMeals === 'function' ? getMemberMeals() : (appState.meals || []);
+    return meals.filter((meal) => new Date(meal.eaten_at || meal.created_at || Date.now()).getTime() >= cutoff);
+  }
+
+  function countMatches(meals, words) {
+    return meals.reduce((count, meal) => {
+      const text = mealText(meal);
+      return count + (words.some((word) => text.includes(word)) ? 1 : 0);
+    }, 0);
+  }
+
+  function buildAiCoachMessage() {
+    const recentMeals = mealsSince(2);
+    if (!recentMeals.length) {
+      return {
+        title: 'Start your AI nutrition coach',
+        copy: 'Log meals today and I will start giving gentle balance reminders based on your recent food pattern.',
+        chips: ['Waiting for meals']
+      };
+    }
+
+    const vegetables = countMatches(recentMeals, ['vegetable', 'veggie', 'salad', 'greens', 'broccoli', 'spinach', 'kale', 'cucumber', 'tomato', 'carrot']);
+    const fruits = countMatches(recentMeals, ['fruit', 'apple', 'banana', 'berry', 'orange', 'mango', 'grape', 'melon', 'pineapple']);
+    const dairy = countMatches(recentMeals, ['milk', 'yogurt', 'cheese', 'dairy']);
+    const protein = countMatches(recentMeals, ['chicken', 'fish', 'salmon', 'tuna', 'egg', 'beef', 'pork', 'tofu', 'beans', 'lentil', 'shrimp']);
+    const fried = countMatches(recentMeals, ['fried', 'fries', 'chips', 'burger', 'pizza', 'soda', 'cola', 'cake', 'donut', 'ice cream']);
+
+    const missing = [];
+    if (vegetables < 2) missing.push('green vegetables');
+    if (fruits < 1) missing.push('fruit');
+    if (dairy < 1) missing.push('dairy or calcium food');
+    if (protein < 2) missing.push('protein');
+
+    if (missing.length) {
+      return {
+        title: 'Gentle balance reminder',
+        copy: `Over the last 2 days, your meals look low in ${missing.slice(0, 3).join(', ')}. Try adding one simple serving today to improve your balance.`,
+        chips: missing.slice(0, 3)
+      };
+    }
+
+    if (fried >= 2) {
+      return {
+        title: 'Small improvement idea',
+        copy: 'You have logged a few fried or sweet items recently. Balance them today with water, greens, and a lean protein.',
+        chips: ['Hydrate', 'Add greens', 'Lean protein']
+      };
+    }
+
+    return {
+      title: 'Nice balance recently',
+      copy: 'Your recent meals show a good mix. Keep adding colorful vegetables, fruit, and protein to stay balanced.',
+      chips: ['Good variety', 'Keep going']
+    };
+  }
+
+  function installAiCoachCard() {
+    if (document.getElementById('aiNutritionCoachCard')) {
+      renderAiCoachCard();
+      return true;
+    }
+
+    const nutritionPanel = document.querySelector('.nutrition-panel');
+    const dailySummary = document.querySelector('.daily-summary');
+    const anchor = nutritionPanel || dailySummary;
+    if (!anchor) return false;
+
+    const card = document.createElement('section');
+    card.id = 'aiNutritionCoachCard';
+    card.className = 'ai-coach-card dashboard-card';
+    card.innerHTML = `
+      <div class="ai-coach-heading">
+        <div><p class="eyebrow">AI Coach</p><h3 id="aiCoachTitle">Gentle nutrition reminder</h3></div>
+        <span class="ai-badge">AI</span>
+      </div>
+      <p id="aiCoachCopy">Analyzing recent meals...</p>
+      <div id="aiCoachChips" class="ai-coach-chips"></div>
+    `;
+    anchor.insertAdjacentElement('afterend', card);
+    renderAiCoachCard();
+    return true;
+  }
+
+  function renderAiCoachCard() {
+    const title = document.getElementById('aiCoachTitle');
+    const copy = document.getElementById('aiCoachCopy');
+    const chips = document.getElementById('aiCoachChips');
+    if (!title || !copy || !chips) return;
+
+    const message = buildAiCoachMessage();
+    title.textContent = message.title;
+    copy.textContent = message.copy;
+    chips.innerHTML = (message.chips || []).map((chip) => `<span>${escapeHtml(chip)}</span>`).join('');
+  }
+
+  function installRenderHook() {
+    if (window.renderAll?.aiCoachPatched) return true;
+    if (typeof window.renderAll !== 'function') return false;
+    const originalRenderAll = window.renderAll;
+    const patchedRenderAll = function patchedRenderAllWithAiCoach(...args) {
+      const result = originalRenderAll.apply(this, args);
+      setTimeout(() => {
+        installAiCoachCard();
+        renderAiCoachCard();
+      }, 0);
+      return result;
+    };
+    patchedRenderAll.aiCoachPatched = true;
+    window.renderAll = patchedRenderAll;
+    return true;
+  }
+
   function installStyles() {
     if (document.getElementById('mealGroupingStyles')) return true;
     const style = document.createElement('style');
@@ -296,6 +414,12 @@
       .health-score-badge.fair{background:#fff7d6;color:#9a6a00;border-color:#f2dc82}
       .health-score-badge.improve{background:#fff0dd;color:#b75600;border-color:#f0c08a}
       .health-score-badge.poor{background:#ffe7e5;color:#b52d24;border-color:#f1aaa4}
+      .ai-coach-card{margin-top:14px;padding:16px;display:grid;gap:10px;background:linear-gradient(135deg,#fffdf7,#f2ffe9)}
+      .ai-coach-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+      .ai-coach-heading h3{margin:2px 0 0}
+      .ai-coach-card p:last-of-type{margin:0;color:#6f6253;line-height:1.45}
+      .ai-coach-chips{display:flex;flex-wrap:wrap;gap:7px}
+      .ai-coach-chips span{padding:6px 9px;border-radius:999px;background:#fff;border:1px solid rgba(77,54,31,.12);font-size:11px;font-weight:900;color:#5a3b1c}
       @media(max-width:520px){.meal-date-time-row{grid-template-columns:1fr}.meal-day-heading,.meal-type-heading{align-items:flex-start;flex-direction:column;gap:3px}.meal-day-heading span,.meal-type-heading span{white-space:normal}}
     `;
     document.head.appendChild(style);
@@ -360,6 +484,7 @@
       resetDateTimeDefaults();
       showPage('dashboard');
       renderAll();
+      renderAiCoachCard();
 
       if (window.familyBitesDb?.isConfigured) {
         try {
@@ -375,6 +500,7 @@
           appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
           saveStoredAppData();
           renderAll();
+          renderAiCoachCard();
         } catch (error) {
           console.warn('Meal saved locally but Supabase write failed.', error);
         }
@@ -389,8 +515,10 @@
     const stylesReady = installStyles();
     const fieldsReady = installDateTimeFields();
     const groupsReady = installGroupedMealLists();
+    const renderHookReady = installRenderHook();
+    const coachReady = installAiCoachCard();
     const saveReady = installSavePatch();
-    return displayReady && stylesReady && fieldsReady && groupsReady && saveReady;
+    return displayReady && stylesReady && fieldsReady && groupsReady && renderHookReady && coachReady && saveReady;
   }
 
   if (!installAll()) {
