@@ -24,6 +24,7 @@ const appState = {
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
 const localChatStorageKey = 'familyBites.chat.v2';
+const localMembersStorageKey = 'familyBites.members.v1';
 const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
@@ -436,7 +437,8 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
   setText('dashboardMemberName', appState.currentMember?.name || 'Family');
   setText('summaryCalories', calories.toLocaleString());
-  setText('summaryWeight', log.weight_kg ? Number(log.weight_kg).toLocaleString() : '--');
+  const currentWeight = getMemberWeight(appState.currentMember);
+  setText('summaryWeight', currentWeight !== null && currentWeight !== undefined ? Number(currentWeight).toLocaleString() : '--');
   setText('summarySteps', steps.toLocaleString());
   setText('summaryGlucose', glucose ? Math.round(glucose).toLocaleString() : '--');
   setText('summaryCalorieProgress', `${progress}%`);
@@ -535,6 +537,17 @@ function getTodayBioLog() {
   return appState.bioLogs[member.id]?.[todayKey()] || {};
 }
 
+function getMemberWeight(member) {
+  if (!member) return null;
+  if (member.weight_kg !== null && member.weight_kg !== undefined) return member.weight_kg;
+  const measurements = appState.profileMeasurements[member.id];
+  if (measurements?.weight_kg !== null && measurements?.weight_kg !== undefined) return measurements.weight_kg;
+  const weights = Object.values(appState.bioLogs[member.id] || {})
+    .map((log) => log?.weight_kg)
+    .filter((value) => value !== null && value !== undefined);
+  return weights.length ? weights[weights.length - 1] : null;
+}
+
 function renderBioInputs() {
   const member = appState.currentMember;
   if (!member) return;
@@ -543,7 +556,7 @@ function renderBioInputs() {
     const input = document.getElementById(id);
     if (document.activeElement !== input) input.value = value ?? '';
   };
-  fill('bioWeight', log.weight_kg ?? member.weight_kg ?? '');
+  fill('bioWeight', log.weight_kg ?? getMemberWeight(member) ?? '');
   fill('bioSteps', log.steps ?? '');
   fill('bioSugar', log.sugar_level ?? '');
 }
@@ -1239,7 +1252,7 @@ function renderProfile() {
   const activityInput = document.getElementById('profileActivity');
   const goalInput = document.getElementById('profileGoal');
   if (document.activeElement !== heightInput) heightInput.value = measurements.height_cm ?? member.height_cm ?? '';
-  if (document.activeElement !== weightInput) weightInput.value = measurements.weight_kg ?? member.weight_kg ?? '';
+  if (document.activeElement !== weightInput) weightInput.value = measurements.weight_kg ?? getMemberWeight(member) ?? '';
   if (document.activeElement !== ageInput) ageInput.value = measurements.age ?? '';
   if (document.activeElement !== sexInput) sexInput.value = measurements.sex || (member.name.toLowerCase().includes('dad') || member.name.toLowerCase().includes('papa') ? 'male' : 'female');
   if (document.activeElement !== activityInput) activityInput.value = String(measurements.activity || 1.55);
@@ -1312,6 +1325,7 @@ async function handleSaveProfileName() {
   member.name = newName;
   const matchingMember = appState.members.find((item) => item.id === member.id);
   if (matchingMember) matchingMember.name = newName;
+  saveStoredAppData();
   updateProfileUi();
   renderProfiles();
   renderProfile();
@@ -1682,6 +1696,7 @@ function savedOrDefaultProfilePhoto(member, savedPhoto) {
 }
 
 function applyStoredAppData() {
+  const storedMembers = getStoredJson(localMembersStorageKey, []).map(normalizeMember);
   const storedMeals = getStoredJson(localMealsStorageKey, []).map(normalizeMeal);
   const storedChat = getStoredJson(localChatStorageKey, []).map(normalizeChat);
   const storedOrders = getStoredJson(chefOrdersStorageKey, []);
@@ -1689,6 +1704,7 @@ function applyStoredAppData() {
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
   const storedProfileMeasurements = getStoredJson(profileMeasurementsStorageKey, {});
+  if (storedMembers.length) appState.members = mergeMembers(storedMembers, appState.members);
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
   if (Object.keys(storedProfileMeasurements).length) appState.profileMeasurements = storedProfileMeasurements;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
@@ -1699,6 +1715,7 @@ function applyStoredAppData() {
 }
 
 function saveStoredAppData() {
+  setStoredJson(localMembersStorageKey, appState.members);
   setStoredJson(localMealsStorageKey, appState.meals);
   setStoredJson(localChatStorageKey, appState.chat);
   setStoredJson(chefOrdersStorageKey, appState.chefOrders);
@@ -1706,6 +1723,20 @@ function saveStoredAppData() {
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
   setStoredJson(profileMeasurementsStorageKey, appState.profileMeasurements);
+}
+
+function mergeMembers(primary, fallback) {
+  const byId = new Map();
+  [...fallback, ...primary].forEach((member) => {
+    if (!member?.id) return;
+    byId.set(member.id, normalizeMember(member));
+  });
+  const members = Array.from(byId.values());
+  const addMember = members.find((member) => member.id === 'add' || member.name === 'Add Member');
+  return [
+    ...members.filter((member) => member.id !== 'add' && member.name !== 'Add Member'),
+    addMember || fallback.find((member) => member.id === 'add') || { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family', photo: '' }
+  ];
 }
 
 function mergeRecords(primary, fallback) {
@@ -1923,6 +1954,7 @@ async function handleConfirmAddMember() {
     appState.members.push(newMember);
   }
 
+  saveStoredAppData();
   closeAddMemberModal();
   renderProfiles();
   renderSettings();
