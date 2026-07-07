@@ -418,8 +418,30 @@
           <p class="muted">Future-ready for photos and voice.</p>
         </section>
 
-        <section id="page-timeline" class="page" data-title="Food Timeline" data-kicker="Meal history">
-          <div id="timelineList" class="timeline-list"></div>
+        <section id="page-timeline" class="page" data-title="All Foods" data-kicker="Meal history">
+          <div class="timeline-screen">
+            <header class="timeline-header dashboard-card">
+              <div>
+                <p class="eyebrow">Meal archive</p>
+                <h3>All Foods</h3>
+                <p>Every saved meal in one screen with the key nutrition details.</p>
+              </div>
+              <div class="timeline-summary">
+                <article><span>Total meals</span><strong id="timelineMealCount">0</strong></article>
+                <article><span>Average health score</span><strong id="timelineAverageHealth">0</strong></article>
+              </div>
+            </header>
+            <div class="timeline-table-head" aria-hidden="true">
+              <span>Food</span>
+              <span>Date</span>
+              <span>Time</span>
+              <span>Restaurant</span>
+              <span>Calories</span>
+              <span>Health</span>
+              <span>Actions</span>
+            </div>
+            <div id="timelineList" class="timeline-list"></div>
+          </div>
         </section>
 
         <section id="page-profile" class="page" data-title="Profile" data-kicker="Family member">

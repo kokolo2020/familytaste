@@ -789,20 +789,36 @@ function renderFavoriteFoods(meals) {
 
 function renderMeals() {
   const meals = getMemberMeals();
-  document.getElementById('timelineList').innerHTML = meals.map((meal) => `
-    <article class="timeline-item">
-      <span class="timeline-date">${formatDate(meal.eaten_at)}</span>
-      <div>
-        <h4>${escapeHtml(meal.food_name)}</h4>
-        <p>${escapeHtml(mealDisplayMeta(meal))} · ${escapeHtml(meal.location_name || 'No location')}</p>
+  const averageHealth = meals.length
+    ? Math.round(meals.reduce((sumValue, meal) => sumValue + estimateMealHealthScore(meal), 0) / meals.length)
+    : 0;
+
+  document.getElementById('timelineMealCount').textContent = meals.length.toLocaleString();
+  document.getElementById('timelineAverageHealth').textContent = `${averageHealth}/100`;
+
+  document.getElementById('timelineList').innerHTML = meals.map((meal) => {
+    const health = estimateMealHealthScore(meal);
+    return `
+      <article class="timeline-item">
+        <div class="timeline-food-cell">
+          <span class="timeline-food-emoji">${mealEmoji(meal.food_name)}</span>
+          <div>
+            <h4>${escapeHtml(meal.food_name)}</h4>
+            <p>${escapeHtml(getMealTypeLabel(meal) || 'Meal')}</p>
+          </div>
+        </div>
+        <span class="timeline-date">${formatTimelineDate(meal.eaten_at)}</span>
+        <span class="timeline-time">${formatTimelineTime(meal.eaten_at)}</span>
+        <span class="timeline-restaurant">${escapeHtml(meal.restaurant_name || '—')}</span>
+        <strong class="timeline-calories">${Number(meal.calories || 0).toLocaleString()} cal</strong>
+        <span class="timeline-health timeline-health-${healthTone(health)}">${health}/100</span>
         <div class="meal-actions timeline-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>
-      </div>
-      <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
-    </article>
-  `).join('') || emptyState('Your food timeline will appear here.');
+      </article>
+    `;
+  }).join('') || emptyState('Your food archive will appear here.');
 }
 
 function mealTemplate(meal, withActions = false) {
@@ -825,12 +841,16 @@ function mealTemplate(meal, withActions = false) {
 }
 
 function mealDisplayMeta(meal) {
-  const storedType = getMealType(meal);
-  const label = storedType
-    ? storedType.charAt(0).toUpperCase() + storedType.slice(1)
-    : meal.restaurant_name || 'Family meal';
+  const label = getMealTypeLabel(meal) || meal.restaurant_name || 'Family meal';
   const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(meal.eaten_at));
   return `${label} · ${time}`;
+}
+
+function getMealTypeLabel(meal) {
+  const storedType = getMealType(meal);
+  return storedType
+    ? storedType.charAt(0).toUpperCase() + storedType.slice(1)
+    : '';
 }
 
 function getMealType(meal) {
@@ -844,6 +864,48 @@ function notesWithoutMealType(notes) {
 function notesWithMealType(notes, mealType) {
   const cleanNotes = notesWithoutMealType(notes);
   return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${mealType}]]`;
+}
+
+function formatTimelineDate(value) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .format(new Date(value));
+}
+
+function formatTimelineTime(value) {
+  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
+    .format(new Date(value));
+}
+
+function estimateMealHealthScore(meal) {
+  const searchText = foodSearchText(meal);
+  const calories = Number(meal.calories) || 0;
+  let score = 58;
+
+  if (calories > 0) {
+    if (calories <= 650) score += 12;
+    else if (calories <= 900) score += 5;
+    else if (calories >= 1200) score -= 12;
+    else score -= 4;
+  }
+
+  const positiveWords = ['salad', 'vegetable', 'broccoli', 'greens', 'fruit', 'berry', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'oat', 'bean', 'avocado', 'nuts', 'grill', 'grilled'];
+  const cautionWords = ['fries', 'fried', 'pizza', 'burger', 'soda', 'cake', 'dessert', 'ice cream', 'chips', 'bacon', 'ramen', 'crispy'];
+
+  score += positiveWords.filter((word) => searchText.includes(word)).length * 5;
+  score -= cautionWords.filter((word) => searchText.includes(word)).length * 5;
+
+  const mealType = getMealType(meal);
+  if (mealType === 'dessert') score -= 8;
+  if (mealType === 'snack' && calories > 450) score -= 6;
+
+  return clampScore(score);
+}
+
+function healthTone(score) {
+  if (score >= 80) return 'excellent';
+  if (score >= 65) return 'good';
+  if (score >= 45) return 'fair';
+  return 'low';
 }
 
 function renderFavorites() {
