@@ -537,10 +537,14 @@ function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount
   else if (glucose < 70) items.push({ icon: '🍌', title: 'Glucose looks low', copy: 'Consider a quick carbohydrate and recheck based on your care plan.' });
   else items.push({ icon: '🩸', title: 'Glucose is in range', copy: 'Keep the momentum with water and a fiber-rich next meal.' });
 
-  const remainingSteps = Math.max(10000 - steps, 0);
-  items.push(steps >= 10000
-    ? { icon: '👟', title: 'Movement goal reached', copy: 'Great work—gentle recovery and hydration are a good finish.' }
-    : { icon: '🚶', title: 'Take a short walk', copy: `${remainingSteps.toLocaleString()} steps remain; even 10 minutes after a meal can help.` });
+  const personalized = buildProfileRecommendation(appState.currentMember);
+  if (personalized) items.push(personalized);
+  else {
+    const remainingSteps = Math.max(10000 - steps, 0);
+    items.push(steps >= 10000
+      ? { icon: '👟', title: 'Movement goal reached', copy: 'Great work—gentle recovery and hydration are a good finish.' }
+      : { icon: '🚶', title: 'Take a short walk', copy: `${remainingSteps.toLocaleString()} steps remain; even 10 minutes after a meal can help.` });
+  }
   if (nutrition < 65 && mealCount) items.push({ icon: '🌈', title: 'Add more color', copy: 'A fruit or vegetable can improve today’s nutrition balance.' });
   return items.slice(0, 3);
 }
@@ -1021,7 +1025,14 @@ function formatTimelineTime(value) {
     .format(new Date(value));
 }
 
-function estimateMealHealthScore(meal) {
+function getMemberHealthProfile(member) {
+  if (!member) return {};
+  return appState.profileMeasurements[member.id] || {};
+}
+
+function estimateMealHealthScore(meal, memberOverride) {
+  const member = memberOverride || appState.members.find((item) => item.id === meal.member_id) || appState.currentMember;
+  const profile = getMemberHealthProfile(member);
   const searchText = foodSearchText(meal);
   const calories = Number(meal.calories) || 0;
   let score = 58;
@@ -1043,7 +1054,50 @@ function estimateMealHealthScore(meal) {
   if (mealType === 'dessert') score -= 8;
   if (mealType === 'snack' && calories > 450) score -= 6;
 
+  const focus = profile.health_focus || 'balanced';
+  if (focus === 'blood-sugar') {
+    score -= ['soda', 'cake', 'ice cream', 'soft serve', 'frappe', 'sweet', 'bread', 'rice'].filter((word) => searchText.includes(word)).length * 5;
+    score += ['egg', 'tofu', 'salad', 'vegetable', 'nuts', 'fish', 'chicken', 'yogurt'].filter((word) => searchText.includes(word)).length * 3;
+  }
+  if (focus === 'heart-health') {
+    score -= ['fried', 'fries', 'bacon', 'burger', 'pizza', 'ramen', 'crispy'].filter((word) => searchText.includes(word)).length * 4;
+    score += ['fish', 'salad', 'oat', 'bean', 'avocado', 'nuts', 'olive'].filter((word) => searchText.includes(word)).length * 3;
+  }
+  if (focus === 'low-sodium') {
+    score -= ['ramen', 'bacon', 'chips', 'soup', 'sauce', 'soy', 'burger', 'pizza'].filter((word) => searchText.includes(word)).length * 4;
+    score += ['fruit', 'salad', 'vegetable', 'rice', 'grilled'].filter((word) => searchText.includes(word)).length * 2;
+  }
+  if (focus === 'higher-protein') {
+    score += ['chicken', 'beef', 'fish', 'egg', 'tofu', 'yogurt', 'protein', 'bean'].filter((word) => searchText.includes(word)).length * 4;
+    if (mealType === 'dessert') score -= 4;
+  }
+  if (focus === 'kid-growth') {
+    score += ['milk', 'yogurt', 'egg', 'fruit', 'chicken', 'fish', 'tofu'].filter((word) => searchText.includes(word)).length * 3;
+  }
+
+  const alerts = String(profile.food_alerts || '').toLowerCase();
+  if (alerts.includes('nut') && ['nut', 'walnut', 'almond', 'peanut'].some((word) => searchText.includes(word))) score -= 22;
+  if (alerts.includes('dairy') && ['milk', 'latte', 'cheese', 'yogurt', 'ice cream', 'soft serve'].some((word) => searchText.includes(word))) score -= 18;
+  if (alerts.includes('gluten') && ['bread', 'baguette', 'pasta', 'noodle', 'pizza', 'cake'].some((word) => searchText.includes(word))) score -= 18;
+  if (alerts.includes('shellfish') && ['shrimp', 'prawn', 'crab', 'lobster'].some((word) => searchText.includes(word))) score -= 22;
+  if (alerts.includes('sugar') && ['soda', 'cake', 'sweet', 'ice cream', 'soft serve', 'dessert'].some((word) => searchText.includes(word))) score -= 12;
+
   return clampScore(score);
+}
+
+function buildProfileRecommendation(member) {
+  const profile = getMemberHealthProfile(member);
+  const focus = profile.health_focus || 'balanced';
+  const alerts = String(profile.food_alerts || '').trim();
+  if (alerts) {
+    return { icon: '⚠️', title: 'Check meal ingredients', copy: `Keep an eye on: ${alerts}. Update details if a meal needs a closer look.` };
+  }
+  if (focus === 'blood-sugar') return { icon: '🥗', title: 'Support steadier energy', copy: 'Favor protein, fiber, and fewer sugary add-ons in the next meal.' };
+  if (focus === 'heart-health') return { icon: '🫀', title: 'Go lighter on fried foods', copy: 'Lean proteins, vegetables, and less heavy sauce fit this profile better.' };
+  if (focus === 'low-sodium') return { icon: '🧂', title: 'Watch salty extras', copy: 'Sauces, soups, and processed snacks can push sodium up fast.' };
+  if (focus === 'higher-protein') return { icon: '💪', title: 'Anchor meals with protein', copy: 'Eggs, fish, chicken, tofu, and yogurt will improve the daily balance.' };
+  if (focus === 'kid-growth') return { icon: '🥛', title: 'Build growth-friendly meals', copy: 'Aim for protein, fruit, and calcium-rich foods through the day.' };
+  return null;
 }
 
 function healthTone(score) {
@@ -1383,15 +1437,20 @@ function renderProfile() {
   const sexInput = document.getElementById('profileSex');
   const activityInput = document.getElementById('profileActivity');
   const goalInput = document.getElementById('profileGoal');
+  const healthFocusInput = document.getElementById('profileHealthFocus');
+  const foodAlertsInput = document.getElementById('profileFoodAlerts');
   if (document.activeElement !== heightInput) heightInput.value = measurements.height_cm ?? member.height_cm ?? '';
   if (document.activeElement !== weightInput) weightInput.value = measurements.weight_kg ?? getMemberWeight(member) ?? '';
   if (document.activeElement !== ageInput) ageInput.value = measurements.age ?? '';
   if (document.activeElement !== sexInput) sexInput.value = measurements.sex || (member.name.toLowerCase().includes('dad') || member.name.toLowerCase().includes('papa') ? 'male' : 'female');
   if (document.activeElement !== activityInput) activityInput.value = String(measurements.activity || 1.55);
   if (document.activeElement !== goalInput) goalInput.value = measurements.goal || 'maintain';
+  if (document.activeElement !== healthFocusInput) healthFocusInput.value = measurements.health_focus || 'balanced';
+  if (document.activeElement !== foodAlertsInput) foodAlertsInput.value = measurements.food_alerts || '';
   document.getElementById('profileCalorieTarget').textContent = measurements.target_calories ? Number(measurements.target_calories).toLocaleString() : '—';
   document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
   document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
+  document.getElementById('profileHealthSummary').textContent = buildProfileHealthSummary(measurements);
   renderAvatarPicker(member);
 }
 
@@ -1404,6 +1463,8 @@ async function handleSaveProfileMeasurements() {
   const sex = document.getElementById('profileSex').value;
   const activity = Number(document.getElementById('profileActivity').value);
   const goal = document.getElementById('profileGoal').value;
+  const healthFocus = document.getElementById('profileHealthFocus').value;
+  const foodAlerts = document.getElementById('profileFoodAlerts').value.trim();
   if (!height || !weight || !age || height < 50 || weight < 10 || age < 14) {
     alert('Enter a valid height, weight, and age.');
     return;
@@ -1423,6 +1484,8 @@ async function handleSaveProfileMeasurements() {
     sex,
     activity,
     goal,
+    health_focus: healthFocus,
+    food_alerts: foodAlerts,
     target_calories: targetCalories,
     protein_grams: proteinGrams,
     water_liters: waterLiters
@@ -1446,6 +1509,22 @@ async function handleSaveProfileMeasurements() {
   await syncMemberToSupabase(member.id, { weight_kg: weight });
   await syncMemberToSupabase(member.id, { height_cm: height });
   await syncMemberToSupabase(member.id, { target_calories: targetCalories });
+}
+
+function buildProfileHealthSummary(measurements) {
+  const focusLabels = {
+    balanced: 'Balanced eating',
+    'blood-sugar': 'Blood sugar support',
+    'heart-health': 'Heart health',
+    'low-sodium': 'Lower sodium',
+    'higher-protein': 'Higher protein',
+    'kid-growth': 'Kid growth'
+  };
+  const focus = focusLabels[measurements.health_focus || 'balanced'] || 'Balanced eating';
+  const alerts = String(measurements.food_alerts || '').trim();
+  return alerts
+    ? `${focus} profile is active. Food alerts: ${alerts}.`
+    : `${focus} profile is active.`;
 }
 
 async function handleSaveProfileName() {

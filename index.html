@@ -507,12 +507,15 @@
                   <label>Sex<select id="profileSex"><option value="male">Male</option><option value="female">Female</option></select></label>
                   <label>Activity<select id="profileActivity"><option value="1.2">Mostly seated</option><option value="1.375">Light exercise</option><option value="1.55">Moderate exercise</option><option value="1.725">Very active</option></select></label>
                   <label>Goal<select id="profileGoal"><option value="maintain">Maintain weight</option><option value="lose">Lose weight</option><option value="gain">Gain weight</option></select></label>
+                  <label>Health focus<select id="profileHealthFocus"><option value="balanced">Balanced eating</option><option value="blood-sugar">Blood sugar support</option><option value="heart-health">Heart health</option><option value="low-sodium">Lower sodium</option><option value="higher-protein">Higher protein</option><option value="kid-growth">Kid growth</option></select></label>
+                  <label class="profile-measurement-wide">Food alerts / allergies<textarea id="profileFoodAlerts" rows="3" placeholder="e.g. almond milk preferred, nut allergy, avoid sugary drinks"></textarea></label>
                 </div>
                 <div class="profile-target-results" aria-live="polite">
                   <article><span>Daily calories</span><strong id="profileCalorieTarget">—</strong><small>kcal</small></article>
                   <article><span>Protein</span><strong id="profileProteinTarget">—</strong><small>grams</small></article>
                   <article><span>Water</span><strong id="profileWaterTarget">—</strong><small>liters</small></article>
                 </div>
+                <p id="profileHealthSummary" class="profile-health-summary">Balanced eating profile is active.</p>
                 <button class="primary-button" id="saveProfileMeasurements" type="button">Save &amp; Calculate</button>
                 <small>General estimates for adults. Medical conditions and pregnancy require professional guidance.</small>
               </section>
