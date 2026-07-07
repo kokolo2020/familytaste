@@ -149,51 +149,6 @@
                 <div class="tip-card"><span>★</span><p><strong>Tip for You</strong><br><span id="summaryTip">Log your first meal to start your daily analysis.</span></p></div>
               </section>
 
-              <div class="health-metrics-grid">
-                <article class="health-stat-card score-card">
-                  <div class="stat-icon mint">♡</div>
-                  <div><span>Body Health Score</span><strong><b id="bodyHealthScore">0</b><small>/100</small></strong></div>
-                  <span id="healthScoreStatus" class="status-pill">Getting started</span>
-                </article>
-                <article class="health-stat-card glucose-card">
-                  <div class="stat-icon coral">⌁</div>
-                  <div><span>Average Glucose Today</span><strong><b id="averageGlucose">--</b><small> mg/dL</small></strong></div>
-                  <span id="glucoseStatus" class="status-pill">Add reading</span>
-                </article>
-                <article class="health-stat-card nutrition-card">
-                  <div class="stat-icon lavender">◒</div>
-                  <div><span>Nutrition Balance</span><strong><b id="nutritionBalance">0</b><small>%</small></strong></div>
-                  <span id="nutritionStatus" class="status-pill">Log a meal</span>
-                </article>
-              </div>
-
-              <section class="bio-panel dashboard-card">
-            <div class="section-title">
-              <div>
-                <p class="eyebrow">Daily signals</p>
-                <h3>Update your health data</h3>
-              </div>
-              <button class="primary-button" id="saveBioStats" type="button">Save Bio Stats</button>
-            </div>
-            <div class="bio-grid">
-              <label class="bio-field">
-                <span>⚖️ Weight (kg)</span>
-                <input id="bioWeight" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0.0">
-              </label>
-              <label class="bio-field">
-                <span>👟 Steps</span>
-                <input id="bioSteps" type="number" step="1" min="0" inputmode="numeric" placeholder="0">
-              </label>
-              <label class="bio-field">
-                <span>🩸 Blood Sugar (mg/dL)</span>
-                <input id="bioSugar" type="number" step="0.1" min="0" inputmode="decimal" placeholder="0">
-              </label>
-              <div class="bio-field bio-readonly">
-                <span>🔥 Calories Today</span>
-                <strong id="bioCalories">0</strong>
-              </div>
-            </div>
-          </section>
             </div>
 
           <aside class="dashboard-side-column">
@@ -213,6 +168,11 @@
                 <div id="bodyImpactList" class="body-impact-list"></div>
               </div>
               <p class="body-impact-note">ⓘ Percentages show how much of today’s logged food contributes to each body system.</p>
+              <div class="secondary-impact-header">
+                <strong>More Systems</strong>
+                <small>Diet-support signals only, not diagnosis.</small>
+              </div>
+              <div id="secondaryBodyImpactList" class="secondary-impact-grid"></div>
             </section>
 
             <section class="nutrition-panel dashboard-card">
@@ -279,6 +239,8 @@
               </label>
               <label>Restaurant<input id="restaurantName" name="restaurant_name" placeholder="Favorite local spot"></label>
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
+              <label>Date<input id="mealDate" name="meal_date" type="date"></label>
+              <label>Time<input id="mealTime" name="meal_time" type="time"></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <div class="calorie-scanner wide">
@@ -602,6 +564,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20260707c"></script>
 </body>
 </html>

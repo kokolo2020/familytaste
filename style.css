@@ -41,6 +41,11 @@
 .food-panel-title { margin-bottom: 18px; }
 .compact-button { min-height: 38px; padding: 0 15px; font-size: 13px; }
 .dashboard-meal-list { display: grid; gap: 10px; }
+.dashboard-meal-group { display: grid; }
+.dashboard-meal-group + .dashboard-meal-group { border-top: 1px solid #efe7dd; }
+.dashboard-meal-group-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 8px; color: #7d5f43; }
+.dashboard-meal-group-header strong { color: #3b2a1e; font-size: 13px; }
+.dashboard-meal-group-header span { color: #8f8378; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .dashboard-meal-list .meal-card { border-color: rgba(46, 102, 80, .1); background: #fbfdf9; }
 .dashboard-meal-list .meal-card strong { color: var(--dash-green); }
 
@@ -81,7 +86,7 @@
 .health-stat-card .status-pill { position: absolute; right: 12px; bottom: 12px; left: 12px; padding: 5px 8px; border-radius: 999px; color: #39735f; background: #edf7f1; text-align: center; font-size: 10px; }
 
 #page-dashboard .bio-panel { margin: 0; padding: 22px; }
-#page-dashboard .bio-grid { grid-template-columns: repeat(4, 1fr); }
+#page-dashboard .bio-grid { grid-template-columns: repeat(3, 1fr); }
 #page-dashboard .bio-field { padding: 12px; border-radius: 15px; background: #f7faf6; }
 #page-dashboard .bio-field input { min-width: 0; }
 .panel-subtitle { margin: -6px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -108,6 +113,15 @@
 .impact-row b { font-weight: 800; }.impact-row strong { color: #214d3e; }
 .impact-row i { display: block; height: 5px; margin-top: 5px; overflow: hidden; border-radius: 20px; background: #e7eee9; }
 .impact-row em { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #82c6ae, #28745d); }
+.secondary-impact-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.secondary-impact-header strong { color: #3b3027; font-size: 13px; }
+.secondary-impact-header small { color: #8a837d; font-size: 10px; line-height: 1.4; text-align: right; }
+.secondary-impact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.secondary-impact-card { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 9px; align-items: start; padding: 12px; border: 1px solid #eee4d9; border-radius: 14px; background: #fffdfa; box-shadow: 0 8px 18px rgba(76,42,18,.04); }
+.secondary-impact-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 10px; background: #f7f1e9; font-size: 15px; }
+.secondary-impact-card strong { display: block; color: #2e473d; font-size: 11px; line-height: 1.2; }
+.secondary-impact-card small { display: block; margin-top: 2px; color: #8a837d; font-size: 9px; }
+.secondary-impact-card p { grid-column: 1 / -1; margin: 0; color: #60574e; font-size: 9px; line-height: 1.45; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .sparkle { color: #d08b20; font-size: 22px; }
 .recommendation-list { display: grid; gap: 10px; margin-top: 15px; }
 .recommendation-item { display: grid; grid-template-columns: 35px 1fr; gap: 11px; padding: 12px; border-radius: 15px; background: #f7faf6; }
@@ -173,6 +187,7 @@
 .food-history-tabs button { padding: 7px 10px; border-radius: 7px; color: #817368; background: transparent; }
 .food-history-tabs button.active { color: #fff; background: #df791b; box-shadow: 0 4px 10px rgba(184, 92, 14, .18); }
 #page-dashboard .dashboard-meal-list { gap: 0; }
+#page-dashboard .dashboard-meal-group:first-child .dashboard-meal-group-header { padding-top: 10px; }
 #page-dashboard .dashboard-meal-list .meal-card { min-height: 116px; padding: 13px 0; border: 0; border-bottom: 1px solid #eeeae5; border-radius: 0; background: #fff; box-shadow: none; }
 #page-dashboard .dashboard-meal-list .meal-card:last-child { border-bottom: 0; }
 #page-dashboard .dashboard-meal-list .meal-card.has-photo { grid-template-columns: 104px 1fr auto; gap: 16px; }
@@ -2627,6 +2642,9 @@ h1 span {
 #page-dashboard .dashboard-meal-list .meal-card { position: relative; }
 #page-dashboard .impact-callout p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
 #page-dashboard .body-impact-note { margin: 10px 0 0; padding: 10px 12px; border: 1px solid #f0ece7; border-radius: 9px; color: #8a837d; background: #fffdfa; font-size: 9px; line-height: 1.45; }
+#page-dashboard .secondary-impact-header { margin-top: 12px; }
+#page-dashboard .secondary-impact-header strong { font-size: 12px; }
+#page-dashboard .secondary-impact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 
 @media (max-width: 1000px) and (min-width: 761px) {
   .workspace-view { display: block; }
@@ -2651,6 +2669,9 @@ h1 span {
   #page-dashboard .dashboard-add-button { min-width: 54px; min-height: 29px; padding: 0 7px; font-size: 8px; }
   #page-dashboard .dashboard-add-button span { margin-right: 1px; font-size: 13px; }
   #page-dashboard .today-food-panel { padding: 0 6px; border-radius: 8px; }
+  #page-dashboard .dashboard-meal-group-header { padding: 8px 0 5px; }
+  #page-dashboard .dashboard-meal-group-header strong { font-size: 8px; }
+  #page-dashboard .dashboard-meal-group-header span { font-size: 6px; }
   #page-dashboard .dashboard-meal-list .meal-card { min-height: 72px; padding: 7px 0; gap: 6px; }
   #page-dashboard .dashboard-meal-list .meal-card.has-photo { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 6px; }
   #page-dashboard .dashboard-meal-list .meal-photo,
@@ -2693,6 +2714,15 @@ h1 span {
   #page-dashboard .impact-callout strong { margin: 2px 0; font-size: 11px; }
   #page-dashboard .impact-callout p { font-size: 4.5px; }
   #page-dashboard .body-impact-note { margin-top: 4px; padding: 5px; border-radius: 5px; font-size: 4.5px; }
+  #page-dashboard .secondary-impact-header { align-items: flex-start; flex-direction: column; gap: 2px; margin-top: 7px; }
+  #page-dashboard .secondary-impact-header strong { font-size: 7px; }
+  #page-dashboard .secondary-impact-header small { font-size: 5px; text-align: left; }
+  #page-dashboard .secondary-impact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 5px; }
+  #page-dashboard .secondary-impact-card { grid-template-columns: 16px minmax(0, 1fr); gap: 4px; padding: 5px; border-radius: 6px; }
+  #page-dashboard .secondary-impact-icon { width: 16px; height: 16px; border-radius: 5px; font-size: 9px; }
+  #page-dashboard .secondary-impact-card strong { font-size: 5.5px; }
+  #page-dashboard .secondary-impact-card small { margin-top: 1px; font-size: 4.5px; }
+  #page-dashboard .secondary-impact-card p { font-size: 4.5px; -webkit-line-clamp: 2; }
   #page-dashboard .nutrition-panel { padding: 8px; border-radius: 8px; }
   #page-dashboard .nutrition-layout { grid-template-columns: 1fr 46px; gap: 4px; }
   #page-dashboard .macro-list { gap: 6px; }
