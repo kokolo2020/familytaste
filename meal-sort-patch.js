@@ -121,6 +121,7 @@
 
     if (typeof renderAll === 'function') renderAll();
     loadScriptOnce('profile-save-fix.js');
+    loadScriptOnce('compact-meals-patch.js');
     return true;
   }
 
