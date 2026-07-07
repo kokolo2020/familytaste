@@ -18,6 +18,7 @@ exports.handler = async (event) => {
     }
 
     const hint = String(body.food_name || '').slice(0, 180);
+    const descriptionContext = String(body.description_context || '').slice(0, 500);
     const portion = ['small', 'regular', 'large'].includes(body.portion_size) ? body.portion_size : 'regular';
     const response = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -32,7 +33,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Extra user context: ${descriptionContext || 'none'}. Portion selected by user: ${portion}. Use the user context to refine ingredients when it matches the photo, such as milk type, sauce, toppings, or preparation details. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]

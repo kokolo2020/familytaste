@@ -1334,6 +1334,14 @@ h1 span {
   background: #fffaf3;
 }
 
+.modal-calorie-scanner {
+  margin-top: -4px;
+}
+
+.modal-calorie-scanner button {
+  justify-self: start;
+}
+
 .calorie-scanner small { color: var(--muted); line-height: 1.45; }
 .calorie-scanner .estimate-success { color: #39752b; font-weight: 750; }
 .calorie-scanner .estimate-error { color: #a43a28; font-weight: 750; }

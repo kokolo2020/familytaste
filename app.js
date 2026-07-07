@@ -168,6 +168,7 @@ function bindEvents() {
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
+  document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
@@ -178,6 +179,7 @@ function bindEvents() {
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
+    clearAutoEditEstimate();
     document.getElementById('mealModal').classList.add('hidden');
   });
   document.getElementById('profileNameInput').addEventListener('keydown', (event) => {
@@ -186,6 +188,12 @@ function bindEvents() {
 
   ['foodName', 'mealType', 'restaurantName', 'calories'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
+  });
+  ['editFoodName', 'editRestaurant', 'editNotes'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', scheduleAutoEditAiCalorieEstimate);
+  });
+  ['editMealType'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', scheduleAutoEditAiCalorieEstimate);
   });
 }
 
@@ -608,8 +616,11 @@ function renderFoodList(elementId, meals, emptyMessage) {
 }
 
 let editingMealId = null;
+let editEstimateDebounce = null;
+let lastEditEstimateSignature = '';
 
 function openMealModal(mealId, defaultDay) {
+  clearAutoEditEstimate();
   editingMealId = mealId || null;
   const meal = mealId ? appState.meals.find((item) => item.id === mealId) : null;
   const defaultDate = defaultDay === 'yesterday' ? new Date(Date.now() - 24 * 60 * 60 * 1000) : new Date();
@@ -623,6 +634,12 @@ function openMealModal(mealId, defaultDay) {
   document.getElementById('editCalories').value = meal?.calories ?? '';
   document.getElementById('editNotes').value = notesWithoutMealType(meal?.notes);
   document.getElementById('editDate').value = dateKey(meal ? new Date(meal.eaten_at) : defaultDate);
+  const estimateStatus = document.getElementById('editCalorieEstimate');
+  estimateStatus.classList.remove('estimate-success', 'estimate-error');
+  estimateStatus.textContent = meal?.photo_url
+    ? 'Use the saved meal photo and your updated description to refresh the calorie estimate.'
+    : 'This meal has no saved photo. Add calories manually or resave it later with a photo.';
+  lastEditEstimateSignature = getEditEstimateSignature();
   document.getElementById('mealModal').classList.remove('hidden');
   document.getElementById('editFoodName').focus();
 }
@@ -636,6 +653,7 @@ function mergeDateKeepTime(originalIso, dateValue) {
 }
 
 async function handleSaveMealEdit() {
+  clearAutoEditEstimate();
   const foodName = document.getElementById('editFoodName').value.trim();
   if (!foodName) {
     document.getElementById('editFoodName').focus();
@@ -1515,54 +1533,145 @@ function resetPhotoPreview() {
 
 async function applyAiCalorieEstimate() {
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
-  const status = document.getElementById('calorieEstimate');
-  const button = document.getElementById('aiEstimateCalories');
-  if (!photoUrl) {
-    status.textContent = 'Upload or take a food photo first.';
-    status.classList.add('estimate-error');
+  await requestAiCalorieEstimate({
+    imageUrl: photoUrl,
+    foodName: document.getElementById('foodName').value.trim(),
+    restaurantName: document.getElementById('restaurantName').value.trim(),
+    mealType: document.getElementById('mealType').value,
+    notes: document.getElementById('notes').value.trim(),
+    statusElement: document.getElementById('calorieEstimate'),
+    buttonElement: document.getElementById('aiEstimateCalories'),
+    caloriesInput: document.getElementById('calories'),
+    onSuccess: (estimate) => {
+      const foodInput = document.getElementById('foodName');
+      if (estimate.foods?.length) {
+        foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
+      }
+      document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
+      updateMealPreview();
+    },
+    onError: () => {
+      document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
+    }
+  });
+}
+
+async function applyEditAiCalorieEstimate() {
+  const meal = editingMealId ? appState.meals.find((item) => item.id === editingMealId) : null;
+  const estimate = await requestAiCalorieEstimate({
+    imageUrl: meal?.photo_url || '',
+    foodName: document.getElementById('editFoodName').value.trim(),
+    restaurantName: document.getElementById('editRestaurant').value.trim(),
+    mealType: document.getElementById('editMealType').value,
+    notes: document.getElementById('editNotes').value.trim(),
+    statusElement: document.getElementById('editCalorieEstimate'),
+    buttonElement: document.getElementById('editAiEstimateCalories'),
+    caloriesInput: document.getElementById('editCalories')
+  });
+  if (estimate) lastEditEstimateSignature = getEditEstimateSignature();
+}
+
+function getEditEstimateSignature() {
+  return JSON.stringify({
+    foodName: document.getElementById('editFoodName').value.trim(),
+    restaurantName: document.getElementById('editRestaurant').value.trim(),
+    mealType: document.getElementById('editMealType').value,
+    notes: document.getElementById('editNotes').value.trim()
+  });
+}
+
+function clearAutoEditEstimate() {
+  if (editEstimateDebounce) clearTimeout(editEstimateDebounce);
+  editEstimateDebounce = null;
+}
+
+function scheduleAutoEditAiCalorieEstimate() {
+  const meal = editingMealId ? appState.meals.find((item) => item.id === editingMealId) : null;
+  if (!meal?.photo_url) return;
+  const modal = document.getElementById('mealModal');
+  if (modal.classList.contains('hidden')) return;
+  const signature = getEditEstimateSignature();
+  if (signature === lastEditEstimateSignature) return;
+  clearAutoEditEstimate();
+  editEstimateDebounce = setTimeout(() => {
+    editEstimateDebounce = null;
+    if (document.getElementById('mealModal').classList.contains('hidden')) return;
+    const latestSignature = getEditEstimateSignature();
+    if (latestSignature === lastEditEstimateSignature) return;
+    applyEditAiCalorieEstimate();
+  }, 900);
+}
+
+function buildEstimateDescription({ restaurantName, mealType, notes }) {
+  const parts = [];
+  if (mealType) parts.push(`meal type: ${mealType}`);
+  if (restaurantName) parts.push(`restaurant: ${restaurantName}`);
+  if (notes) parts.push(`user notes: ${notes}`);
+  return parts.join(' | ');
+}
+
+async function requestAiCalorieEstimate({
+  imageUrl,
+  foodName,
+  restaurantName,
+  mealType,
+  notes,
+  statusElement,
+  buttonElement,
+  caloriesInput,
+  onSuccess,
+  onError
+}) {
+  if (!imageUrl) {
+    statusElement.textContent = 'A saved food photo is required before AI can re-estimate calories.';
+    statusElement.classList.remove('estimate-success');
+    statusElement.classList.add('estimate-error');
+    if (onError) onError();
     return;
   }
 
-  const originalLabel = button.textContent;
-  button.disabled = true;
-  button.textContent = 'Scanning…';
-  status.classList.remove('estimate-success', 'estimate-error');
-  status.textContent = 'AI is identifying the food and estimating portions…';
+  const originalLabel = buttonElement.textContent;
+  buttonElement.disabled = true;
+  buttonElement.textContent = 'Scanning…';
+  statusElement.classList.remove('estimate-success', 'estimate-error');
+  statusElement.textContent = 'AI is comparing the photo with your updated meal details…';
 
   try {
     const response = await fetch('/.netlify/functions/estimate-calories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        image_url: photoUrl,
-        food_name: document.getElementById('foodName').value.trim(),
+        image_url: imageUrl,
+        food_name: foodName,
+        description_context: buildEstimateDescription({ restaurantName, mealType, notes }),
         portion_size: 'regular'
       })
     });
-    const estimate = await response.json();
-    if (!response.ok) throw new Error(estimate.error || 'AI calorie scan failed.');
-
-    // Ignore an older scan if the user selected another photo while it ran.
-    if (document.getElementById('photoPreview').dataset.photoUrl !== photoUrl) return;
+    const rawResponse = await response.text();
+    let estimate = null;
+    try {
+      estimate = rawResponse ? JSON.parse(rawResponse) : null;
+    } catch (parseError) {
+      estimate = null;
+    }
+    if (!response.ok) throw new Error(estimate?.error || 'AI scan is unavailable. Enter calories manually and try again later.');
+    if (!estimate) throw new Error('AI scan is unavailable. Enter calories manually and try again later.');
 
     const calories = Math.max(0, Math.round(Number(estimate.total_calories) || 0));
-    document.getElementById('calories').value = String(calories);
-    const foodInput = document.getElementById('foodName');
-    if (estimate.foods?.length) {
-      foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
-    }
+    caloriesInput.value = String(calories);
     const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
-    status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
-    status.classList.add('estimate-success');
-    document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
-    updateMealPreview();
+    statusElement.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
+    statusElement.classList.add('estimate-success');
+    if (onSuccess) onSuccess(estimate);
+    return estimate;
   } catch (error) {
-    status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
-    status.classList.add('estimate-error');
-    document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
+    statusElement.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
+    statusElement.classList.add('estimate-error');
+    if (onError) onError(error);
+    return null;
   } finally {
-    button.disabled = false;
-    button.textContent = originalLabel;
+    buttonElement.disabled = false;
+    buttonElement.textContent = originalLabel;
   }
 }
 

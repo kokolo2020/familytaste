@@ -283,7 +283,7 @@
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <div class="calorie-scanner wide">
                 <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories</button>
-                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories.</small>
+                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories. After editing the description, scan again for a refined estimate.</small>
               </div>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
@@ -518,6 +518,10 @@
       <div class="modal-field-row">
         <label class="modal-field">Price (฿)<input id="editPrice" type="number" min="0" step="0.01" inputmode="decimal"></label>
         <label class="modal-field">Calories<input id="editCalories" type="number" min="0" step="1" inputmode="numeric"></label>
+      </div>
+      <div class="calorie-scanner modal-calorie-scanner">
+        <button id="editAiEstimateCalories" class="secondary-button" type="button">✨ Re-estimate from Photo + Details</button>
+        <small id="editCalorieEstimate">Use the saved meal photo and your updated description to refresh the calorie estimate.</small>
       </div>
       <label class="modal-field">Date<input id="editDate" type="date"></label>
       <label class="modal-field">Notes<input id="editNotes" placeholder="Optional" autocomplete="off"></label>
