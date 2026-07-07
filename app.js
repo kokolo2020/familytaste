@@ -1193,8 +1193,9 @@ async function handlePhotoChange(event) {
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
     document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'Tap again to replace it.';
+    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories and nutrients…';
     updateMealPreview();
+    await applyAiCalorieEstimate();
   } catch (error) {
     console.warn('Could not load food photo.', error);
     alert('Could not load that food photo. Please try another image.');
@@ -1311,7 +1312,17 @@ async function applyAiCalorieEstimate() {
     statusElement: document.getElementById('calorieEstimate'),
     buttonElement: document.getElementById('aiEstimateCalories'),
     caloriesInput: document.getElementById('calories'),
-    onSuccess: () => updateMealPreview()
+    onSuccess: (estimate) => {
+      const foodInput = document.getElementById('foodName');
+      if (estimate.foods?.length) {
+        foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
+      }
+      document.getElementById('photoHint').textContent = 'AI scan ready. Tap again to replace the photo.';
+      updateMealPreview();
+    },
+    onError: () => {
+      document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish — enter details manually.';
+    }
   });
 }
 
