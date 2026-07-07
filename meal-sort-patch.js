@@ -100,10 +100,10 @@
       }).join('');
   }
 
-  function loadCompletionTrackerPatch() {
-    if (document.querySelector('script[src^="meal-completion-patch.js"]')) return;
+  function loadScriptOnce(src) {
+    if (document.querySelector(`script[src^="${src}"]`)) return;
     const script = document.createElement('script');
-    script.src = 'meal-completion-patch.js?v=1';
+    script.src = `${src}?v=1`;
     script.async = false;
     document.body.appendChild(script);
   }
@@ -120,7 +120,7 @@
     };
 
     if (typeof renderAll === 'function') renderAll();
-    loadCompletionTrackerPatch();
+    loadScriptOnce('body-details-patch.js');
     return true;
   }
 
