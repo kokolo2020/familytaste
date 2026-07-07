@@ -2488,7 +2488,7 @@ h1 span {
 
 @media (max-width: 760px) {
   .content-shell { padding: 10px 8px 84px; }
-  #page-dashboard .dashboard-layout { grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr); gap: 8px; align-items: start; }
+  #page-dashboard .dashboard-layout { grid-template-columns: 1fr; gap: 8px; align-items: start; }
   #page-dashboard .dashboard-main-column,
   #page-dashboard .dashboard-side-column { gap: 8px; }
   #page-dashboard .dashboard-intro { gap: 5px; padding: 3px 0; }
