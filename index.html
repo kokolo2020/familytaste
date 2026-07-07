@@ -431,6 +431,47 @@
                 <article><span>Average health score</span><strong id="timelineAverageHealth">0</strong></article>
               </div>
             </header>
+            <div class="timeline-filters dashboard-card">
+              <label class="timeline-filter">
+                <span>Member</span>
+                <select id="timelineMemberFilter"></select>
+              </label>
+              <label class="timeline-filter timeline-filter-search">
+                <span>Search</span>
+                <input id="timelineSearchFilter" type="search" placeholder="Food or restaurant">
+              </label>
+              <label class="timeline-filter">
+                <span>Meal type</span>
+                <select id="timelineMealTypeFilter">
+                  <option value="all">All</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="brunch">Brunch</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                  <option value="dessert">Dessert</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label class="timeline-filter">
+                <span>Date</span>
+                <select id="timelineDateFilter">
+                  <option value="all">All time</option>
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                </select>
+              </label>
+              <label class="timeline-filter">
+                <span>Health</span>
+                <select id="timelineHealthFilter">
+                  <option value="all">All scores</option>
+                  <option value="excellent">Excellent 80+</option>
+                  <option value="good">Good 65+</option>
+                  <option value="fair">Fair 45+</option>
+                  <option value="low">Needs attention</option>
+                </select>
+              </label>
+            </div>
             <div class="timeline-table-head" aria-hidden="true">
               <span>Food</span>
               <span>Date</span>

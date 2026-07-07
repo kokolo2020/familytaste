@@ -1749,6 +1749,21 @@ h1 span {
 .timeline-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 20px; }
 .timeline-header h3 { margin: 4px 0 6px; font-size: 28px; }
 .timeline-header p:last-child { margin: 0; color: var(--muted); }
+.timeline-filters { display: grid; grid-template-columns: 1.1fr 1.5fr 1fr 1fr 1fr; gap: 10px; padding: 16px; }
+.timeline-filter { display: grid; gap: 6px; color: var(--muted); font-size: 11px; font-weight: 850; }
+.timeline-filter span { color: #8c7f73; text-transform: uppercase; letter-spacing: .05em; }
+.timeline-filter input,
+.timeline-filter select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #e7ddcf;
+  border-radius: 10px;
+  padding: 0 12px;
+  color: var(--text);
+  background: #fffdfa;
+  font: inherit;
+}
+.timeline-filter-search input::-webkit-search-cancel-button { cursor: pointer; }
 .timeline-summary { display: grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 10px; }
 .timeline-summary article { padding: 14px 16px; border: 1px solid #eee5da; border-radius: 14px; background: #fffdfa; }
 .timeline-summary span { display: block; color: var(--muted); font-size: 11px; font-weight: 800; }
@@ -1760,6 +1775,7 @@ h1 span {
 .timeline-item { padding: 16px 18px; border: 1px solid #eee7dc; border-radius: 18px; background: #fff; box-shadow: 0 10px 24px rgba(69,48,31,.05); }
 .timeline-food-cell { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; }
 .timeline-food-emoji { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fff1d8; font-size: 26px; }
+.timeline-food-photo { display: block; width: 48px; height: 48px; border-radius: 14px; object-fit: cover; box-shadow: 0 6px 16px rgba(69,48,31,.12); }
 .timeline-food-cell h4 { margin: 0 0 4px; }
 .timeline-food-cell p { margin: 0; color: var(--muted); font-size: 12px; }
 .timeline-date,
@@ -2294,6 +2310,14 @@ h1 span {
   .timeline-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .timeline-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .timeline-filter-search {
+    grid-column: 1 / -1;
   }
 
   .timeline-summary {

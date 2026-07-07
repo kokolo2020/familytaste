@@ -52,6 +52,13 @@ const menuItems = [
 let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
+let timelineFilters = {
+  memberId: 'current',
+  search: '',
+  mealType: 'all',
+  dateRange: 'all',
+  health: 'all'
+};
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
@@ -189,6 +196,10 @@ function bindEvents() {
   ['foodName', 'mealType', 'restaurantName', 'calories'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
+  ['timelineMemberFilter', 'timelineMealTypeFilter', 'timelineDateFilter', 'timelineHealthFilter'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', handleTimelineFilterChange);
+  });
+  document.getElementById('timelineSearchFilter').addEventListener('input', handleTimelineFilterChange);
   ['editFoodName', 'editRestaurant', 'editNotes'].forEach((id) => {
     document.getElementById(id).addEventListener('input', scheduleAutoEditAiCalorieEstimate);
   });
@@ -819,7 +830,9 @@ function renderFavoriteFoods(meals) {
 }
 
 function renderMeals() {
-  const meals = getMemberMeals();
+  renderTimelineMemberFilter();
+  syncTimelineFilterInputs();
+  const meals = getTimelineMeals();
   const averageHealth = meals.length
     ? Math.round(meals.reduce((sumValue, meal) => sumValue + estimateMealHealthScore(meal), 0) / meals.length)
     : 0;
@@ -832,10 +845,12 @@ function renderMeals() {
     return `
       <article class="timeline-item">
         <div class="timeline-food-cell">
-          <span class="timeline-food-emoji">${mealEmoji(meal.food_name)}</span>
+          ${meal.photo_url
+            ? `<img class="timeline-food-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
+            : `<span class="timeline-food-emoji">${mealEmoji(meal.food_name)}</span>`}
           <div>
             <h4>${escapeHtml(meal.food_name)}</h4>
-            <p>${escapeHtml(getMealTypeLabel(meal) || 'Meal')}</p>
+            <p>${escapeHtml(buildTimelineMeta(meal))}</p>
           </div>
         </div>
         <span class="timeline-date">${formatTimelineDate(meal.eaten_at)}</span>
@@ -849,7 +864,106 @@ function renderMeals() {
         </div>
       </article>
     `;
-  }).join('') || emptyState('Your food archive will appear here.');
+  }).join('') || emptyState('No meals match the current filters.');
+}
+
+function renderTimelineMemberFilter() {
+  const select = document.getElementById('timelineMemberFilter');
+  if (!select) return;
+  const realMembers = appState.members.filter((member) => member.id !== 'add');
+  const options = [
+    { value: 'current', label: `Current profile${appState.currentMember ? ` (${appState.currentMember.name})` : ''}` },
+    { value: 'all', label: 'All family members' },
+    ...realMembers.map((member) => ({ value: member.id, label: member.name }))
+  ];
+  const selected = timelineFilters.memberId;
+  select.innerHTML = options.map((option) => `
+    <option value="${escapeAttr(option.value)}"${option.value === selected ? ' selected' : ''}>${escapeHtml(option.label)}</option>
+  `).join('');
+}
+
+function syncTimelineFilterInputs() {
+  const setIfIdle = (id, value) => {
+    const element = document.getElementById(id);
+    if (element && document.activeElement !== element) element.value = value;
+  };
+  setIfIdle('timelineMemberFilter', timelineFilters.memberId);
+  setIfIdle('timelineSearchFilter', timelineFilters.search);
+  setIfIdle('timelineMealTypeFilter', timelineFilters.mealType);
+  setIfIdle('timelineDateFilter', timelineFilters.dateRange);
+  setIfIdle('timelineHealthFilter', timelineFilters.health);
+}
+
+function handleTimelineFilterChange() {
+  timelineFilters = {
+    memberId: document.getElementById('timelineMemberFilter').value,
+    search: document.getElementById('timelineSearchFilter').value.trim().toLowerCase(),
+    mealType: document.getElementById('timelineMealTypeFilter').value,
+    dateRange: document.getElementById('timelineDateFilter').value,
+    health: document.getElementById('timelineHealthFilter').value
+  };
+  renderMeals();
+}
+
+function getTimelineMeals() {
+  const now = Date.now();
+  return appState.meals
+    .filter((meal) => matchesTimelineMemberFilter(meal))
+    .filter((meal) => matchesTimelineSearchFilter(meal))
+    .filter((meal) => matchesTimelineMealTypeFilter(meal))
+    .filter((meal) => matchesTimelineDateFilter(meal, now))
+    .filter((meal) => matchesTimelineHealthFilter(meal))
+    .sort((a, b) => new Date(b.eaten_at || b.created_at) - new Date(a.eaten_at || a.created_at));
+}
+
+function matchesTimelineMemberFilter(meal) {
+  if (timelineFilters.memberId === 'all') return true;
+  const selectedMember = timelineFilters.memberId === 'current'
+    ? appState.currentMember
+    : appState.members.find((member) => member.id === timelineFilters.memberId);
+  if (!selectedMember) return true;
+  return meal.member_id === selectedMember.id || meal.member_name === selectedMember.name;
+}
+
+function matchesTimelineSearchFilter(meal) {
+  if (!timelineFilters.search) return true;
+  return [
+    meal.food_name,
+    meal.restaurant_name,
+    meal.location_name,
+    notesWithoutMealType(meal.notes)
+  ].filter(Boolean).join(' ').toLowerCase().includes(timelineFilters.search);
+}
+
+function matchesTimelineMealTypeFilter(meal) {
+  if (timelineFilters.mealType === 'all') return true;
+  return getMealType(meal) === timelineFilters.mealType;
+}
+
+function matchesTimelineDateFilter(meal, now) {
+  if (timelineFilters.dateRange === 'all') return true;
+  const days = Number(timelineFilters.dateRange) || 0;
+  if (!days) return true;
+  const cutoff = now - (days * 24 * 60 * 60 * 1000);
+  return new Date(meal.eaten_at || meal.created_at).getTime() >= cutoff;
+}
+
+function matchesTimelineHealthFilter(meal) {
+  if (timelineFilters.health === 'all') return true;
+  const score = estimateMealHealthScore(meal);
+  if (timelineFilters.health === 'excellent') return score >= 80;
+  if (timelineFilters.health === 'good') return score >= 65 && score < 80;
+  if (timelineFilters.health === 'fair') return score >= 45 && score < 65;
+  if (timelineFilters.health === 'low') return score < 45;
+  return true;
+}
+
+function buildTimelineMeta(meal) {
+  const parts = [];
+  const memberName = appState.members.find((member) => member.id === meal.member_id)?.name || meal.member_name;
+  if (timelineFilters.memberId === 'all' && memberName) parts.push(memberName);
+  parts.push(getMealTypeLabel(meal) || 'Meal');
+  return parts.join(' · ');
 }
 
 function mealTemplate(meal, withActions = false) {
