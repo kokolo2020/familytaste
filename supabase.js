@@ -221,8 +221,14 @@
 })();
 
 window.addEventListener('load', () => {
-  const script = document.createElement('script');
-  script.src = 'meal-date-patch.js?v=1';
-  script.defer = true;
-  document.body.appendChild(script);
+  const mealDatePatch = document.createElement('script');
+  mealDatePatch.src = 'meal-date-patch.js?v=1';
+  mealDatePatch.async = false;
+  mealDatePatch.onload = () => {
+    const mealSortPatch = document.createElement('script');
+    mealSortPatch.src = 'meal-sort-patch.js?v=1';
+    mealSortPatch.async = false;
+    document.body.appendChild(mealSortPatch);
+  };
+  document.body.appendChild(mealDatePatch);
 });
