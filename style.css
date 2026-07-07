@@ -209,10 +209,10 @@
 #page-dashboard .impact-callout p { font-size: 8.5px; }
 #page-dashboard .nutrition-panel { padding: 18px; }
 #page-dashboard .analysis-note::before { content: "◆  "; }
-#page-dashboard .ai-recommendations,
-#page-dashboard .dashboard-history,
-#page-dashboard .health-metrics-grid,
-#page-dashboard .bio-panel { display: none; }
+#page-dashboard .ai-recommendations { display: block; }
+#page-dashboard .dashboard-history { display: block; }
+#page-dashboard .health-metrics-grid { display: grid; }
+#page-dashboard .bio-panel { display: block; }
 
 @media (max-width: 1000px) and (min-width: 761px) {
   .workspace-view { display: block; }

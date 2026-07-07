@@ -48,7 +48,7 @@
 
         <section class="weekly-preview">
           <div class="section-title">
-            <button class="text-pill" data-action="demo-dashboard" type="button">View Chef Menu ›</button>
+            <button class="text-pill" data-action="demo-order" type="button">View Chef Menu ›</button>
           </div>
           <div class="week-strip">
             <article><span>Mon</span><strong>Spaghetti Bolognese</strong><img src="https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=360&q=78" alt="Spaghetti Bolognese"></article>
@@ -62,9 +62,9 @@
         </section>
 
         <section class="landing-actions" aria-label="FamilyBites shortcuts">
-          <button data-action="demo-dashboard" type="button"><span>💬</span><strong>Family Chat</strong><i>›</i></button>
-          <button data-action="demo-dashboard" type="button"><span>📅</span><strong>Weekly Recap</strong><i>›</i></button>
-          <button data-action="demo-dashboard" type="button"><span>🧑‍🍳</span><strong>Chef Menu</strong><i>›</i></button>
+          <button data-action="demo-chat" type="button"><span>💬</span><strong>Family Chat</strong><i>›</i></button>
+          <button data-action="demo-weekly" type="button"><span>📅</span><strong>Weekly Recap</strong><i>›</i></button>
+          <button data-action="demo-order" type="button"><span>🧑‍🍳</span><strong>Chef Menu</strong><i>›</i></button>
         </section>
       </div>
     </section>
@@ -85,7 +85,7 @@
         </div>
       </aside>
 
-      <button class="mobile-landing-button" data-action="home" type="button" aria-label="Back to FamilyTaste landing page">
+      <button class="mobile-landing-button" data-action="home" type="button" aria-label="Back to FamilyBites landing page">
         <span aria-hidden="true">⌂</span>
       </button>
 
@@ -110,6 +110,7 @@
                   <h3>Today’s Food</h3>
                   <p class="today-food-totals"><span id="dashboardMealCount">0 meals</span> · <strong id="dashboardCalorieCount">0 cal</strong></p>
                 </div>
+                <p id="dashboardDate" class="dashboard-date">Today</p>
                 <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
               </div>
 
@@ -246,10 +247,6 @@
           </aside>
           </div>
 
-          <div class="dashboard-legacy-values" aria-hidden="true">
-            <span id="todayCalories">0</span><span id="todayMeals">0</span><span id="todaySpend">$0</span>
-            <span id="mealSummary"></span><span id="calorieGoalLabel"></span><i id="calorieProgress"></i>
-          </div>
         </section>
 
         <section id="page-snap" class="page" data-title="Snap Food" data-kicker="Food journal">
@@ -367,7 +364,7 @@
           <div class="weekly-report-shell">
             <header class="weekly-report-hero">
               <div>
-                <p class="eyebrow">FamilyTaste insights</p>
+                <p class="eyebrow">FamilyBites insights</p>
                 <h3>Weekly Report</h3>
                 <p id="weeklyDateRange" class="weekly-date-range">Last 7 days</p>
               </div>

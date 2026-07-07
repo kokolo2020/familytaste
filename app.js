@@ -304,6 +304,18 @@ function handleAction(action) {
     selectMember(appState.currentMember || appState.members[0]);
   }
 
+  if (action === 'demo-order') {
+    openDemoPage('order');
+  }
+
+  if (action === 'demo-chat') {
+    openDemoPage('chat');
+  }
+
+  if (action === 'demo-weekly') {
+    openDemoPage('weekly');
+  }
+
   if (action === 'add-member') {
     openAddMemberModal();
   }
@@ -339,6 +351,13 @@ function showPage(pageName) {
   renderAll();
 }
 
+function openDemoPage(pageName) {
+  selectMember(appState.currentMember || appState.members[0], { openDashboard: false });
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('workspace').classList.remove('hidden');
+  showPage(pageName);
+}
+
 function renderAll() {
   renderDashboard();
   renderMeals();
@@ -365,22 +384,11 @@ function renderDashboard() {
   const todayMeals = memberMeals.filter(isToday);
   const yesterdayMeals = memberMeals.filter(isYesterday);
   const calories = sum(todayMeals, 'calories');
-  const spend = sum(todayMeals, 'price');
   const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
   const goal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
-  const progress = Math.min(Math.round((calories / goal) * 100), 100);
 
   document.getElementById('dashboardMealCount').textContent = `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
   document.getElementById('dashboardCalorieCount').textContent = `${calories.toLocaleString()} cal`;
-
-  document.getElementById('todayCalories').textContent = calories.toLocaleString();
-  document.getElementById('todayMeals').textContent = todayMeals.length.toString();
-  document.getElementById('todaySpend').textContent = formatMoney(spend);
-  document.getElementById('calorieProgress').style.width = `${progress}%`;
-  document.getElementById('calorieGoalLabel').textContent = `Goal ${goal.toLocaleString()} calories`;
-  document.getElementById('mealSummary').textContent = todayMeals.length
-    ? todayMeals.slice(0, 3).map((meal) => meal.food_name).join(', ')
-    : 'No meals logged yet';
   document.getElementById('bioCalories').textContent = calories.toLocaleString();
 
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
