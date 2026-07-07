@@ -100,6 +100,14 @@
       }).join('');
   }
 
+  function loadCompletionTrackerPatch() {
+    if (document.querySelector('script[src^="meal-completion-patch.js"]')) return;
+    const script = document.createElement('script');
+    script.src = 'meal-completion-patch.js?v=1';
+    script.async = false;
+    document.body.appendChild(script);
+  }
+
   function installSortPatch() {
     if (typeof mealTemplate !== 'function' || typeof getMemberMeals !== 'function') return false;
 
@@ -112,6 +120,7 @@
     };
 
     if (typeof renderAll === 'function') renderAll();
+    loadCompletionTrackerPatch();
     return true;
   }
 
