@@ -1,4 +1,5 @@
 (function patchMealDisplaySortOrder() {
+  const familyTasteOrigin = 'https://familytaste.netlify.app';
   const mealTypeRank = {
     dessert: 6,
     dinner: 5,
@@ -18,6 +19,62 @@
     dessert: '🍰 Dessert',
     other: '🍽️ Other'
   };
+
+  function enforceFamilyTasteUrl() {
+    if (window.location.hostname === 'ismartnow.netlify.app') {
+      window.location.replace(`${familyTasteOrigin}${window.location.pathname}${window.location.search}`);
+      return true;
+    }
+
+    if (window.location.hash) {
+      window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
+    }
+
+    return false;
+  }
+
+  function disableGoogleLogin() {
+    if (enforceFamilyTasteUrl()) return;
+
+    if (window.familyBitesDb) {
+      window.familyBitesDb.isConfigured = false;
+      window.familyBitesDb.authContext = null;
+      window.familyBitesDb.familyId = null;
+      window.familyBitesDb.signInWithGoogle = async () => false;
+    }
+
+    const authCard = document.getElementById('landingAuthCard');
+    const signInButton = document.getElementById('googleSignInButton');
+    const signOutButton = document.getElementById('signOutButton');
+    const title = document.getElementById('authStatusTitle');
+    const copy = document.getElementById('authStatusCopy');
+    const meta = document.getElementById('authStatusMeta');
+
+    if (title) title.textContent = 'FamilyTaste access ready';
+    if (copy) copy.textContent = 'Google/Gmail login has been removed. Open the family dashboard directly.';
+    if (meta) meta.textContent = 'FamilyTaste stays on familytaste.netlify.app.';
+    if (signInButton) {
+      signInButton.textContent = 'Open FamilyTaste';
+      signInButton.classList.add('hidden');
+      signInButton.disabled = true;
+    }
+    if (signOutButton) signOutButton.classList.add('hidden');
+    if (authCard) authCard.classList.add('hidden');
+
+    if (typeof appState !== 'undefined' && (!appState.members || !appState.members.length)) {
+      appState.members = [
+        { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
+        { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
+        { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
+      ];
+    }
+
+    if (typeof hydrateFromSupabase === 'function') {
+      hydrateFromSupabase();
+    } else if (typeof renderAuthState === 'function') {
+      renderAuthState('demo');
+    }
+  }
 
   function getStoredMealType(meal) {
     return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || 'other';
@@ -109,6 +166,8 @@
   }
 
   function installSortPatch() {
+    disableGoogleLogin();
+
     if (typeof mealTemplate !== 'function' || typeof getMemberMeals !== 'function') return false;
 
     window.renderFoodList = function patchedRenderFoodList(elementId, meals, emptyMessage) {
