@@ -289,6 +289,7 @@ function selectMember(member, options = { openDashboard: true }) {
     document.getElementById('landing').classList.add('hidden');
     document.getElementById('workspace').classList.remove('hidden');
     showPage('dashboard');
+    window.scrollTo(0, 0);
   } else {
     renderAll();
   }
@@ -298,6 +299,7 @@ function handleAction(action) {
   if (action === 'home') {
     document.getElementById('workspace').classList.add('hidden');
     document.getElementById('landing').classList.remove('hidden');
+    window.scrollTo(0, 0);
   }
 
   if (action === 'demo-dashboard') {

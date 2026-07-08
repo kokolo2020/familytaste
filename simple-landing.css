@@ -5,6 +5,7 @@
   background:radial-gradient(circle at top,#fffaf2 0,#fff6eb 36%,#f3dfca 100%)!important;
   overflow-y:auto!important;
 }
+#landing.hidden{display:none!important}
 #landing .landing-sidebar,#landing .landing-topbar,#landing .weekly-preview,#landing .landing-actions,#landing .section-title,#landing .week-strip{display:none!important}
 #landing .landing-main{width:min(900px,100%)!important;margin:0 auto!important;padding:0!important}
 #landing .simple-landing-header{text-align:center!important;margin:8px auto 20px!important}
