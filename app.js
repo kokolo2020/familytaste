@@ -474,7 +474,7 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
 
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
   const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position]) => `
+  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position, foods]) => `
     
     <article
   class="impact-callout impact-${position}"
@@ -486,6 +486,12 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   
       <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
       <strong>${score}%</strong>
+      ${foods.length ? `<div class="impact-food-mini-list">${foods.map((food) => `
+        <div class="impact-food-mini">
+          <span class="impact-food-mini-name">${escapeHtml(food.name)}</span>
+          <span class="impact-food-mini-score meal-score-${escapeAttr(mealScoreTone(food.score))}">${food.score.toFixed(1)}</span>
+        </div>
+      `).join('')}</div>` : ''}
       <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
     </article>`).join('');
 
@@ -513,12 +519,14 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
       : todayMeals.filter((meal) => system.words.some((word) => foodSearchText(meal).includes(word)));
     const matchedCalories = matched.reduce((sumValue, meal) => sumValue + (Number(meal.calories) || 0), 0);
     const score = totalCalories ? clampScore((matchedCalories / totalCalories) * 100) : 0;
-    const ratedMeals = matched.filter((meal) => meal.food_name).map(formatImpactMealLabel);
+    const ratedMeals = matched
+      .filter((meal) => meal.food_name)
+      .map((meal) => ({ name: meal.food_name, score: getMealNutritionScore(meal) }));
     const foodList = ratedMeals.length
-      ? `${ratedMeals.slice(0, 3).join(', ')}${ratedMeals.length > 3 ? `, +${ratedMeals.length - 3} more` : ''}`
+      ? `${ratedMeals.slice(0, 3).map((meal) => `${meal.name} (${meal.score.toFixed(1)})`).join(', ')}${ratedMeals.length > 3 ? `, +${ratedMeals.length - 3} more` : ''}`
       : 'No matching food logged';
     const copy = ratedMeals.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
-    return [system.name, score, system.icon, copy, system.position];
+    return [system.name, score, system.icon, copy, system.position, ratedMeals.slice(0, 3)];
   });
 }
 
@@ -893,10 +901,6 @@ function mealScoreIcon(score) {
   if (score >= 6) return '🟡';
   if (score >= 4) return '🟠';
   return '🔴';
-}
-
-function formatImpactMealLabel(meal) {
-  return `${meal.food_name} (${getMealNutritionScore(meal).toFixed(1)})`;
 }
 
 function mealTemplate(meal, withActions = false) {
