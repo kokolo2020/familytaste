@@ -252,6 +252,7 @@ function renderProfiles() {
   const featuredMember = appState.currentMember && realMembers.some((member) => member.id === appState.currentMember.id)
     ? appState.currentMember
     : realMembers[0];
+  const selectableMembers = realMembers.filter((member) => member.id !== featuredMember?.id);
 
   landingSpotlight.innerHTML = featuredMember ? `
     <button class="landing-spotlight-card" type="button" data-member-id="${escapeAttr(featuredMember.id)}">
@@ -265,8 +266,8 @@ function renderProfiles() {
     </button>
   ` : '';
 
-  profileGrid.innerHTML = realMembers.map((member) => `
-    <button class="profile-card${member.id === featuredMember?.id ? ' is-selected' : ''}" type="button" data-member-id="${escapeAttr(member.id)}">
+  profileGrid.innerHTML = selectableMembers.map((member) => `
+    <button class="profile-card" type="button" data-member-id="${escapeAttr(member.id)}">
       <span class="avatar">${avatarMarkup(member)}</span>
       <strong>${escapeHtml(member.name)}</strong>
     </button>

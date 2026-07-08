@@ -3,9 +3,9 @@
   min-height:100vh!important;
   padding:18px 14px 36px!important;
   background:
-    radial-gradient(circle at top, rgba(255,150,78,.16), transparent 30%),
-    linear-gradient(180deg, #171717 0%, #101010 100%)!important;
-  color:#f7f2eb!important;
+    radial-gradient(circle at top, rgba(255,164,102,.28), transparent 34%),
+    linear-gradient(180deg, #fff8f0 0%, #f6ede2 52%, #efe2d4 100%)!important;
+  color:#2b221c!important;
   overflow-y:auto!important;
 }
 #landing.hidden{display:none!important}
@@ -33,7 +33,7 @@
   height:8px!important;
   margin:0 auto!important;
   border-radius:999px!important;
-  background:rgba(255,255,255,.28)!important;
+  background:rgba(104,76,52,.28)!important;
 }
 #landing .simple-landing-title-row{
   display:flex!important;
@@ -49,7 +49,7 @@
   line-height:1!important;
   letter-spacing:-.05em!important;
   font-weight:900!important;
-  color:#fffaf4!important;
+  color:#2b2018!important;
   transform:translateX(22px);
 }
 #landing .simple-landing-close{
@@ -58,8 +58,8 @@
   flex:0 0 56px!important;
   border:none!important;
   border-radius:50%!important;
-  background:rgba(255,255,255,.1)!important;
-  color:#fff!important;
+  background:rgba(77,52,31,.10)!important;
+  color:#4f3726!important;
   font-size:34px!important;
   line-height:1!important;
   cursor:pointer!important;
@@ -76,9 +76,9 @@
   padding:22px 20px!important;
   border:none!important;
   border-radius:34px!important;
-  background:linear-gradient(180deg, rgba(46,46,46,.96), rgba(31,31,31,.98))!important;
-  box-shadow:0 24px 64px rgba(0,0,0,.34)!important;
-  color:#fff!important;
+  background:linear-gradient(180deg, rgba(255,252,248,.96), rgba(248,239,230,.98))!important;
+  box-shadow:0 24px 64px rgba(116,82,49,.16)!important;
+  color:#2c2119!important;
   text-align:left!important;
 }
 #landing .landing-spotlight-avatar,
@@ -86,13 +86,13 @@
   display:grid!important;
   place-items:center!important;
   overflow:hidden!important;
-  background:linear-gradient(135deg, #54473c, #2d2723)!important;
+  background:linear-gradient(135deg, #e0b37f, #c88256)!important;
 }
 #landing .landing-spotlight-avatar{
   width:126px!important;
   height:126px!important;
   border-radius:30px!important;
-  box-shadow:0 16px 36px rgba(0,0,0,.32)!important;
+  box-shadow:0 16px 36px rgba(116,82,49,.18)!important;
 }
 #landing .landing-spotlight-avatar img,
 #landing .profile-card .avatar img{
@@ -107,27 +107,27 @@
   gap:6px!important;
 }
 #landing .landing-spotlight-copy small{
-  color:#b9b0a6!important;
+  color:#8e7661!important;
   font-size:13px!important;
   font-weight:700!important;
   letter-spacing:.08em!important;
   text-transform:uppercase!important;
 }
 #landing .landing-spotlight-copy strong{
-  color:#fff!important;
+  color:#20160f!important;
   font-size:clamp(26px,6vw,40px)!important;
   line-height:1.02!important;
   letter-spacing:-.05em!important;
   font-weight:900!important;
 }
 #landing .landing-spotlight-copy span{
-  color:#c9c2ba!important;
+  color:#6f5845!important;
   font-size:15px!important;
   line-height:1.3!important;
 }
 #landing .landing-spotlight-icon{
   align-self:flex-start!important;
-  color:#f0ebe4!important;
+  color:#8d6a4d!important;
   font-size:34px!important;
   opacity:.9!important;
 }
@@ -146,7 +146,7 @@
 #landing .profile-card{
   border:none!important;
   background:transparent!important;
-  color:#fffaf4!important;
+  color:#2c2018!important;
   display:flex!important;
   flex-direction:column!important;
   align-items:center!important;
@@ -161,18 +161,14 @@
   width:88px!important;
   height:88px!important;
   border-radius:26px!important;
-  box-shadow:0 14px 28px rgba(0,0,0,.22)!important;
+  box-shadow:0 14px 28px rgba(116,82,49,.16)!important;
 }
 #landing .profile-card strong{
   font-size:15px!important;
   line-height:1.15!important;
   letter-spacing:-.02em!important;
   font-weight:800!important;
-  color:#f5efe8!important;
-}
-#landing .profile-card.is-selected .avatar{
-  outline:3px solid rgba(255,176,96,.95)!important;
-  outline-offset:3px!important;
+  color:#2a1f18!important;
 }
 #landing .profile-card:hover{
   transform:translateY(-2px)!important;
