@@ -513,9 +513,11 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
       : todayMeals.filter((meal) => system.words.some((word) => foodSearchText(meal).includes(word)));
     const matchedCalories = matched.reduce((sumValue, meal) => sumValue + (Number(meal.calories) || 0), 0);
     const score = totalCalories ? clampScore((matchedCalories / totalCalories) * 100) : 0;
-    const names = matched.map((meal) => meal.food_name).filter(Boolean);
-    const foodList = names.length ? names.join(', ') : 'No matching food logged';
-    const copy = names.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
+    const ratedMeals = matched.filter((meal) => meal.food_name).map(formatImpactMealLabel);
+    const foodList = ratedMeals.length
+      ? `${ratedMeals.slice(0, 3).join(', ')}${ratedMeals.length > 3 ? `, +${ratedMeals.length - 3} more` : ''}`
+      : 'No matching food logged';
+    const copy = ratedMeals.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
     return [system.name, score, system.icon, copy, system.position];
   });
 }
@@ -891,6 +893,10 @@ function mealScoreIcon(score) {
   if (score >= 6) return '🟡';
   if (score >= 4) return '🟠';
   return '🔴';
+}
+
+function formatImpactMealLabel(meal) {
+  return `${meal.food_name} (${getMealNutritionScore(meal).toFixed(1)})`;
 }
 
 function mealTemplate(meal, withActions = false) {
