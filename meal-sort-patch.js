@@ -1,4 +1,27 @@
 (function patchMealDisplaySortOrder() {
+  var familyTasteUrl = 'https://familytaste.netlify.app/';
+
+  function forceFamilyTasteGoogleRedirect() {
+    if (!window.familyBitesDb || !window.familyBitesDb.client || window.familyBitesDb.forceFamilyTasteRedirect) return;
+    window.familyBitesDb.forceFamilyTasteRedirect = true;
+    window.familyBitesDb.signInWithGoogle = async function signInWithGoogleFamilyTaste() {
+      var result = await window.familyBitesDb.client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: familyTasteUrl,
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (result.error) throw result.error;
+      return true;
+    };
+  }
+
+  if (window.location.hostname === 'ismartnow.netlify.app') {
+    window.location.replace(familyTasteUrl + window.location.hash);
+    return;
+  }
+
   const mealTypeRank = {
     dessert: 6,
     dinner: 5,
@@ -109,6 +132,7 @@
   }
 
   function installSortPatch() {
+    forceFamilyTasteGoogleRedirect();
     if (typeof mealTemplate !== 'function' || typeof getMemberMeals !== 'function') return false;
 
     window.renderFoodList = function patchedRenderFoodList(elementId, meals, emptyMessage) {
