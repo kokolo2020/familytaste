@@ -179,7 +179,7 @@
 #page-dashboard .dashboard-meal-list .meal-photo { width: 104px; height: 92px; border-radius: 12px; box-shadow: none; }
 #page-dashboard .dashboard-meal-list .meal-emoji { width: 92px; height: 92px; border-radius: 12px; }
 #page-dashboard .dashboard-meal-list h4 { color: #201b17; font-size: 15px; line-height: 1.3; }
-#page-dashboard .dashboard-meal-list .meal-title-row { gap: 6px; margin-bottom: 2px; }
+#page-dashboard .dashboard-meal-list .meal-title-row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-bottom: 2px; }
 #page-dashboard .dashboard-meal-list .meal-score-badge { padding: 3px 7px; font-size: 10px; }
 #page-dashboard .dashboard-meal-list p { font-size: 11px; line-height: 1.45; }
 #page-dashboard .dashboard-meal-list .meal-card > strong { align-self: end; padding: 4px 9px; border-radius: 6px; color: #47852e; background: #edf8df; font-size: 11px; white-space: nowrap; }
@@ -1174,15 +1174,19 @@ h1 span {
 }
 
 .meal-title-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 4px;
 }
 
 .meal-title-row h4 {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .meal-score-badge {
@@ -2534,7 +2538,7 @@ h1 span {
   #page-dashboard .dashboard-meal-list .meal-photo,
   #page-dashboard .dashboard-meal-list .meal-emoji { width: 48px; height: 56px; border-radius: 7px; }
   #page-dashboard .dashboard-meal-list h4 { margin-bottom: 2px; font-size: 8px; }
-  #page-dashboard .dashboard-meal-list .meal-title-row { gap: 3px; }
+  #page-dashboard .dashboard-meal-list .meal-title-row { grid-template-columns: minmax(0, 1fr) auto; gap: 3px; }
   #page-dashboard .dashboard-meal-list .meal-score-badge { padding: 1px 4px; font-size: 5px; }
   #page-dashboard .dashboard-meal-list p { font-size: 6px; }
   #page-dashboard .dashboard-meal-list .meal-card > strong { padding: 2px 4px; font-size: 6px; }
