@@ -1,68 +1,224 @@
 (function initFamilyBitesSupabase() {
   const url = window.FAMILYBITES_SUPABASE_URL || 'https://mjnigheggxtythytsqle.supabase.co';
   const anonKey = window.FAMILYBITES_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qbmlnaGVnZ3h0eXRoeXRzcWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzYwMDcsImV4cCI6MjA5NTY1MjAwN30.mh1psePuKeQ8SH5uita7BsUKd6wd5IwHVVlDmJCMA0Q';
-  const familyName = window.FAMILYBITES_FAMILY_NAME || 'FamilyBites Demo Family';
+  const fallbackFamilyName = window.FAMILYBITES_FAMILY_NAME || 'FamilyTaste Family';
+  const allowBootstrap = window.FAMILYBITES_ALLOW_FIRST_ADMIN_BOOTSTRAP !== 'false';
+  const adminEmails = String(window.FAMILYBITES_ADMIN_EMAILS || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
   const client = isConfigured ? window.supabase.createClient(url, anonKey) : null;
 
+  function authRedirectUrl() {
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+
+  function requireContext(db) {
+    if (!db.authContext?.familyId) throw new Error('Google sign-in is required before loading family data.');
+    return db.authContext;
+  }
+
+  async function bootstrapFirstFamily(db, user) {
+    if (!client || !allowBootstrap) return null;
+    if (adminEmails.length && !adminEmails.includes(String(user.email || '').toLowerCase())) return null;
+
+    const familyName = user.user_metadata?.family_name
+      || (user.user_metadata?.full_name ? `${user.user_metadata.full_name.split(' ')[0]}'s Family` : fallbackFamilyName);
+    const memberName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Family Admin';
+
+    const { data: createdFamily, error: familyError } = await client
+      .from('families')
+      .insert({ name: familyName })
+      .select()
+      .single();
+    if (familyError) throw familyError;
+
+    const membershipPayload = {
+      family_id: createdFamily.id,
+      user_id: user.id,
+      email: user.email || null,
+      role: 'admin',
+      member_id: null
+    };
+    const { data: createdMembership, error: membershipError } = await client
+      .from('family_users')
+      .insert(membershipPayload)
+      .select('id, family_id, role, member_id, email')
+      .single();
+    if (membershipError) throw membershipError;
+
+    const { data: createdMember, error: memberError } = await client
+      .from('members')
+      .insert({
+        family_id: createdFamily.id,
+        name: memberName,
+        avatar: '👤',
+        role: 'Family Admin'
+      })
+      .select()
+      .single();
+    if (memberError) throw memberError;
+
+    const { data: linkedMembership, error: linkedMembershipError } = await client
+      .from('family_users')
+      .update({ member_id: createdMember.id })
+      .eq('id', createdMembership.id)
+      .select('id, family_id, role, member_id, email')
+      .single();
+    if (linkedMembershipError) throw linkedMembershipError;
+
+    return {
+      ...linkedMembership,
+      families: { name: createdFamily.name }
+    };
+  }
+
   window.familyBitesDb = {
     client,
     familyId: null,
     isConfigured,
-    async ensureFamily() {
+    authContext: null,
+    async getSession() {
       if (!client) return null;
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+      return data.session || null;
+    },
+    onAuthStateChange(callback) {
+      if (!client) return null;
+      const { data } = client.auth.onAuthStateChange((_event, session) => callback(session));
+      return data?.subscription || null;
+    },
+    async signInWithGoogle() {
+      if (!client) return null;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: authRedirectUrl(),
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (error) throw error;
+      return true;
+    },
+    async signOut() {
+      if (!client) return null;
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+      this.familyId = null;
+      this.authContext = null;
+      return true;
+    },
+    async ensureUserContext() {
+      if (!client) return null;
+      const session = await this.getSession();
+      const user = session?.user;
 
-      const { data: existingFamily, error: findError } = await client
-        .from('families')
-        .select('*')
-        .eq('name', familyName)
-        .maybeSingle();
-
-      if (findError) throw findError;
-      if (existingFamily) {
-        this.familyId = existingFamily.id;
-        await seedMembers(this.familyId);
-        return existingFamily;
+      if (!user) {
+        this.familyId = null;
+        this.authContext = null;
+        return null;
       }
 
-      const { data: createdFamily, error: createError } = await client
-        .from('families')
-        .insert({ name: familyName })
-        .select()
-        .single();
+      const { data: memberships, error } = await client
+        .from('family_users')
+        .select('id, family_id, role, member_id, email, families(name)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1);
+      if (error) throw error;
 
-      if (createError) throw createError;
-      this.familyId = createdFamily.id;
-      await seedMembers(this.familyId);
-      return createdFamily;
+      let membership = memberships?.[0] || null;
+      if (!membership) membership = await bootstrapFirstFamily(this, user);
+
+      if (!membership) {
+        this.familyId = null;
+        this.authContext = {
+          user,
+          familyId: null,
+          role: 'member',
+          memberId: null,
+          email: user.email || '',
+          familyName: ''
+        };
+        return this.authContext;
+      }
+
+      this.familyId = membership.family_id;
+      this.authContext = {
+        user,
+        familyId: membership.family_id,
+        role: membership.role || 'member',
+        memberId: membership.member_id || null,
+        email: user.email || membership.email || '',
+        familyName: membership.families?.name || fallbackFamilyName
+      };
+      return this.authContext;
     },
     async getMembers() {
-      if (!client || !this.familyId) return [];
-      const { data, error } = await client
+      const context = requireContext(this);
+      let query = client
         .from('members')
         .select('*')
-        .eq('family_id', this.familyId)
+        .eq('family_id', context.familyId)
         .order('created_at', { ascending: true });
+      if (context.role !== 'admin') {
+        if (!context.memberId) return [];
+        query = query.eq('id', context.memberId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
-    async getMeals() {
-      if (!client || !this.familyId) return [];
+    async createMember(member) {
+      const context = requireContext(this);
+      if (context.role !== 'admin') throw new Error('Only admins can add family members.');
       const { data, error } = await client
+        .from('members')
+        .insert({
+          family_id: context.familyId,
+          name: member.name,
+          avatar: member.avatar || '🧑',
+          role: member.role || 'Family member'
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async deleteMember(memberId) {
+      const context = requireContext(this);
+      if (context.role !== 'admin') throw new Error('Only admins can remove family members.');
+      const { error } = await client
+        .from('members')
+        .delete()
+        .eq('id', memberId)
+        .eq('family_id', context.familyId);
+      if (error) throw error;
+    },
+    async getMeals() {
+      const context = requireContext(this);
+      let query = client
         .from('food_entries')
         .select('*')
-        .eq('family_id', this.familyId)
+        .eq('family_id', context.familyId)
         .order('eaten_at', { ascending: false });
+      if (context.role !== 'admin') {
+        if (!context.memberId) return [];
+        query = query.eq('member_id', context.memberId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     async saveMeal(meal) {
-      if (!client || !this.familyId) return meal;
+      const context = requireContext(this);
       const payload = {
-        family_id: this.familyId,
-        member_id: meal.member_id,
+        family_id: context.familyId,
+        member_id: context.role === 'admin' ? meal.member_id : context.memberId,
         food_name: meal.food_name,
         restaurant_name: meal.restaurant_name || null,
         location_name: meal.location_name || null,
@@ -81,56 +237,64 @@
       return data;
     },
     async updateMeal(mealId, fields) {
-      if (!client) return null;
+      const context = requireContext(this);
       const payload = { ...fields };
       if ('notes' in payload) {
         payload.description = payload.notes || null;
         delete payload.notes;
       }
-      const { data, error } = await client
+
+      let query = client
         .from('food_entries')
         .update(payload)
         .eq('id', mealId)
-        .select()
-        .single();
+        .eq('family_id', context.familyId);
+      if (context.role !== 'admin') query = query.eq('member_id', context.memberId);
+
+      const { data, error } = await query.select().single();
       if (error) throw error;
       return data;
     },
     async deleteMeal(mealId) {
-      if (!client) return;
-      const { error } = await client
+      const context = requireContext(this);
+      let query = client
         .from('food_entries')
         .delete()
-        .eq('id', mealId);
+        .eq('id', mealId)
+        .eq('family_id', context.familyId);
+      if (context.role !== 'admin') query = query.eq('member_id', context.memberId);
+      const { error } = await query;
       if (error) throw error;
     },
     async getFavorites() {
-      if (!client || !this.familyId) return [];
-      const { data, error } = await client
+      const context = requireContext(this);
+      let query = client
         .from('favorite_restaurants')
         .select('*')
-        .eq('family_id', this.familyId)
+        .eq('family_id', context.familyId)
         .order('created_at', { ascending: false });
+      if (context.role !== 'admin' && context.memberId) query = query.eq('member_id', context.memberId);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     async getChat() {
-      if (!client || !this.familyId) return [];
+      const context = requireContext(this);
       const { data, error } = await client
         .from('family_chat')
         .select('*')
-        .eq('family_id', this.familyId)
+        .eq('family_id', context.familyId)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data || [];
     },
     async sendChat(message) {
-      if (!client || !this.familyId) return message;
+      const context = requireContext(this);
       const { data, error } = await client
         .from('family_chat')
         .insert({
-          family_id: this.familyId,
-          member_id: message.member_id,
+          family_id: context.familyId,
+          member_id: context.role === 'admin' ? message.member_id : context.memberId,
           member_name: message.member_name || null,
           message: message.message
         })
@@ -156,68 +320,61 @@
       return this.uploadImage(dataUrl, 'avatars');
     },
     async getBioLogs(logDate) {
-      if (!client || !this.familyId) return [];
-      const { data, error } = await client
+      const context = requireContext(this);
+      let query = client
         .from('bio_logs')
         .select('*')
-        .eq('family_id', this.familyId)
+        .eq('family_id', context.familyId)
         .eq('log_date', logDate);
+      if (context.role !== 'admin' && context.memberId) query = query.eq('member_id', context.memberId);
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     async saveBioLog(log) {
-      if (!client) return null;
+      const context = requireContext(this);
+      const payload = {
+        ...log,
+        family_id: context.familyId,
+        member_id: context.role === 'admin' ? log.member_id : context.memberId
+      };
       const { data, error } = await client
         .from('bio_logs')
-        .upsert(log, { onConflict: 'member_id,log_date' })
+        .upsert(payload, { onConflict: 'member_id,log_date' })
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     async updateMember(memberId, fields) {
-      if (!client) return null;
+      const context = requireContext(this);
+      if (context.role !== 'admin' && memberId !== context.memberId) {
+        throw new Error('You can only update your own profile.');
+      }
       const { data, error } = await client
         .from('members')
         .update(fields)
         .eq('id', memberId)
+        .eq('family_id', context.familyId)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     subscribeChat(onMessage) {
-      if (!client || !this.familyId) return null;
+      const context = this.authContext;
+      if (!client || !context?.familyId) return null;
       return client
-        .channel('family-chat')
+        .channel(`family-chat-${context.familyId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'family_chat',
-          filter: `family_id=eq.${this.familyId}`
+          filter: `family_id=eq.${context.familyId}`
         }, (payload) => onMessage(payload.new))
         .subscribe();
     }
   };
-
-  async function seedMembers(familyId) {
-    const { data: existing, error: findError } = await client
-      .from('members')
-      .select('id')
-      .eq('family_id', familyId)
-      .limit(1);
-
-    if (findError) throw findError;
-    if (existing?.length) return;
-
-    const starterMembers = [
-      { family_id: familyId, name: 'Dad', avatar: '👨', role: 'Family Admin' },
-      { family_id: familyId, name: 'Rithyna', avatar: '👩', role: 'Meal Planner' }
-    ];
-
-    const { error: insertError } = await client.from('members').insert(starterMembers);
-    if (insertError) throw insertError;
-  }
 })();
 
 window.addEventListener('load', () => {

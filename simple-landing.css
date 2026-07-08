@@ -64,6 +64,48 @@
   line-height:1!important;
   cursor:pointer!important;
 }
+#landing .landing-auth-card{
+  margin:0 0 20px!important;
+}
+#landing .landing-auth-panel{
+  padding:20px 18px!important;
+  border:1px solid rgba(171,133,94,.18)!important;
+  border-radius:24px!important;
+  background:rgba(255,252,247,.88)!important;
+  box-shadow:0 18px 42px rgba(116,82,49,.10)!important;
+}
+#landing .landing-auth-panel h3{
+  margin:0 0 8px!important;
+  color:#2b2018!important;
+  font-size:22px!important;
+  line-height:1.1!important;
+}
+#landing .landing-auth-panel p:last-of-type{
+  margin:0!important;
+  color:#6f5845!important;
+  font-size:14px!important;
+  line-height:1.5!important;
+}
+#landing .landing-auth-actions{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:10px!important;
+  margin-top:16px!important;
+}
+#landing .landing-auth-actions .primary-button,
+#landing .landing-auth-actions .secondary-button{
+  min-height:48px!important;
+  padding:0 18px!important;
+  border-radius:999px!important;
+  font-weight:900!important;
+}
+#landing #authStatusMeta{
+  display:block!important;
+  margin-top:12px!important;
+  color:#8d7561!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+}
 #landing .landing-spotlight{
   margin-bottom:26px!important;
 }
@@ -238,5 +280,15 @@
   }
   #landing .profile-card strong{
     font-size:14px!important;
+  }
+  #landing .landing-auth-panel{
+    padding:16px 14px!important;
+    border-radius:18px!important;
+  }
+  #landing .landing-auth-panel h3{
+    font-size:18px!important;
+  }
+  #landing .landing-auth-actions{
+    flex-direction:column!important;
   }
 }

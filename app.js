@@ -1,7 +1,13 @@
 const appState = {
   familyId: null,
+  familyName: '',
   currentMember: null,
   currentPage: 'dashboard',
+  authUser: null,
+  currentUserEmail: '',
+  authRole: 'guest',
+  linkedMemberId: null,
+  chatSubscription: null,
   members: [
     { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
     { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
@@ -74,13 +80,98 @@ const mobileItems = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyStoredAppData();
-  applyStoredProfilePhotos();
-  renderProfiles();
   renderNavigation();
   bindEvents();
+  renderAuthState(window.familyBitesDb?.isConfigured ? 'loading' : 'demo');
+  if (window.familyBitesDb?.isConfigured) {
+    window.familyBitesDb.onAuthStateChange(() => {
+      hydrateFromSupabase();
+    });
+  }
   hydrateFromSupabase();
 });
+
+function isAdminUser() {
+  return !window.familyBitesDb?.isConfigured || appState.authRole === 'admin';
+}
+
+function resetProtectedState() {
+  if (appState.chatSubscription?.unsubscribe) {
+    try {
+      appState.chatSubscription.unsubscribe();
+    } catch (error) {
+      console.warn('Could not clean up chat subscription.', error);
+    }
+  }
+  appState.chatSubscription = null;
+  appState.authUser = null;
+  appState.currentUserEmail = '';
+  appState.authRole = 'guest';
+  appState.familyId = null;
+  appState.familyName = '';
+  appState.currentMember = null;
+  appState.linkedMemberId = null;
+  appState.members = [];
+  appState.meals = [];
+  appState.chat = [];
+  appState.chefOrders = [];
+  appState.cart = [];
+  appState.voiceNotes = [];
+  appState.bioLogs = {};
+  appState.profileMeasurements = {};
+}
+
+function renderAuthState(mode = 'signed-out') {
+  const authCard = document.getElementById('landingAuthCard');
+  const spotlight = document.getElementById('landingSpotlight');
+  const profileDock = document.getElementById('profileDock');
+  const signInButton = document.getElementById('googleSignInButton');
+  const signOutButton = document.getElementById('signOutButton');
+  if (!authCard || !spotlight || !profileDock || !signInButton || !signOutButton) return;
+
+  const title = document.getElementById('authStatusTitle');
+  const copy = document.getElementById('authStatusCopy');
+  const meta = document.getElementById('authStatusMeta');
+
+  const showProfiles = mode === 'ready';
+  spotlight.classList.toggle('hidden', !showProfiles);
+  profileDock.classList.toggle('hidden', !showProfiles);
+  authCard.classList.toggle('hidden', !window.familyBitesDb?.isConfigured && mode === 'demo');
+
+  if (mode === 'demo') return;
+
+  signInButton.classList.toggle('hidden', mode !== 'signed-out');
+  signOutButton.classList.toggle('hidden', mode === 'signed-out' || mode === 'loading');
+
+  if (mode === 'loading') {
+    title.textContent = 'Checking access';
+    copy.textContent = 'Loading your Google session and family permissions…';
+    meta.textContent = 'The app will unlock after your family access is confirmed.';
+    return;
+  }
+
+  if (mode === 'no-family') {
+    title.textContent = 'No family access yet';
+    copy.textContent = 'This Google account is signed in, but it is not linked to a FamilyTaste family.';
+    meta.textContent = 'Ask a family admin to assign your account, or sign in with the admin account first.';
+    return;
+  }
+
+  if (mode === 'ready') {
+    title.textContent = appState.familyName || 'Family access ready';
+    copy.textContent = isAdminUser()
+      ? `Signed in as ${appState.currentUserEmail}. Admin can view and manage every family member.`
+      : `Signed in as ${appState.currentUserEmail}. Only your assigned member profile is visible.`;
+    meta.textContent = isAdminUser()
+      ? 'Google login is active. Family member access is controlled by your admin role.'
+      : 'Google login is active. Your member access is restricted by your family role.';
+    return;
+  }
+
+  title.textContent = 'Continue with Google';
+  copy.textContent = 'Sign in to load your family and member permissions.';
+  meta.textContent = 'Only approved family accounts can open this space.';
+}
 
 function bindEvents() {
   document.body.addEventListener('click', (event) => {
@@ -175,6 +266,25 @@ function bindEvents() {
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
+  document.getElementById('googleSignInButton').addEventListener('click', async () => {
+    if (!window.familyBitesDb?.signInWithGoogle) return;
+    try {
+      await window.familyBitesDb.signInWithGoogle();
+    } catch (error) {
+      console.warn('Google sign-in could not start.', error);
+      alert('Google sign-in could not start. Check Supabase Google auth settings and try again.');
+    }
+  });
+  document.getElementById('signOutButton').addEventListener('click', async () => {
+    if (!window.familyBitesDb?.signOut) return;
+    try {
+      await window.familyBitesDb.signOut();
+      await hydrateFromSupabase();
+    } catch (error) {
+      console.warn('Sign-out failed.', error);
+      alert('Could not sign out right now. Please try again.');
+    }
+  });
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     document.getElementById('mealModal').classList.add('hidden');
@@ -190,13 +300,40 @@ function bindEvents() {
 
 async function hydrateFromSupabase() {
   if (!window.familyBitesDb?.isConfigured) {
+    applyStoredAppData();
+    applyStoredProfilePhotos();
     selectMember(appState.members[0], { openDashboard: false });
+    renderProfiles();
+    renderSettings();
     return;
   }
 
+  renderAuthState('loading');
+
   try {
-    await window.familyBitesDb.ensureFamily();
-    appState.familyId = window.familyBitesDb.familyId;
+    resetProtectedState();
+    const context = await window.familyBitesDb.ensureUserContext();
+    appState.authUser = context?.user || null;
+    appState.currentUserEmail = context?.email || '';
+    appState.authRole = context?.role || 'guest';
+    appState.linkedMemberId = context?.memberId || null;
+    appState.familyName = context?.familyName || '';
+    appState.familyId = context?.familyId || null;
+
+    if (!appState.authUser) {
+      renderProfiles();
+      renderSettings();
+      renderAuthState('signed-out');
+      return;
+    }
+
+    if (!appState.familyId) {
+      renderProfiles();
+      renderSettings();
+      renderAuthState('no-family');
+      return;
+    }
+
     const [members, meals, favorites, chat] = (await Promise.allSettled([
       window.familyBitesDb.getMembers(),
       window.familyBitesDb.getMeals(),
@@ -211,7 +348,7 @@ async function hydrateFromSupabase() {
     });
 
     if (members.length) {
-      appState.members = [...members.map(normalizeMember), appState.members.find((member) => member.id === 'add')];
+      appState.members = members.map(normalizeMember);
       applyStoredProfilePhotos();
     }
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
@@ -233,14 +370,18 @@ async function hydrateFromSupabase() {
     }
 
     subscribeToFamilyChat();
+    renderAuthState('ready');
   } catch (error) {
-    console.warn('Supabase unavailable, using local demo data.', error);
+    console.warn('Supabase auth-backed family loading failed.', error);
+    renderAuthState(appState.authUser ? 'no-family' : 'signed-out');
   }
 
-  saveStoredAppData();
-
   renderProfiles();
-  selectMember(appState.members[0], { openDashboard: false });
+  renderSettings();
+  if (appState.members.length) {
+    const defaultMember = appState.members.find((member) => member.id === appState.linkedMemberId) || appState.members[0];
+    selectMember(defaultMember, { openDashboard: false });
+  }
 }
 
 function renderProfiles() {
@@ -249,6 +390,11 @@ function renderProfiles() {
   if (!profileGrid || !landingSpotlight) return;
 
   const realMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  if (!realMembers.length) {
+    landingSpotlight.innerHTML = '';
+    profileGrid.innerHTML = '';
+    return;
+  }
   const featuredMember = appState.currentMember && realMembers.some((member) => member.id === appState.currentMember.id)
     ? appState.currentMember
     : realMembers[0];
@@ -331,6 +477,10 @@ function handleAction(action) {
     openAddMemberModal();
   }
 
+  if (action === 'sign-out') {
+    document.getElementById('signOutButton')?.click();
+  }
+
   if (action === 'clear-all-data') {
     if (!confirm('Clear all meals, chat, and orders saved in this browser? This cannot be undone.')) return;
     [localMealsStorageKey, localChatStorageKey, chefOrdersStorageKey, chefCartStorageKey, chefVoiceStorageKey, profilePhotoStorageKey].forEach((key) => localStorage.removeItem(key));
@@ -347,6 +497,7 @@ function showPage(pageName) {
   if (!appState.currentMember) {
     selectMember(appState.members[0]);
   }
+  if (!appState.currentMember) return;
 
   appState.currentPage = pageName;
   document.querySelectorAll('.page').forEach((page) => page.classList.remove('active-page'));
@@ -1268,6 +1419,7 @@ function renderChat() {
 
 function renderProfile() {
   const member = appState.currentMember || appState.members[0];
+  if (!member) return;
   document.getElementById('profileAvatarLarge').innerHTML = avatarMarkup(member);
   document.getElementById('profileNameLarge').textContent = member.name;
   const nameInput = document.getElementById('profileNameInput');
@@ -1420,7 +1572,7 @@ async function saveMeal(event) {
 function subscribeToFamilyChat() {
   if (!window.familyBitesDb?.subscribeChat) return;
   try {
-    window.familyBitesDb.subscribeChat((row) => {
+    appState.chatSubscription = window.familyBitesDb.subscribeChat((row) => {
       // Own messages are already rendered locally when sent.
       if (row.member_id === appState.currentMember?.id) return;
       if (appState.chat.some((item) => item.id === row.id)) return;
@@ -1929,6 +2081,10 @@ function orderAgain(restaurantName) {
 }
 
 function openAddMemberModal() {
+  if (!isAdminUser()) {
+    alert('Only admins can add family members.');
+    return;
+  }
   document.getElementById('newMemberName').value = '';
   document.getElementById('newMemberRole').value = '';
   document.getElementById('addMemberModal').classList.remove('hidden');
@@ -1940,6 +2096,7 @@ function closeAddMemberModal() {
 }
 
 async function handleConfirmAddMember() {
+  if (!isAdminUser()) return;
   const name = document.getElementById('newMemberName').value.trim();
   const role = document.getElementById('newMemberRole').value.trim();
   if (!name) {
@@ -1957,12 +2114,7 @@ async function handleConfirmAddMember() {
     photo: ''
   };
 
-  const addIndex = appState.members.findIndex((m) => m.id === 'add');
-  if (addIndex >= 0) {
-    appState.members.splice(addIndex, 0, newMember);
-  } else {
-    appState.members.push(newMember);
-  }
+  appState.members.push(newMember);
 
   closeAddMemberModal();
   renderProfiles();
@@ -1970,11 +2122,7 @@ async function handleConfirmAddMember() {
 
   if (window.familyBitesDb?.isConfigured && appState.familyId) {
     try {
-      const { data } = await window.familyBitesDb.client
-        .from('members')
-        .insert({ family_id: appState.familyId, name: newMember.name, avatar: newMember.avatar, role: newMember.role })
-        .select()
-        .single();
+      const data = await window.familyBitesDb.createMember(newMember);
       if (data) newMember.id = data.id;
     } catch (error) {
       console.warn('Member saved locally but Supabase write failed.', error);
@@ -1983,6 +2131,10 @@ async function handleConfirmAddMember() {
 }
 
 function removeMember(memberId) {
+  if (!isAdminUser()) {
+    alert('Only admins can remove family members.');
+    return;
+  }
   const member = appState.members.find((m) => m.id === memberId);
   if (!member) return;
   if (member.id === appState.currentMember?.id) {
@@ -1995,6 +2147,11 @@ function removeMember(memberId) {
   saveStoredAppData();
   renderProfiles();
   renderSettings();
+  if (window.familyBitesDb?.isConfigured && appState.familyId) {
+    window.familyBitesDb.deleteMember(memberId).catch((error) => {
+      console.warn('Member removed locally but Supabase delete failed.', error);
+    });
+  }
 }
 
 function renderSettings() {
@@ -2002,7 +2159,23 @@ function renderSettings() {
   if (!el) return;
 
   const realMembers = appState.members.filter((m) => m.id !== 'add');
+  const canManageMembers = isAdminUser();
+  const accountSection = window.familyBitesDb?.isConfigured ? `
+    <div class="settings-section">
+      <p class="eyebrow">Account</p>
+      <h3>${escapeHtml(appState.familyName || 'Family access')}</h3>
+      <div class="settings-member-row">
+        <div class="mini-avatar">${escapeHtml(isAdminUser() ? '🛡️' : '👤')}</div>
+        <div class="settings-member-info">
+          <strong>${escapeHtml(appState.currentUserEmail || 'Signed-in account')}</strong>
+          <small>${escapeHtml(isAdminUser() ? 'Admin access: can view all family members.' : 'Member access: only your assigned profile is visible.')}</small>
+        </div>
+        <button class="secondary-button" data-action="sign-out" type="button">Sign out</button>
+      </div>
+    </div>
+  ` : '';
   el.innerHTML = `
+    ${accountSection}
     <div class="settings-section">
       <p class="eyebrow">Family Members</p>
       <h3>${realMembers.length} member${realMembers.length !== 1 ? 's' : ''}</h3>
@@ -2016,12 +2189,16 @@ function renderSettings() {
             </div>
             ${m.id === appState.currentMember?.id
               ? '<span class="you-badge">You</span>'
-              : `<button class="small-danger-btn" data-remove-member="${escapeAttr(m.id)}">Remove</button>`
+              : canManageMembers
+                ? `<button class="small-danger-btn" data-remove-member="${escapeAttr(m.id)}">Remove</button>`
+                : ''
             }
           </div>
         `).join('')}
       </div>
-      <button class="primary-button" data-action="add-member">+ Add Member</button>
+      ${canManageMembers
+        ? '<button class="primary-button" data-action="add-member">+ Add Member</button>'
+        : '<p class="muted">Only the family admin can add or remove members.</p>'}
     </div>
 
     <div class="settings-section">

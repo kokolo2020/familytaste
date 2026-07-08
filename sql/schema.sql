@@ -16,6 +16,18 @@ create table if not exists members (
   created_at timestamptz default now()
 );
 
+create table if not exists family_users (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references families(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  member_id uuid references members(id) on delete set null,
+  email text,
+  role text not null default 'member' check (role in ('admin', 'member')),
+  created_at timestamptz default now(),
+  unique (family_id, user_id),
+  unique (member_id)
+);
+
 -- Note: the live table also has description (used for notes), currency (default 'THB'),
 -- protein_g, carbs_g, fat_g, vegetable_score, fruit_score.
 create table if not exists food_entries (
