@@ -150,7 +150,11 @@ function bindEvents() {
 
     const addMealTarget = event.target.closest('[data-add-meal]');
     if (addMealTarget) {
-      openMealModal(null, addMealTarget.dataset.addMeal);
+      if (addMealTarget.dataset.addMeal === 'yesterday') {
+        openMealComposer('yesterday');
+      } else {
+        openMealModal(null, addMealTarget.dataset.addMeal);
+      }
     }
 
     const historyRangeTarget = event.target.closest('[data-history-range]');
@@ -420,6 +424,25 @@ function openDemoPage(pageName) {
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('workspace').classList.remove('hidden');
   showPage(pageName);
+}
+
+function openMealComposer(defaultDay = 'today') {
+  const form = document.getElementById('mealForm');
+  if (!form) return;
+
+  form.reset();
+  document.getElementById('mealPhotoUpload').value = '';
+  document.getElementById('mealPhotoCamera').value = '';
+  resetPhotoPreview();
+
+  const targetDate = defaultDay === 'yesterday'
+    ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+    : new Date();
+
+  setMealFormDateTimeDefaults(targetDate);
+  updateMealPreview();
+  showPage('snap');
+  document.getElementById('foodName').focus();
 }
 
 function renderAll() {
