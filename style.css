@@ -1385,6 +1385,38 @@ h1 span {
   line-height: 1.55;
 }
 
+.meal-health-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.meal-health-pill-excellent {
+  color: #2d6d53;
+  background: #eaf6ef;
+}
+
+.meal-health-pill-good {
+  color: #55752d;
+  background: #f1f8e5;
+}
+
+.meal-health-pill-fair {
+  color: #9a6b18;
+  background: #fff3d9;
+}
+
+.meal-health-pill-low {
+  color: #a14732;
+  background: #fff0eb;
+}
+
 .meal-card strong {
   color: var(--olive);
 }

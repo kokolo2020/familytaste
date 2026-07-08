@@ -1126,6 +1126,7 @@ function buildTimelineMeta(meal) {
 }
 
 function mealTemplate(meal, withActions = false) {
+  const health = estimateMealHealthScore(meal);
   const actions = withActions ? `
         <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
@@ -1137,6 +1138,7 @@ function mealTemplate(meal, withActions = false) {
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
+        <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${health}/100</span>
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
