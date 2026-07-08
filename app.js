@@ -271,18 +271,55 @@ async function hydrateFromSupabase() {
 }
 
 function renderProfiles() {
+  const currentProfile = document.getElementById('landingCurrentProfile');
   const profileGrid = document.getElementById('profileGrid');
-  profileGrid.innerHTML = getVisibleMembers().map((member) => `
-    <button class="profile-card" type="button" data-member-id="${escapeAttr(member.id)}">
+  const visibleMembers = getVisibleMembers();
+  const realMembers = visibleMembers.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  const featuredMember = realMembers.find((member) => member.id === appState.currentMember?.id) || realMembers[0] || null;
+
+  if (currentProfile) {
+    currentProfile.innerHTML = featuredMember ? `
+      <button class="selector-current-card" type="button" data-open-member-id="${escapeAttr(featuredMember.id)}">
+        <span class="selector-current-avatar">${avatarMarkup(featuredMember)}</span>
+        <span class="selector-current-copy">
+          <small>Current profile</small>
+          <strong>${escapeHtml(featuredMember.name)}</strong>
+          <span>${escapeHtml(featuredMember.role || 'Family member')}</span>
+        </span>
+        <span class="selector-current-arrow" aria-hidden="true">↗</span>
+      </button>
+    ` : '';
+  }
+
+  profileGrid.innerHTML = visibleMembers.map((member) => `
+    <button class="profile-card ${featuredMember?.id === member.id ? 'is-active' : ''}" type="button" data-member-id="${escapeAttr(member.id)}">
       <span class="avatar">${avatarMarkup(member)}</span>
       <strong>${escapeHtml(member.name)}</strong>
     </button>
   `).join('');
 
+  currentProfile?.querySelectorAll('[data-open-member-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const member = appState.members.find((item) => item.id === button.dataset.openMemberId);
+      selectMember(member);
+    });
+  });
+
   profileGrid.querySelectorAll('[data-member-id]').forEach((button) => {
     button.addEventListener('click', () => {
       const member = appState.members.find((item) => item.id === button.dataset.memberId);
-      selectMember(member);
+      if (!member) return;
+      if (member.id === 'add' || member.name === 'Add Member') {
+        selectMember(member);
+        return;
+      }
+      if (featuredMember?.id === member.id) {
+        selectMember(member);
+        return;
+      }
+      appState.currentMember = member;
+      updateProfileUi();
+      renderProfiles();
     });
   });
 }
