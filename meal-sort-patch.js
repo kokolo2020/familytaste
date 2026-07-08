@@ -19,6 +19,41 @@
     other: '🍽️ Other'
   };
 
+  function restoreProfileSelectorLanding() {
+    const authCard = document.getElementById('landingAuthCard');
+    const profileDock = document.getElementById('profileDock');
+    const landingSpotlight = document.getElementById('landingSpotlight');
+    const signInButton = document.getElementById('googleSignInButton');
+    const signOutButton = document.getElementById('signOutButton');
+    const landing = document.getElementById('landing');
+    const workspace = document.getElementById('workspace');
+
+    if (authCard) authCard.classList.add('hidden');
+    if (signInButton) signInButton.classList.add('hidden');
+    if (signOutButton) signOutButton.classList.add('hidden');
+    if (profileDock) profileDock.classList.remove('hidden');
+    if (landingSpotlight) landingSpotlight.classList.remove('hidden');
+    if (landing) landing.classList.remove('hidden');
+    if (workspace && !document.querySelector('.active-page')) workspace.classList.add('hidden');
+
+    if (typeof appState !== 'undefined' && (!appState.members || !appState.members.length)) {
+      appState.members = [
+        { id: 'rithyna', name: 'Thyna boy', avatar: '👦', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
+        { id: 'dad', name: 'Papa', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
+        { id: 'thynith', name: 'Thynith', avatar: '👦', role: 'Family member', photo: 'assets/avatars/james.jpg' },
+        { id: 'mama', name: 'MAMA', avatar: '👩', role: 'Family member', photo: 'assets/avatars/sophia.jpg' }
+      ];
+    }
+
+    try {
+      if (typeof applyStoredProfilePhotos === 'function') applyStoredProfilePhotos();
+      if (typeof renderProfiles === 'function') renderProfiles();
+      if (typeof renderSettings === 'function') renderSettings();
+    } catch (error) {
+      console.warn('Could not fully restore profile selector yet.', error);
+    }
+  }
+
   function getStoredMealType(meal) {
     return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || 'other';
   }
@@ -109,6 +144,8 @@
   }
 
   function installSortPatch() {
+    restoreProfileSelectorLanding();
+
     if (typeof mealTemplate !== 'function' || typeof getMemberMeals !== 'function') return false;
 
     window.renderFoodList = function patchedRenderFoodList(elementId, meals, emptyMessage) {
@@ -120,6 +157,7 @@
     };
 
     if (typeof renderAll === 'function') renderAll();
+    restoreProfileSelectorLanding();
     loadScriptOnce('profile-save-fix.js');
     loadScriptOnce('compact-meals-patch.js');
     return true;
@@ -131,4 +169,6 @@
     }, 100);
     setTimeout(() => clearInterval(retry), 3000);
   }
+
+  setTimeout(restoreProfileSelectorLanding, 500);
 })();
