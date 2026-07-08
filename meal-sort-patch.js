@@ -1,5 +1,4 @@
 (function patchMealDisplaySortOrder() {
-  const familyTasteOrigin = 'https://familytaste.netlify.app';
   const mealTypeRank = {
     dessert: 6,
     dinner: 5,
@@ -19,43 +18,6 @@
     dessert: '🍰 Dessert',
     other: '🍽️ Other'
   };
-
-  function enforceFamilyTasteUrl() {
-    if (window.location.hostname === 'ismartnow.netlify.app') {
-      window.location.replace(`${familyTasteOrigin}${window.location.pathname}${window.location.search}`);
-      return true;
-    }
-
-    if (window.location.hash) {
-      window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
-    }
-
-    return false;
-  }
-
-  function hideGoogleLoginUi() {
-    if (enforceFamilyTasteUrl()) return;
-
-    const authCard = document.getElementById('landingAuthCard');
-    const signInButton = document.getElementById('googleSignInButton');
-    const signOutButton = document.getElementById('signOutButton');
-    const title = document.getElementById('authStatusTitle');
-    const copy = document.getElementById('authStatusCopy');
-    const meta = document.getElementById('authStatusMeta');
-
-    if (title) title.textContent = 'FamilyTaste access ready';
-    if (copy) copy.textContent = 'Google/Gmail button is hidden. Family data continues to load from FamilyTaste.';
-    if (meta) meta.textContent = 'FamilyTaste stays on familytaste.netlify.app.';
-    if (signInButton) {
-      signInButton.classList.add('hidden');
-      signInButton.disabled = true;
-      signInButton.setAttribute('aria-hidden', 'true');
-    }
-    if (signOutButton) signOutButton.classList.add('hidden');
-
-    const hasCurrentSupabaseFamily = Boolean(window.familyBitesDb?.authContext?.familyId || window.familyBitesDb?.familyId);
-    if (authCard && hasCurrentSupabaseFamily) authCard.classList.add('hidden');
-  }
 
   function getStoredMealType(meal) {
     return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || 'other';
@@ -147,8 +109,6 @@
   }
 
   function installSortPatch() {
-    hideGoogleLoginUi();
-
     if (typeof mealTemplate !== 'function' || typeof getMemberMeals !== 'function') return false;
 
     window.renderFoodList = function patchedRenderFoodList(elementId, meals, emptyMessage) {
