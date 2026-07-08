@@ -828,7 +828,74 @@ function renderMeals() {
   `).join('') || emptyState('Your food timeline will appear here.');
 }
 
+function getMealNutritionScore(meal) {
+  const explicitScore = Number(meal?.nutrition_score ?? meal?.score ?? meal?.health_score);
+  if (Number.isFinite(explicitScore)) {
+    return clampScore(explicitScore <= 10 ? explicitScore * 10 : explicitScore) / 10;
+  }
+
+  const text = foodSearchText(meal);
+  let score = 5.4;
+
+  const bonuses = [
+    ['salad', 1.3], ['vegetable', 1.1], ['broccoli', 1], ['spinach', 1], ['lettuce', 0.7],
+    ['greens', 0.7], ['cucumber', 0.6], ['tomato', 0.5], ['asparagus', 0.8], ['fruit', 0.8],
+    ['apple', 0.7], ['banana', 0.6], ['berry', 0.8], ['mango', 0.6], ['salmon', 1.2],
+    ['fish', 1], ['shrimp', 0.8], ['chicken', 0.7], ['egg', 0.4], ['tofu', 0.9],
+    ['bean', 0.8], ['lentil', 0.8], ['oat', 0.8], ['yogurt', 0.5], ['tea', 0.2], ['water', 0.3]
+  ];
+  const penalties = [
+    ['fried', 1.2], ['soft serve', 1.6], ['ice cream', 1.5], ['cake', 1.4], ['cookie', 1.1],
+    ['soda', 1.5], ['burger', 1.2], ['fries', 1.3], ['pizza', 0.9], ['sausage', 1.1],
+    ['bacon', 1.1], ['pork belly', 1.4], ['sweetened', 0.9], ['syrup', 0.9], ['milk tea', 1.1],
+    ['beef steak', 0.6], ['steak', 0.4], ['chocolate', 0.7]
+  ];
+
+  bonuses.forEach(([term, value]) => {
+    if (text.includes(term)) score += value;
+  });
+  penalties.forEach(([term, value]) => {
+    if (text.includes(term)) score -= value;
+  });
+
+  if ((text.includes('chicken') || text.includes('fish') || text.includes('salmon') || text.includes('tofu') || text.includes('egg'))
+    && (text.includes('vegetable') || text.includes('salad') || text.includes('broccoli') || text.includes('lettuce') || text.includes('greens'))) {
+    score += 0.8;
+  }
+
+  const calories = Number(meal?.calories);
+  if (Number.isFinite(calories)) {
+    if (calories >= 250 && calories <= 700) score += 0.5;
+    else if (calories >= 80 && calories < 250) score += 0.2;
+    else if (calories > 700 && calories <= 900) score -= 0.8;
+    else if (calories > 900) score -= 1.5;
+    else if (calories > 0 && calories < 40 && !text.includes('tea') && !text.includes('coffee') && !text.includes('water')) score -= 0.3;
+  }
+
+  const mealType = getMealType(meal);
+  if (mealType === 'dessert') score -= 0.9;
+  else if (mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner') score += 0.2;
+
+  return Math.max(0, Math.min(10, Math.round(score * 10) / 10));
+}
+
+function mealScoreTone(score) {
+  if (score >= 8) return 'great';
+  if (score >= 6) return 'good';
+  if (score >= 4) return 'ok';
+  return 'low';
+}
+
+function mealScoreIcon(score) {
+  if (score >= 8) return '🟢';
+  if (score >= 6) return '🟡';
+  if (score >= 4) return '🟠';
+  return '🔴';
+}
+
 function mealTemplate(meal, withActions = false) {
+  const score = getMealNutritionScore(meal);
+  const scoreTone = mealScoreTone(score);
   const actions = withActions ? `
         <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
@@ -839,7 +906,10 @@ function mealTemplate(meal, withActions = false) {
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
-        <h4>${escapeHtml(meal.food_name)}</h4>
+        <div class="meal-title-row">
+          <h4>${escapeHtml(meal.food_name)}</h4>
+          <span class="meal-score-badge meal-score-${scoreTone}" title="Estimated nutrition score ${score.toFixed(1)} out of 10">${mealScoreIcon(score)} ${score.toFixed(1)}</span>
+        </div>
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
