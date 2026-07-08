@@ -10,7 +10,19 @@
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
-  const client = isConfigured ? window.supabase.createClient(url, anonKey) : null;
+  const client = isConfigured ? window.supabase.createClient(url, anonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+    storage: window.localStorage
+  }
+}) : null;
+
+  function authRedirectUrl() {
+  return 'https://familytaste.netlify.app/';
+  }
 
   function authRedirectUrl() {
     return `${window.location.origin}${window.location.pathname}`;
