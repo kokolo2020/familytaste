@@ -245,19 +245,39 @@ async function hydrateFromSupabase() {
 
 function renderProfiles() {
   const profileGrid = document.getElementById('profileGrid');
-  profileGrid.innerHTML = appState.members.map((member) => `
-    <button class="profile-card" type="button" data-member-id="${escapeAttr(member.id)}">
+  const landingSpotlight = document.getElementById('landingSpotlight');
+  if (!profileGrid || !landingSpotlight) return;
+
+  const realMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  const featuredMember = appState.currentMember && realMembers.some((member) => member.id === appState.currentMember.id)
+    ? appState.currentMember
+    : realMembers[0];
+
+  landingSpotlight.innerHTML = featuredMember ? `
+    <button class="landing-spotlight-card" type="button" data-member-id="${escapeAttr(featuredMember.id)}">
+      <span class="landing-spotlight-avatar">${avatarMarkup(featuredMember)}</span>
+      <span class="landing-spotlight-copy">
+        <small>Current profile</small>
+        <strong>${escapeHtml(featuredMember.name)}</strong>
+        <span>${escapeHtml(featuredMember.role || 'Family member')}</span>
+      </span>
+      <span class="landing-spotlight-icon" aria-hidden="true">↗</span>
+    </button>
+  ` : '';
+
+  profileGrid.innerHTML = realMembers.map((member) => `
+    <button class="profile-card${member.id === featuredMember?.id ? ' is-selected' : ''}" type="button" data-member-id="${escapeAttr(member.id)}">
       <span class="avatar">${avatarMarkup(member)}</span>
       <strong>${escapeHtml(member.name)}</strong>
     </button>
   `).join('');
 
-  profileGrid.querySelectorAll('[data-member-id]').forEach((button) => {
+  [landingSpotlight, profileGrid].forEach((container) => container.querySelectorAll('[data-member-id]').forEach((button) => {
     button.addEventListener('click', () => {
       const member = appState.members.find((item) => item.id === button.dataset.memberId);
       selectMember(member);
     });
-  });
+  }));
 }
 
 function renderNavigation() {

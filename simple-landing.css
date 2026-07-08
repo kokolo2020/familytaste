@@ -1,23 +1,246 @@
 #landing.landing-view{
   display:block!important;
   min-height:100vh!important;
-  padding:26px 16px 42px!important;
-  background:radial-gradient(circle at top,#fffaf2 0,#fff6eb 36%,#f3dfca 100%)!important;
+  padding:18px 14px 36px!important;
+  background:
+    radial-gradient(circle at top, rgba(255,150,78,.16), transparent 30%),
+    linear-gradient(180deg, #171717 0%, #101010 100%)!important;
+  color:#f7f2eb!important;
   overflow-y:auto!important;
 }
 #landing.hidden{display:none!important}
-#landing .landing-sidebar,#landing .landing-topbar,#landing .weekly-preview,#landing .landing-actions,#landing .section-title,#landing .week-strip{display:none!important}
-#landing .landing-main{width:min(900px,100%)!important;margin:0 auto!important;padding:0!important}
-#landing .simple-landing-header{text-align:center!important;margin:8px auto 20px!important}
-#landing .simple-landing-header h1{margin:0!important;font-size:clamp(42px,7vw,62px)!important;line-height:1!important;font-weight:950!important;letter-spacing:-.06em!important;color:#f06b17!important}
-#landing .simple-landing-header p{margin:8px 0 0!important;color:#6f6258!important;font-size:clamp(16px,2.7vw,24px)!important;font-weight:650!important}
-#landing .profile-dock{margin:0!important}
-#landing .profile-grid{display:flex!important;flex-direction:column!important;gap:14px!important;width:min(860px,100%)!important;margin:0 auto!important}
-#landing .profile-card{order:99;width:100%!important;min-height:156px!important;display:grid!important;grid-template-columns:118px 1fr auto!important;align-items:center!important;gap:20px!important;padding:20px 26px!important;border-radius:24px!important;background:rgba(255,253,249,.88)!important;border:1px solid rgba(255,255,255,.82)!important;box-shadow:0 18px 42px rgba(87,58,28,.09)!important;text-align:left!important;color:#1f1914!important}
-#landing .profile-card::after{content:'›'!important;position:static!important;display:block!important;justify-self:end!important;width:auto!important;height:auto!important;background:transparent!important;box-shadow:none!important;color:#9a9188!important;font-size:54px!important;font-weight:300!important}
-#landing .profile-card:hover{transform:translateY(-3px)!important;background:#fffefa!important}
-#landing .profile-card .avatar{width:96px!important;height:96px!important;margin:0!important;border-radius:50%!important;font-size:40px!important;box-shadow:0 14px 32px rgba(87,58,28,.12)!important}
-#landing .profile-card .avatar img{width:100%!important;height:100%!important;object-fit:cover!important}
-#landing .profile-card strong{font-size:clamp(24px,4.6vw,36px)!important;line-height:1.05!important;font-weight:900!important;letter-spacing:-.04em!important}
-#landing .profile-card[data-member-id="add"]{display:none!important}
-@media(max-width:680px){#landing.landing-view{padding:18px 12px 32px!important}#landing .simple-landing-header{margin:4px auto 14px!important}#landing .simple-landing-header h1{font-size:clamp(34px,10vw,48px)!important}#landing .simple-landing-header p{font-size:16px!important}#landing .profile-grid{gap:12px!important}#landing .profile-card{min-height:118px!important;grid-template-columns:78px 1fr auto!important;gap:16px!important;padding:16px 18px!important;border-radius:20px!important}#landing .profile-card .avatar{width:72px!important;height:72px!important;font-size:30px!important}#landing .profile-card strong{font-size:24px!important}#landing .profile-card::after{font-size:36px!important}}
+#landing .landing-sidebar,
+#landing .landing-topbar,
+#landing .weekly-preview,
+#landing .landing-actions,
+#landing .section-title,
+#landing .week-strip{
+  display:none!important;
+}
+#landing .landing-main{
+  width:min(520px,100%)!important;
+  margin:0 auto!important;
+  padding:0!important;
+}
+#landing .simple-landing-header{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:18px!important;
+  margin:0 auto 20px!important;
+}
+#landing .simple-landing-handle{
+  width:72px!important;
+  height:8px!important;
+  margin:0 auto!important;
+  border-radius:999px!important;
+  background:rgba(255,255,255,.28)!important;
+}
+#landing .simple-landing-title-row{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+}
+#landing .simple-landing-title-row h1{
+  margin:0!important;
+  flex:1!important;
+  text-align:center!important;
+  font-size:clamp(32px,8vw,48px)!important;
+  line-height:1!important;
+  letter-spacing:-.05em!important;
+  font-weight:900!important;
+  color:#fffaf4!important;
+  transform:translateX(22px);
+}
+#landing .simple-landing-close{
+  width:56px!important;
+  height:56px!important;
+  flex:0 0 56px!important;
+  border:none!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.1)!important;
+  color:#fff!important;
+  font-size:34px!important;
+  line-height:1!important;
+  cursor:pointer!important;
+}
+#landing .landing-spotlight{
+  margin-bottom:26px!important;
+}
+#landing .landing-spotlight-card{
+  width:100%!important;
+  display:grid!important;
+  grid-template-columns:auto 1fr auto!important;
+  align-items:center!important;
+  gap:18px!important;
+  padding:22px 20px!important;
+  border:none!important;
+  border-radius:34px!important;
+  background:linear-gradient(180deg, rgba(46,46,46,.96), rgba(31,31,31,.98))!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.34)!important;
+  color:#fff!important;
+  text-align:left!important;
+}
+#landing .landing-spotlight-avatar,
+#landing .profile-card .avatar{
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  background:linear-gradient(135deg, #54473c, #2d2723)!important;
+}
+#landing .landing-spotlight-avatar{
+  width:126px!important;
+  height:126px!important;
+  border-radius:30px!important;
+  box-shadow:0 16px 36px rgba(0,0,0,.32)!important;
+}
+#landing .landing-spotlight-avatar img,
+#landing .profile-card .avatar img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+#landing .landing-spotlight-copy{
+  display:flex!important;
+  min-width:0!important;
+  flex-direction:column!important;
+  gap:6px!important;
+}
+#landing .landing-spotlight-copy small{
+  color:#b9b0a6!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+#landing .landing-spotlight-copy strong{
+  color:#fff!important;
+  font-size:clamp(26px,6vw,40px)!important;
+  line-height:1.02!important;
+  letter-spacing:-.05em!important;
+  font-weight:900!important;
+}
+#landing .landing-spotlight-copy span{
+  color:#c9c2ba!important;
+  font-size:15px!important;
+  line-height:1.3!important;
+}
+#landing .landing-spotlight-icon{
+  align-self:flex-start!important;
+  color:#f0ebe4!important;
+  font-size:34px!important;
+  opacity:.9!important;
+}
+#landing .profile-dock{
+  margin:0!important;
+}
+#landing .profile-grid-shell{
+  padding:2px 0 0!important;
+}
+#landing .profile-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit, minmax(88px, 1fr))!important;
+  gap:18px!important;
+  align-items:start!important;
+}
+#landing .profile-card{
+  border:none!important;
+  background:transparent!important;
+  color:#fffaf4!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  padding:0!important;
+  min-height:0!important;
+  text-align:center!important;
+  box-shadow:none!important;
+}
+#landing .profile-card .avatar{
+  width:88px!important;
+  height:88px!important;
+  border-radius:26px!important;
+  box-shadow:0 14px 28px rgba(0,0,0,.22)!important;
+}
+#landing .profile-card strong{
+  font-size:15px!important;
+  line-height:1.15!important;
+  letter-spacing:-.02em!important;
+  font-weight:800!important;
+  color:#f5efe8!important;
+}
+#landing .profile-card.is-selected .avatar{
+  outline:3px solid rgba(255,176,96,.95)!important;
+  outline-offset:3px!important;
+}
+#landing .profile-card:hover{
+  transform:translateY(-2px)!important;
+}
+#landing .profile-card[data-member-id="add"]{
+  display:none!important;
+}
+@media (min-width:760px){
+  #landing.landing-view{
+    padding:24px 20px 44px!important;
+  }
+  #landing .landing-main{
+    width:min(680px,100%)!important;
+  }
+  #landing .profile-grid{
+    grid-template-columns:repeat(4, minmax(110px, 1fr))!important;
+    gap:22px!important;
+  }
+  #landing .profile-card .avatar{
+    width:110px!important;
+    height:110px!important;
+    border-radius:30px!important;
+  }
+  #landing .profile-card strong{
+    font-size:18px!important;
+  }
+}
+@media (max-width:520px){
+  #landing .simple-landing-title-row h1{
+    font-size:26px!important;
+  }
+  #landing .simple-landing-close{
+    width:48px!important;
+    height:48px!important;
+    flex-basis:48px!important;
+    font-size:30px!important;
+  }
+  #landing .landing-spotlight-card{
+    grid-template-columns:1fr auto!important;
+    gap:16px!important;
+    padding:18px!important;
+  }
+  #landing .landing-spotlight-avatar{
+    width:104px!important;
+    height:104px!important;
+    border-radius:26px!important;
+    grid-column:1 / -1!important;
+    justify-self:center!important;
+  }
+  #landing .landing-spotlight-copy{
+    grid-column:1 / 2!important;
+    text-align:center!important;
+  }
+  #landing .landing-spotlight-icon{
+    grid-column:2 / 3!important;
+    grid-row:1 / 2!important;
+    justify-self:end!important;
+  }
+  #landing .profile-grid{
+    grid-template-columns:repeat(4, minmax(0, 1fr))!important;
+    gap:14px!important;
+  }
+  #landing .profile-card .avatar{
+    width:74px!important;
+    height:74px!important;
+    border-radius:22px!important;
+  }
+  #landing .profile-card strong{
+    font-size:14px!important;
+  }
+}

@@ -43,13 +43,20 @@
           </div>
         </header>
 
-        <div class="simple-landing-header" aria-hidden="true">
-          <h1>FamilyTaste</h1>
-          <p>Choose your profile</p>
+        <div class="simple-landing-header">
+          <span class="simple-landing-handle" aria-hidden="true"></span>
+          <div class="simple-landing-title-row">
+            <h1>Profile</h1>
+            <button class="simple-landing-close" type="button" data-action="demo-dashboard" aria-label="Continue to dashboard">×</button>
+          </div>
         </div>
 
+        <section id="landingSpotlight" class="landing-spotlight" aria-label="Selected profile"></section>
+
         <section class="profile-dock">
-          <div id="profileGrid" class="profile-grid"></div>
+          <div class="profile-grid-shell">
+            <div id="profileGrid" class="profile-grid" aria-label="Choose profile"></div>
+          </div>
         </section>
 
         <section class="weekly-preview">
