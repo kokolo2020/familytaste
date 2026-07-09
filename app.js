@@ -1183,20 +1183,29 @@ function buildTimelineMeta(meal) {
 }
 
 function mealTemplate(meal, withActions = false) {
-  const health = estimateMealHealthScore(meal);
+  const analysis = analyzeMealQuality(meal);
+  const health = analysis.score;
   const actions = withActions ? `
         <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
+  const reasons = analysis.reasons.length ? `
+        <div class="meal-health-reasons" aria-label="Meal breakdown">
+          ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
+        </div>` : '';
+  const swap = analysis.swap ? `<small class="meal-health-swap">↺ ${escapeHtml(analysis.swap)}</small>` : '';
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
       ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(meal.food_name)}</h4>
-        <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${health}/100</span>
-        <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
+        <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
+        ${reasons}
+        <p>${escapeHtml(mealDisplayMeta(meal))}</p>
+        ${swap}
+        ${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -1294,27 +1303,58 @@ function getMemberHealthProfile(member) {
   return appState.profileMeasurements[member.id] || {};
 }
 
-function estimateMealHealthScore(meal, memberOverride) {
+function analyzeMealQuality(meal, memberOverride) {
   const member = memberOverride || appState.members.find((item) => item.id === meal.member_id) || appState.currentMember;
   const profile = getMemberHealthProfile(member);
   const searchText = foodSearchText(meal);
   const calories = Number(meal.calories) || 0;
+  const mealType = getMealType(meal);
   let score = 58;
-
-  if (calories > 0) {
-    if (calories <= 650) score += 12;
-    else if (calories <= 900) score += 5;
-    else if (calories >= 1200) score -= 12;
-    else score -= 4;
-  }
+  const reasonFlags = [];
+  const hasAny = (words) => words.some((word) => searchText.includes(word));
+  const countAny = (words) => words.filter((word) => searchText.includes(word)).length;
 
   const positiveWords = ['salad', 'vegetable', 'broccoli', 'greens', 'fruit', 'berry', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'oat', 'bean', 'avocado', 'nuts', 'grill', 'grilled'];
   const cautionWords = ['fries', 'fried', 'pizza', 'burger', 'soda', 'cake', 'dessert', 'ice cream', 'chips', 'bacon', 'ramen', 'crispy'];
+  const proteinWords = ['chicken', 'beef', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'protein', 'pork'];
+  const fiberWords = ['vegetable', 'greens', 'salad', 'cabbage', 'fruit', 'berry', 'bean', 'oat', 'pineapple'];
+  const gutWords = ['yogurt', 'kimchi', 'fermented', 'tea', 'greens', 'fruit', 'cabbage', 'bean', 'oat'];
+  const processedWords = ['fish ball', 'fish balls', 'sausage', 'nugget', 'bacon', 'ham'];
+  const sweetDrinkWords = ['smoothie', 'frappe', 'soda', 'juice', 'milk tea'];
 
-  score += positiveWords.filter((word) => searchText.includes(word)).length * 5;
-  score -= cautionWords.filter((word) => searchText.includes(word)).length * 5;
+  if (calories > 0) {
+    if (calories <= 650) {
+      score += 12;
+      if (calories <= 450) reasonFlags.push('Lighter portion');
+    } else if (calories <= 900) {
+      score += 5;
+      reasonFlags.push('Large portion');
+    } else if (calories >= 1200) {
+      score -= 12;
+      reasonFlags.push('Very high calorie');
+    } else {
+      score -= 4;
+      reasonFlags.push('High calorie');
+    }
+  }
 
-  const mealType = getMealType(meal);
+  score += countAny(positiveWords) * 5;
+  score -= countAny(cautionWords) * 5;
+
+  if (hasAny(proteinWords)) reasonFlags.push('High protein');
+  if (hasAny(fiberWords)) reasonFlags.push('Fiber support');
+  if (hasAny(gutWords)) reasonFlags.push('Gut support');
+  if (hasAny(['grilled', 'grill'])) reasonFlags.push('Grilled');
+  if (hasAny(['fried', 'fries', 'crispy'])) reasonFlags.push('Fried');
+  if (hasAny(sweetDrinkWords)) {
+    reasonFlags.push('Sweet drink');
+    score -= 4;
+  }
+  if (hasAny(processedWords)) {
+    reasonFlags.push('Processed');
+    score -= 4;
+  }
+
   if (mealType === 'dessert') score -= 8;
   if (mealType === 'snack' && calories > 450) score -= 6;
 
@@ -1335,6 +1375,14 @@ function estimateMealHealthScore(meal, memberOverride) {
     score += ['chicken', 'beef', 'fish', 'egg', 'tofu', 'yogurt', 'protein', 'bean'].filter((word) => searchText.includes(word)).length * 4;
     if (mealType === 'dessert') score -= 4;
   }
+  if (focus === 'glp1-support') {
+    if (calories > 550) score -= 8;
+    if (mealType === 'snack' && calories > 250) score -= 5;
+    score -= ['fried', 'fries', 'dessert', 'cake', 'soda', 'frappe'].filter((word) => searchText.includes(word)).length * 4;
+    score += ['fish', 'egg', 'chicken', 'tofu', 'yogurt', 'protein', 'vegetable', 'greens', 'fruit', 'bean'].filter((word) => searchText.includes(word)).length * 3;
+    if (hasAny(['protein', 'fish', 'egg', 'tofu', 'chicken'])) reasonFlags.push('Protein first');
+    if (calories > 550) reasonFlags.push('Portion watch');
+  }
   if (focus === 'kid-growth') {
     score += ['milk', 'yogurt', 'egg', 'fruit', 'chicken', 'fish', 'tofu'].filter((word) => searchText.includes(word)).length * 3;
   }
@@ -1346,7 +1394,37 @@ function estimateMealHealthScore(meal, memberOverride) {
   if (alerts.includes('shellfish') && ['shrimp', 'prawn', 'crab', 'lobster'].some((word) => searchText.includes(word))) score -= 22;
   if (alerts.includes('sugar') && ['soda', 'cake', 'sweet', 'ice cream', 'soft serve', 'dessert'].some((word) => searchText.includes(word))) score -= 12;
 
-  return clampScore(score);
+  const finalScore = clampScore(score);
+  const prioritizedReasons = uniqueList([
+    ...reasonFlags.filter((item) => ['High protein', 'Fiber support', 'Gut support', 'Protein first', 'Grilled', 'Lighter portion'].includes(item)),
+    ...reasonFlags.filter((item) => ['Fried', 'Sweet drink', 'Processed', 'Large portion', 'High calorie', 'Very high calorie', 'Portion watch'].includes(item))
+  ]).slice(0, 3);
+  const swap = buildMealSwapSuggestion({ searchText, calories, mealType, focus, hasProtein: hasAny(proteinWords), hasFiber: hasAny(fiberWords) });
+  return {
+    score: finalScore,
+    label: finalScore >= 85 ? 'Excellent' : finalScore >= 70 ? 'Good' : finalScore >= 50 ? 'Limit' : 'Heavy',
+    reasons: prioritizedReasons,
+    swap
+  };
+}
+
+function estimateMealHealthScore(meal, memberOverride) {
+  return analyzeMealQuality(meal, memberOverride).score;
+}
+
+function buildMealSwapSuggestion({ searchText, calories, mealType, focus, hasProtein, hasFiber }) {
+  if (['fried', 'fries', 'crispy'].some((word) => searchText.includes(word))) return 'Try grilled or steamed instead of fried.';
+  if (['smoothie', 'frappe', 'soda', 'juice', 'milk tea'].some((word) => searchText.includes(word))) return 'Swap to water, tea, or a smaller unsweetened drink.';
+  if (calories > 850 && searchText.includes('rice')) return 'Try half rice or share part of the portion.';
+  if (!hasFiber) return 'Add vegetables or fruit to balance this meal.';
+  if (!hasProtein) return 'Add eggs, fish, tofu, or chicken for better fullness.';
+  if (['fish ball', 'fish balls', 'sausage', 'nugget', 'bacon'].some((word) => searchText.includes(word))) return 'Choose fewer processed add-ons next time.';
+  if (focus === 'glp1-support' && (calories > 550 || mealType === 'snack')) return 'Keep the portion smaller, protein first, and sip water slowly.';
+  return '';
+}
+
+function uniqueList(items = []) {
+  return [...new Set(items.filter(Boolean))];
 }
 
 function buildProfileRecommendation(member) {
@@ -1360,6 +1438,7 @@ function buildProfileRecommendation(member) {
   if (focus === 'heart-health') return { icon: '🫀', title: 'Go lighter on fried foods', copy: 'Lean proteins, vegetables, and less heavy sauce fit this profile better.' };
   if (focus === 'low-sodium') return { icon: '🧂', title: 'Watch salty extras', copy: 'Sauces, soups, and processed snacks can push sodium up fast.' };
   if (focus === 'higher-protein') return { icon: '💪', title: 'Anchor meals with protein', copy: 'Eggs, fish, chicken, tofu, and yogurt will improve the daily balance.' };
+  if (focus === 'glp1-support') return { icon: '💉', title: 'Smaller portions work better', copy: 'Prioritize protein, fiber, hydration, and lighter meal size through the day.' };
   if (focus === 'kid-growth') return { icon: '🥛', title: 'Build growth-friendly meals', copy: 'Aim for protein, fruit, and calcium-rich foods through the day.' };
   return null;
 }
@@ -1896,6 +1975,7 @@ function buildProfileHealthSummary(measurements) {
     'heart-health': 'Heart health',
     'low-sodium': 'Lower sodium',
     'higher-protein': 'Higher protein',
+    'glp1-support': 'GLP-1 support',
     'kid-growth': 'Kid growth'
   };
   const focus = focusLabels[measurements.health_focus || 'balanced'] || 'Balanced eating';
