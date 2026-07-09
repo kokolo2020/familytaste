@@ -1451,6 +1451,11 @@ h1 span {
   line-height: 1.35;
 }
 
+.meal-health-swap span {
+  color: #5f4733;
+  font-weight: 900;
+}
+
 .meal-card strong {
   color: var(--olive);
 }

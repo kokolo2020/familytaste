@@ -1073,7 +1073,7 @@ function renderMeals() {
                 ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
-            ${analysis.swap ? `<small class="meal-health-swap">${escapeHtml(analysis.swap)}</small>` : ''}
+            ${analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
           </div>
         </div>
         <span class="timeline-date">${formatTimelineDate(meal.eaten_at)}</span>
@@ -1201,7 +1201,7 @@ function mealTemplate(meal, withActions = false) {
         <div class="meal-health-reasons" aria-label="Meal breakdown">
           ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
         </div>` : '';
-  const swap = analysis.swap ? `<small class="meal-health-swap">↺ ${escapeHtml(analysis.swap)}</small>` : '';
+  const swap = analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : '';
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
@@ -1434,15 +1434,16 @@ function estimateMealHealthScore(meal, memberOverride) {
 }
 
 function buildMealSwapSuggestion({ searchText, calories, mealType, focus, hasProtein, hasFiber, isDessertLike, isPlainStaple, isProcessedLike }) {
-  if (isDessertLike) return 'Keep this as a treat and pair the next meal with protein or water instead.';
-  if (isPlainStaple) return 'Pair it with protein or vegetables so it feels more complete.';
-  if (['fried', 'fries', 'crispy'].some((word) => searchText.includes(word))) return 'Try grilled or steamed instead of fried.';
-  if (['smoothie', 'frappe', 'soda', 'juice', 'milk tea'].some((word) => searchText.includes(word))) return 'Swap to water, tea, or a smaller unsweetened drink.';
-  if (calories > 850 && searchText.includes('rice')) return 'Try half rice or share part of the portion.';
-  if (!hasFiber) return 'Add vegetables or fruit to balance this meal.';
+  if (isDessertLike) return 'Share a smaller portion, or try yogurt with fruit next time.';
+  if (isPlainStaple) return 'Pair it with egg, grilled chicken, tofu, or vegetables.';
+  if (['fried', 'fries', 'crispy'].some((word) => searchText.includes(word))) return 'Go for grilled chicken, steamed fish, or a roasted version.';
+  if (['smoothie', 'frappe', 'soda', 'juice', 'milk tea'].some((word) => searchText.includes(word))) return 'Choose unsweetened tea, sparkling water, or a smaller size.';
+  if (calories > 850 && searchText.includes('rice')) return 'Try half rice with grilled protein and greens.';
+  if (isProcessedLike) return 'Swap processed add-ons for egg, tofu, grilled chicken, or fresh fish.';
+  if (!hasFiber && !hasProtein) return 'Add a protein and one vegetable side to round this out.';
+  if (!hasFiber) return 'Add a vegetable side, fruit, or beans for better balance.';
   if (!hasProtein) return 'Add eggs, fish, tofu, or chicken for better fullness.';
-  if (isProcessedLike) return 'Choose fewer processed add-ons next time.';
-  if (focus === 'glp1-support' && (calories > 550 || mealType === 'snack')) return 'Keep the portion smaller, protein first, and sip water slowly.';
+  if (focus === 'glp1-support' && (calories > 550 || mealType === 'snack')) return 'Keep the portion smaller and start with protein first.';
   return '';
 }
 
