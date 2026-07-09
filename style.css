@@ -2938,29 +2938,30 @@ h1 span {
   #page-dashboard .dashboard-main-column,
   #page-dashboard .dashboard-side-column { gap: 8px; }
   #page-dashboard .dashboard-intro { gap: 5px; padding: 3px 0; }
-  #page-dashboard .dashboard-intro .eyebrow { margin-bottom: 3px; font-size: 7px; }
-  #page-dashboard .dashboard-intro h3 { font-size: clamp(17px, 5.5vw, 24px); }
-  #page-dashboard .today-food-totals { margin-top: 5px; font-size: 8px; }
-  #page-dashboard .dashboard-add-button { min-width: 54px; min-height: 29px; padding: 0 7px; font-size: 8px; }
-  #page-dashboard .dashboard-add-button span { margin-right: 1px; font-size: 13px; }
-  #page-dashboard .today-food-panel { padding: 0 6px; border-radius: 8px; }
-  #page-dashboard .dashboard-meal-group-header { padding: 8px 0 5px; }
-  #page-dashboard .dashboard-meal-group-header strong { font-size: 8px; }
-  #page-dashboard .dashboard-meal-group-header span { font-size: 6px; }
-  #page-dashboard .dashboard-meal-list .meal-card { min-height: 72px; padding: 7px 0; gap: 6px; }
-  #page-dashboard .dashboard-meal-list .meal-card.has-photo { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 6px; }
+  #page-dashboard .dashboard-intro .eyebrow { margin-bottom: 4px; font-size: 9px; }
+  #page-dashboard .dashboard-intro h3 { font-size: clamp(24px, 8vw, 34px); }
+  #page-dashboard .today-food-totals { margin-top: 7px; font-size: 12px; }
+  #page-dashboard .dashboard-add-button { min-width: 78px; min-height: 38px; padding: 0 12px; font-size: 12px; }
+  #page-dashboard .dashboard-add-button span { margin-right: 3px; font-size: 18px; }
+  #page-dashboard .today-food-panel { padding: 0 14px; border-radius: 16px; }
+  #page-dashboard .dashboard-meal-group-header { padding: 16px 0 10px; }
+  #page-dashboard .dashboard-meal-group-header strong { font-size: 16px; }
+  #page-dashboard .dashboard-meal-group-header span { font-size: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-card { min-height: 138px; padding: 16px 0; gap: 12px; align-items: start; }
+  #page-dashboard .dashboard-meal-list .meal-card.has-photo { grid-template-columns: 96px minmax(0, 1fr) auto; gap: 14px; }
   #page-dashboard .dashboard-meal-list .meal-photo,
-  #page-dashboard .dashboard-meal-list .meal-emoji { width: 48px; height: 56px; border-radius: 7px; }
-  #page-dashboard .dashboard-meal-list h4 { margin-bottom: 2px; font-size: 8px; }
-  #page-dashboard .dashboard-meal-list p { font-size: 6px; }
-  #page-dashboard .dashboard-meal-list .meal-health-pill { margin-bottom: 3px; padding: 2px 4px; font-size: 5px; }
-  #page-dashboard .dashboard-meal-list .meal-health-reasons { gap: 2px; margin-bottom: 3px; }
-  #page-dashboard .dashboard-meal-list .meal-reason-chip { padding: 2px 3px; font-size: 4px; }
-  #page-dashboard .dashboard-meal-list .meal-health-swap { margin-top: 2px; font-size: 4.5px; line-height: 1.2; }
-  #page-dashboard .dashboard-meal-list .meal-card > strong { padding: 2px 4px; font-size: 6px; }
-  #page-dashboard .dashboard-meal-list .meal-actions summary { width: 16px; height: 16px; font-size: 15px; }
+  #page-dashboard .dashboard-meal-list .meal-emoji { width: 96px; height: 96px; border-radius: 16px; }
+  #page-dashboard .dashboard-meal-list h4 { margin-bottom: 8px; font-size: 18px; line-height: 1.25; }
+  #page-dashboard .dashboard-meal-list p { font-size: 12px; line-height: 1.45; }
+  #page-dashboard .dashboard-meal-list .meal-health-pill { margin-bottom: 8px; padding: 7px 12px; font-size: 13px; }
+  #page-dashboard .dashboard-meal-list .meal-health-reasons { gap: 8px; margin-bottom: 8px; }
+  #page-dashboard .dashboard-meal-list .meal-reason-chip { padding: 5px 10px; font-size: 11px; }
+  #page-dashboard .dashboard-meal-list .meal-health-swap { margin-top: 8px; font-size: 11px; line-height: 1.35; }
+  #page-dashboard .dashboard-meal-list .meal-card > strong { align-self: end; padding: 8px 12px; font-size: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-actions { gap: 10px; margin-top: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-actions summary { width: 22px; height: 22px; font-size: 18px; }
   #page-dashboard .dashboard-meal-list .meal-action-menu { right: 2px; padding: 3px; }
-  #page-dashboard .dashboard-meal-list .meal-actions button { padding: 4px; font-size: 7px; }
+  #page-dashboard .dashboard-meal-list .meal-actions button { padding: 8px 12px; font-size: 12px; }
   #page-dashboard .daily-summary { padding: 8px; border-radius: 8px; }
   #page-dashboard .daily-summary .section-title { margin-bottom: 5px; }
   #page-dashboard .daily-summary .section-title h3,
