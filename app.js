@@ -512,6 +512,7 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   const glucose = Number(log.sugar_level) || 0;
   const mealCount = todayMeals.length;
   const calorieRatio = calorieGoal ? calories / calorieGoal : 0;
+  const rawProgress = calorieGoal ? Math.round((calories / calorieGoal) * 100) : 0;
   const calorieScore = calories === 0 ? 35 : clampScore(100 - Math.abs(1 - calorieRatio) * 82);
   const activityScore = clampScore(38 + (steps / 10000) * 62);
   const glucoseScore = glucose ? clampScore(100 - Math.abs(glucose - 100) * 1.25) : 55;
@@ -519,6 +520,8 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   const nutrition = clampScore((calorieScore * .55) + Math.min(mealVariety * 10, 30) + (mealCount ? 15 : 0));
   const health = clampScore((nutrition * .35) + (activityScore * .35) + (glucoseScore * .3));
   const progress = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
+  const overGoalCalories = calorieGoal ? Math.max(calories - calorieGoal, 0) : 0;
+  const isOverGoal = overGoalCalories > 0;
 
   setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
   setText('dashboardMemberName', appState.currentMember?.name || 'Family');
@@ -527,17 +530,26 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('summaryWeight', currentWeight !== null && currentWeight !== undefined ? Number(currentWeight).toLocaleString() : '--');
   setText('summarySteps', steps.toLocaleString());
   setText('summaryGlucose', glucose ? Math.round(glucose).toLocaleString() : '--');
-  setText('summaryCalorieProgress', `${progress}%`);
-  setText('summaryCalorieGoal', `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
+  setText('summaryCalorieProgress', `${rawProgress}%`);
+  setText('summaryCalorieGoal', isOverGoal
+    ? `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal · ${overGoalCalories.toLocaleString()} over`
+    : `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
   setText('summaryRingCalories', calories.toLocaleString());
   setText('nutritionDonutCalories', calories.toLocaleString());
-  setText('summaryTip', mealCount
-    ? `You’re ${progress}% of the way to your daily calorie goal.`
-    : 'Log your first meal to start your daily analysis.');
+  setText('summaryTip', !mealCount
+    ? 'Log your first meal to start your daily analysis.'
+    : isOverGoal
+      ? `You’re ${overGoalCalories.toLocaleString()} calories over today’s goal. Keep the next meal lighter and add some movement or water.`
+      : `You’re ${progress}% of the way to your daily calorie goal.`);
   const summaryBar = document.getElementById('summaryCalorieBar');
   if (summaryBar) summaryBar.style.width = `${progress}%`;
   const summaryRing = document.getElementById('summaryCalorieRing');
   if (summaryRing) summaryRing.style.setProperty('--ring-progress', `${progress * 3.6}deg`);
+  const summaryCard = document.getElementById('dailySummaryCard');
+  if (summaryCard) summaryCard.classList.toggle('is-over-goal', isOverGoal);
+  if (summaryRing) summaryRing.classList.toggle('is-over-goal', isOverGoal);
+  const tipCard = document.getElementById('summaryTipCard');
+  if (tipCard) tipCard.classList.toggle('is-over-goal', isOverGoal);
   setText('bodyHealthScore', health);
   setText('healthScoreStatus', health >= 80 ? 'Excellent' : health >= 65 ? 'On track' : health >= 45 ? 'Building up' : 'Needs attention');
   setText('averageGlucose', glucose ? Math.round(glucose) : '--');
@@ -715,7 +727,11 @@ function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount
   const items = [];
   if (!mealCount) items.push({ icon: '🥗', title: 'Start with a balanced meal', copy: 'Add protein, vegetables, and a steady-energy carbohydrate.' });
   else if (calories < calorieGoal * .55) items.push({ icon: '🍲', title: 'Fuel the rest of your day', copy: `You have about ${Math.max(calorieGoal - calories, 0).toLocaleString()} calories remaining toward your goal.` });
-  else if (calories > calorieGoal * 1.05) items.push({ icon: '🥬', title: 'Keep the next meal light', copy: 'Favor vegetables, lean protein, and water for the rest of today.' });
+  else if (calories > calorieGoal) items.push({
+    icon: '🥬',
+    title: 'You’re over today’s calorie goal',
+    copy: `About ${(calories - calorieGoal).toLocaleString()} calories over. Favor vegetables, lean protein, water, and a lighter next meal.`
+  });
   else items.push({ icon: '✓', title: 'Calories are pacing well', copy: 'Your intake is tracking close to today’s energy target.' });
 
   if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
