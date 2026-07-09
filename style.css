@@ -2852,37 +2852,40 @@ h1 span {
    the main system cards when meal descriptions get longer. */
 #page-dashboard .impact-callout {
   overflow: hidden;
-  width: 24%;
-  min-height: 106px;
-  max-height: 106px;
+  width: 22%;
+  min-height: 88px;
+  max-height: 88px;
 }
 
 #page-dashboard .impact-callout::after { width: 18%; }
 
-#page-dashboard .impact-callout p { -webkit-line-clamp: 4; }
+#page-dashboard .impact-callout p { -webkit-line-clamp: 3; }
 
 #page-dashboard .impact-compact {
-  width: 13.5%;
-  min-height: 64px;
-  max-height: 64px;
+  width: 22%;
+  min-height: 88px;
+  max-height: 88px;
+  padding: 10px;
 }
 
-#page-dashboard .impact-compact::after { width: 10%; }
-#page-dashboard .impact-compact p { -webkit-line-clamp: 3; }
+#page-dashboard .impact-compact::after { width: 18%; }
+#page-dashboard .impact-compact .impact-callout-title { font-size: 10px; }
+#page-dashboard .impact-compact strong { margin: 3px 0; font-size: 20px; }
+#page-dashboard .impact-compact p { font-size: 8.5px; -webkit-line-clamp: 3; }
 
 #page-dashboard .impact-brain { top: 4%; left: 1%; }
-#page-dashboard .impact-liver { top: 20%; left: 1%; }
-#page-dashboard .impact-muscles { top: 36%; left: 1%; }
-#page-dashboard .impact-joints { top: 58%; left: 1%; }
-#page-dashboard .impact-immunity { top: 69%; left: 1%; bottom: auto; }
-#page-dashboard .impact-energy { top: 81%; left: 1%; bottom: auto; }
+#page-dashboard .impact-liver { top: 18%; left: 1%; }
+#page-dashboard .impact-muscles { top: 32%; left: 1%; }
+#page-dashboard .impact-joints { top: 46%; left: 1%; }
+#page-dashboard .impact-immunity { top: 60%; left: 1%; bottom: auto; }
+#page-dashboard .impact-energy { top: 74%; left: 1%; bottom: auto; }
 
-#page-dashboard .impact-eyes { top: 8%; right: 1%; }
+#page-dashboard .impact-eyes { top: 4%; right: 1%; }
 #page-dashboard .impact-heart { top: 18%; right: 1%; }
-#page-dashboard .impact-digestion { top: 44%; right: 1%; }
-#page-dashboard .impact-skin { top: 59%; right: 1%; }
-#page-dashboard .impact-recovery { top: 69%; right: 1%; bottom: auto; }
-#page-dashboard .impact-bones { top: 81%; right: 1%; bottom: auto; }
+#page-dashboard .impact-digestion { top: 32%; right: 1%; }
+#page-dashboard .impact-skin { top: 46%; right: 1%; }
+#page-dashboard .impact-recovery { top: 60%; right: 1%; bottom: auto; }
+#page-dashboard .impact-bones { top: 74%; right: 1%; bottom: auto; }
 
 @media (max-width: 1000px) and (min-width: 761px) {
   .workspace-view { display: block; }
@@ -2947,27 +2950,27 @@ h1 span {
   #page-dashboard .body-impact-content { min-height: 430px; }
   #page-dashboard .human-figure { inset: 3px 27% 0; }
   #page-dashboard .human-figure img { max-height: 380px; }
-  #page-dashboard .impact-callout { width: 26%; min-height: 64px; max-height: 64px; padding: 5px; border-radius: 6px; }
+  #page-dashboard .impact-callout { width: 24%; min-height: 58px; max-height: 58px; padding: 5px; border-radius: 6px; }
   #page-dashboard .impact-callout-title { font-size: 5.5px; }
   #page-dashboard .impact-callout strong { margin: 2px 0; font-size: 11px; }
   #page-dashboard .impact-callout p { font-size: 4.5px; -webkit-line-clamp: 3; }
-  #page-dashboard .impact-compact { width: 15%; min-height: 40px; max-height: 40px; padding: 3px 4px; border-radius: 5px; }
+  #page-dashboard .impact-compact { width: 24%; min-height: 58px; max-height: 58px; padding: 5px; border-radius: 6px; }
   #page-dashboard .impact-compact::after { width: 10%; }
-  #page-dashboard .impact-compact .impact-callout-title { font-size: 4.2px; }
-  #page-dashboard .impact-compact strong { font-size: 7px; }
-  #page-dashboard .impact-compact p { font-size: 3.8px; -webkit-line-clamp: 2; }
+  #page-dashboard .impact-compact .impact-callout-title { font-size: 5.5px; }
+  #page-dashboard .impact-compact strong { margin: 2px 0; font-size: 11px; }
+  #page-dashboard .impact-compact p { font-size: 4.5px; -webkit-line-clamp: 3; }
   #page-dashboard .impact-brain { top: 3%; left: 0; }
-  #page-dashboard .impact-liver { top: 19%; left: 0; }
-  #page-dashboard .impact-muscles { top: 36%; left: 0; }
-  #page-dashboard .impact-joints { top: 58%; left: 0; }
-  #page-dashboard .impact-immunity { top: 68%; left: 0; bottom: auto; }
-  #page-dashboard .impact-energy { top: 79%; left: 0; bottom: auto; }
-  #page-dashboard .impact-eyes { top: 8%; right: 0; }
+  #page-dashboard .impact-liver { top: 18%; left: 0; }
+  #page-dashboard .impact-muscles { top: 33%; left: 0; }
+  #page-dashboard .impact-joints { top: 48%; left: 0; }
+  #page-dashboard .impact-immunity { top: 63%; left: 0; bottom: auto; }
+  #page-dashboard .impact-energy { top: 78%; left: 0; bottom: auto; }
+  #page-dashboard .impact-eyes { top: 3%; right: 0; }
   #page-dashboard .impact-heart { top: 18%; right: 0; }
-  #page-dashboard .impact-digestion { top: 45%; right: 0; }
-  #page-dashboard .impact-skin { top: 59%; right: 0; }
-  #page-dashboard .impact-recovery { top: 68%; right: 0; bottom: auto; }
-  #page-dashboard .impact-bones { top: 79%; right: 0; bottom: auto; }
+  #page-dashboard .impact-digestion { top: 33%; right: 0; }
+  #page-dashboard .impact-skin { top: 48%; right: 0; }
+  #page-dashboard .impact-recovery { top: 63%; right: 0; bottom: auto; }
+  #page-dashboard .impact-bones { top: 78%; right: 0; bottom: auto; }
   #page-dashboard .body-impact-note { margin-top: 4px; padding: 5px; border-radius: 5px; font-size: 4.5px; }
   #page-dashboard .nutrition-panel { padding: 8px; border-radius: 8px; }
   #page-dashboard .nutrition-layout { grid-template-columns: 1fr 46px; gap: 4px; }
