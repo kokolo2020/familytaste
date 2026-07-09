@@ -567,12 +567,12 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
   const systems = [
-    { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate'], benefit: 'supports focus and steady brain fuel' },
-    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], cautionWords: ['fried', 'fries', 'bacon', 'burger'], benefit: 'provides heart-supporting fats and fiber' },
+    { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate', 'cacao'], benefit: 'supports focus and steady brain fuel' },
+    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad', 'greens', 'cabbage', 'herb'], cautionWords: ['fried', 'fries', 'bacon', 'burger'], benefit: 'provides heart-supporting fats and fiber' },
     { name: 'Muscles', icon: '💪', position: 'muscles', words: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'egg', 'tofu', 'nuts', 'yogurt', 'milk', 'protein'], benefit: 'provides protein for muscle repair' },
-    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], cautionWords: ['fried', 'fries', 'soda'], benefit: 'moves through digestion for nutrient absorption' },
+    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa', 'cabbage', 'pineapple', 'herb', 'greens'], cautionWords: ['fried', 'fries', 'soda'], benefit: 'moves through digestion for nutrient absorption' },
     { name: 'Energy', icon: '⚡', position: 'energy', words: [], cautionWords: ['soda', 'dessert'], benefit: 'supplies energy for the whole body', includeAll: true },
-    { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy'], benefit: 'can contribute calcium and bone nutrients' }
+    { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy', 'cabbage', 'greens'], benefit: 'can contribute calcium and bone nutrients' }
   ];
 
   return systems.map((system) => buildPrimaryImpact(system, todayMeals, totalCalories));
@@ -584,7 +584,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Liver',
       icon: '🧽',
       position: 'liver',
-      supportWords: ['coffee', 'tea', 'greens', 'broccoli', 'spinach', 'garlic', 'walnut', 'salmon', 'fish', 'tofu', 'berry'],
+      supportWords: ['coffee', 'tea', 'greens', 'broccoli', 'spinach', 'garlic', 'walnut', 'salmon', 'fish', 'tofu', 'berry', 'cabbage', 'herb'],
       cautionWords: ['fried', 'fries', 'soda', 'soft serve', 'dessert', 'bacon'],
       benefit: 'foods logged today include ingredients commonly associated with liver-supportive nutrients'
     },
@@ -592,7 +592,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Eyes',
       icon: '👁️',
       position: 'eyes',
-      supportWords: ['carrot', 'spinach', 'leafy', 'egg', 'salmon', 'tuna', 'mango', 'orange', 'pumpkin'],
+      supportWords: ['carrot', 'spinach', 'leafy', 'egg', 'salmon', 'tuna', 'mango', 'orange', 'pumpkin', 'greens', 'cabbage'],
       cautionWords: ['soda', 'dessert'],
       benefit: 'foods logged today include nutrients often linked to eye support'
     },
@@ -600,7 +600,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Joints / Knees',
       icon: '🦵',
       position: 'joints',
-      supportWords: ['salmon', 'tuna', 'ginger', 'olive', 'berry', 'nuts', 'turmeric', 'yogurt'],
+      supportWords: ['salmon', 'tuna', 'fish', 'ginger', 'olive', 'berry', 'nuts', 'turmeric', 'yogurt', 'herb'],
       cautionWords: ['fried', 'burger', 'fries'],
       benefit: 'foods logged today include ingredients often associated with joint-friendly eating'
     },
@@ -608,7 +608,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Skin',
       icon: '✨',
       position: 'skin',
-      supportWords: ['avocado', 'salmon', 'nuts', 'berry', 'tomato', 'yogurt', 'orange', 'mango'],
+      supportWords: ['avocado', 'salmon', 'nuts', 'berry', 'tomato', 'yogurt', 'orange', 'mango', 'pineapple', 'cabbage', 'greens'],
       cautionWords: ['soda', 'dessert', 'frappe'],
       benefit: 'foods logged today include nutrients commonly linked to skin support'
     },
@@ -616,7 +616,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Immunity',
       icon: '🛡️',
       position: 'immunity',
-      supportWords: ['orange', 'berry', 'fruit', 'yogurt', 'garlic', 'ginger', 'tea', 'vegetable', 'greens'],
+      supportWords: ['orange', 'berry', 'fruit', 'yogurt', 'garlic', 'ginger', 'tea', 'vegetable', 'greens', 'pineapple', 'cabbage', 'herb'],
       cautionWords: ['soda'],
       benefit: 'foods logged today include ingredients often associated with immune support'
     },
@@ -624,7 +624,7 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
       name: 'Recovery',
       icon: '🔧',
       position: 'recovery',
-      supportWords: ['chicken', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'protein', 'milk', 'beef'],
+      supportWords: ['chicken', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'protein', 'milk', 'beef', 'pork', 'grilled'],
       cautionWords: ['dessert'],
       benefit: 'foods logged today include protein and recovery-oriented building blocks'
     }
@@ -636,17 +636,17 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
 function buildSecondaryImpact(system, meals, totalCalories) {
   const matchedMeals = meals.filter((meal) => countKeywordHits(foodSearchText(meal), system.supportWords) > 0);
   const matchedCalories = matchedMeals.reduce((total, meal) => total + (Number(meal.calories) || 0), 0);
-  const supportHits = matchedMeals.reduce((total, meal) => total + countKeywordHits(foodSearchText(meal), system.supportWords), 0);
+  const supportHits = countUniqueKeywords(matchedMeals, system.supportWords);
   const cautionHits = meals.filter((meal) => system.cautionWords.some((word) => foodSearchText(meal).includes(word))).length;
   const avgHealth = matchedMeals.length
     ? matchedMeals.reduce((total, meal) => total + estimateMealHealthScore(meal), 0) / matchedMeals.length
     : 0;
   const baseScore = matchedMeals.length
-    ? (Math.min(supportHits, 5) * 12)
-      + (Math.min(matchedMeals.length, 3) * 10)
-      + ((Math.min(matchedCalories, 500) / 500) * 20)
-      + ((avgHealth / 100) * 12)
-      - (cautionHits * 12)
+    ? (Math.min(supportHits, 6) * 8)
+      + (Math.min(matchedMeals.length, 3) * 8)
+      + ((Math.min(matchedCalories, 650) / 650) * 18)
+      + ((avgHealth / 100) * 14)
+      - (cautionHits * 10)
     : 0;
   const score = clampScore(baseScore);
   const foodList = matchedMeals.map((meal) => meal.food_name).filter(Boolean).slice(0, 3).join(', ');
@@ -669,7 +669,7 @@ function buildPrimaryImpact(system, meals, totalCalories) {
   const matchedCalories = matchedMeals.reduce((total, meal) => total + (Number(meal.calories) || 0), 0);
   const keywordHits = system.includeAll
     ? Math.max(matchedMeals.length, Math.round(matchedCalories / 180))
-    : matchedMeals.reduce((total, meal) => total + countKeywordHits(foodSearchText(meal), system.words), 0);
+    : countUniqueKeywords(matchedMeals, system.words);
   const cautionHits = (system.cautionWords || []).length
     ? meals.filter((meal) => system.cautionWords.some((word) => foodSearchText(meal).includes(word))).length
     : 0;
@@ -677,15 +677,15 @@ function buildPrimaryImpact(system, meals, totalCalories) {
     ? matchedMeals.reduce((total, meal) => total + estimateMealHealthScore(meal), 0) / matchedMeals.length
     : 0;
   const baseScore = system.includeAll
-    ? (Math.min(totalCalories, 900) / 900) * 55
-      + (Math.min(matchedMeals.length, 5) * 8)
-      + ((avgHealth / 100) * 15)
+    ? (Math.min(totalCalories, 1200) / 1200) * 42
+      + (Math.min(matchedMeals.length, 5) * 7)
+      + ((avgHealth / 100) * 14)
       - (cautionHits * 8)
     : matchedMeals.length
-      ? (Math.min(keywordHits, 6) * 11)
-        + (Math.min(matchedMeals.length, 4) * 8)
-        + ((Math.min(matchedCalories, 650) / 650) * 22)
-        + ((avgHealth / 100) * 10)
+      ? (Math.min(keywordHits, 7) * 8)
+        + (Math.min(matchedMeals.length, 4) * 7)
+        + ((Math.min(matchedCalories, 800) / 800) * 16)
+        + ((avgHealth / 100) * 12)
         - (cautionHits * 10)
       : 0;
   const score = clampScore(baseScore);
@@ -704,6 +704,11 @@ function foodSearchText(meal) {
 
 function countKeywordHits(text, words = []) {
   return words.reduce((count, word) => count + (text.includes(word) ? 1 : 0), 0);
+}
+
+function countUniqueKeywords(meals, words = []) {
+  const combinedText = meals.map((meal) => foodSearchText(meal)).join(' ');
+  return new Set(words.filter((word) => combinedText.includes(word))).size;
 }
 
 function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
