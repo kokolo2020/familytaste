@@ -1057,7 +1057,8 @@ function renderMeals() {
   document.getElementById('timelineAverageHealth').textContent = `${averageHealth}/100`;
 
   document.getElementById('timelineList').innerHTML = meals.map((meal) => {
-    const health = estimateMealHealthScore(meal);
+    const analysis = analyzeMealQuality(meal);
+    const health = analysis.score;
     return `
       <article class="timeline-item">
         <div class="timeline-food-cell">
@@ -1066,7 +1067,13 @@ function renderMeals() {
             : `<span class="timeline-food-emoji">${mealEmoji(meal.food_name)}</span>`}
           <div>
             <h4>${escapeHtml(meal.food_name)}</h4>
+            <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
+            ${analysis.reasons.length ? `
+              <div class="meal-health-reasons timeline-health-reasons" aria-label="Meal breakdown">
+                ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
+              </div>` : ''}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
+            ${analysis.swap ? `<small class="meal-health-swap">${escapeHtml(analysis.swap)}</small>` : ''}
           </div>
         </div>
         <span class="timeline-date">${formatTimelineDate(meal.eaten_at)}</span>
