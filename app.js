@@ -568,24 +568,14 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
   const systems = [
     { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate'], benefit: 'supports focus and steady brain fuel' },
-    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], benefit: 'provides heart-supporting fats and fiber' },
+    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], cautionWords: ['fried', 'fries', 'bacon', 'burger'], benefit: 'provides heart-supporting fats and fiber' },
     { name: 'Muscles', icon: '💪', position: 'muscles', words: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'egg', 'tofu', 'nuts', 'yogurt', 'milk', 'protein'], benefit: 'provides protein for muscle repair' },
-    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], benefit: 'moves through digestion for nutrient absorption' },
-    { name: 'Energy', icon: '⚡', position: 'energy', words: [], benefit: 'supplies energy for the whole body', includeAll: true },
+    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], cautionWords: ['fried', 'fries', 'soda'], benefit: 'moves through digestion for nutrient absorption' },
+    { name: 'Energy', icon: '⚡', position: 'energy', words: [], cautionWords: ['soda', 'dessert'], benefit: 'supplies energy for the whole body', includeAll: true },
     { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy'], benefit: 'can contribute calcium and bone nutrients' }
   ];
 
-  return systems.map((system) => {
-    const matched = system.includeAll
-      ? todayMeals
-      : todayMeals.filter((meal) => system.words.some((word) => foodSearchText(meal).includes(word)));
-    const matchedCalories = matched.reduce((sumValue, meal) => sumValue + (Number(meal.calories) || 0), 0);
-    const score = totalCalories ? clampScore((matchedCalories / totalCalories) * 100) : 0;
-    const names = matched.map((meal) => meal.food_name).filter(Boolean);
-    const foodList = names.length ? names.join(', ') : 'No matching food logged';
-    const copy = names.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
-    return { name: system.name, score, icon: system.icon, copy, position: system.position, compact: false };
-  });
+  return systems.map((system) => buildPrimaryImpact(system, todayMeals, totalCalories));
 }
 
 function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
@@ -644,12 +634,21 @@ function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
 }
 
 function buildSecondaryImpact(system, meals, totalCalories) {
-  const matchedMeals = meals.filter((meal) => system.supportWords.some((word) => foodSearchText(meal).includes(word)));
+  const matchedMeals = meals.filter((meal) => countKeywordHits(foodSearchText(meal), system.supportWords) > 0);
   const matchedCalories = matchedMeals.reduce((total, meal) => total + (Number(meal.calories) || 0), 0);
-  const supportHits = matchedMeals.length;
+  const supportHits = matchedMeals.reduce((total, meal) => total + countKeywordHits(foodSearchText(meal), system.supportWords), 0);
   const cautionHits = meals.filter((meal) => system.cautionWords.some((word) => foodSearchText(meal).includes(word))).length;
-  const baseScore = totalCalories ? (matchedCalories / totalCalories) * 100 : 0;
-  const score = clampScore(baseScore + (supportHits * 8) - (cautionHits * 5));
+  const avgHealth = matchedMeals.length
+    ? matchedMeals.reduce((total, meal) => total + estimateMealHealthScore(meal), 0) / matchedMeals.length
+    : 0;
+  const baseScore = matchedMeals.length
+    ? (Math.min(supportHits, 5) * 12)
+      + (Math.min(matchedMeals.length, 3) * 10)
+      + ((Math.min(matchedCalories, 500) / 500) * 20)
+      + ((avgHealth / 100) * 12)
+      - (cautionHits * 12)
+    : 0;
+  const score = clampScore(baseScore);
   const foodList = matchedMeals.map((meal) => meal.food_name).filter(Boolean).slice(0, 3).join(', ');
   return {
     name: system.name,
@@ -663,11 +662,48 @@ function buildSecondaryImpact(system, meals, totalCalories) {
   };
 }
 
+function buildPrimaryImpact(system, meals, totalCalories) {
+  const matchedMeals = system.includeAll
+    ? meals.filter((meal) => Number(meal.calories) > 0)
+    : meals.filter((meal) => countKeywordHits(foodSearchText(meal), system.words) > 0);
+  const matchedCalories = matchedMeals.reduce((total, meal) => total + (Number(meal.calories) || 0), 0);
+  const keywordHits = system.includeAll
+    ? Math.max(matchedMeals.length, Math.round(matchedCalories / 180))
+    : matchedMeals.reduce((total, meal) => total + countKeywordHits(foodSearchText(meal), system.words), 0);
+  const cautionHits = (system.cautionWords || []).length
+    ? meals.filter((meal) => system.cautionWords.some((word) => foodSearchText(meal).includes(word))).length
+    : 0;
+  const avgHealth = matchedMeals.length
+    ? matchedMeals.reduce((total, meal) => total + estimateMealHealthScore(meal), 0) / matchedMeals.length
+    : 0;
+  const baseScore = system.includeAll
+    ? (Math.min(totalCalories, 900) / 900) * 55
+      + (Math.min(matchedMeals.length, 5) * 8)
+      + ((avgHealth / 100) * 15)
+      - (cautionHits * 8)
+    : matchedMeals.length
+      ? (Math.min(keywordHits, 6) * 11)
+        + (Math.min(matchedMeals.length, 4) * 8)
+        + ((Math.min(matchedCalories, 650) / 650) * 22)
+        + ((avgHealth / 100) * 10)
+        - (cautionHits * 10)
+      : 0;
+  const score = clampScore(baseScore);
+  const names = matchedMeals.map((meal) => meal.food_name).filter(Boolean);
+  const foodList = names.length ? names.join(', ') : 'No matching food logged';
+  const copy = names.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
+  return { name: system.name, score, icon: system.icon, copy, position: system.position, compact: false };
+}
+
 function foodSearchText(meal) {
   return [meal.food_name, meal.notes, meal.restaurant_name]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
+}
+
+function countKeywordHits(text, words = []) {
+  return words.reduce((count, word) => count + (text.includes(word) ? 1 : 0), 0);
 }
 
 function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
