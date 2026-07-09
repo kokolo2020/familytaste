@@ -2871,17 +2871,17 @@ h1 span {
 #page-dashboard .impact-compact p { -webkit-line-clamp: 3; }
 
 #page-dashboard .impact-brain { top: 4%; left: 1%; }
-#page-dashboard .impact-liver { top: 20%; left: 16%; }
+#page-dashboard .impact-liver { top: 20%; left: 1%; }
 #page-dashboard .impact-muscles { top: 36%; left: 1%; }
-#page-dashboard .impact-joints { top: 58%; left: 16%; }
-#page-dashboard .impact-immunity { top: 69%; left: 16%; bottom: auto; }
+#page-dashboard .impact-joints { top: 58%; left: 1%; }
+#page-dashboard .impact-immunity { top: 69%; left: 1%; bottom: auto; }
 #page-dashboard .impact-energy { top: 81%; left: 1%; bottom: auto; }
 
-#page-dashboard .impact-eyes { top: 8%; right: 16%; }
+#page-dashboard .impact-eyes { top: 8%; right: 1%; }
 #page-dashboard .impact-heart { top: 18%; right: 1%; }
 #page-dashboard .impact-digestion { top: 44%; right: 1%; }
-#page-dashboard .impact-skin { top: 59%; right: 16%; }
-#page-dashboard .impact-recovery { top: 69%; right: 16%; bottom: auto; }
+#page-dashboard .impact-skin { top: 59%; right: 1%; }
+#page-dashboard .impact-recovery { top: 69%; right: 1%; bottom: auto; }
 #page-dashboard .impact-bones { top: 81%; right: 1%; bottom: auto; }
 
 @media (max-width: 1000px) and (min-width: 761px) {
@@ -2957,16 +2957,16 @@ h1 span {
   #page-dashboard .impact-compact strong { font-size: 7px; }
   #page-dashboard .impact-compact p { font-size: 3.8px; -webkit-line-clamp: 2; }
   #page-dashboard .impact-brain { top: 3%; left: 0; }
-  #page-dashboard .impact-liver { top: 19%; left: 15%; }
+  #page-dashboard .impact-liver { top: 19%; left: 0; }
   #page-dashboard .impact-muscles { top: 36%; left: 0; }
-  #page-dashboard .impact-joints { top: 58%; left: 15%; }
-  #page-dashboard .impact-immunity { top: 68%; left: 15%; bottom: auto; }
+  #page-dashboard .impact-joints { top: 58%; left: 0; }
+  #page-dashboard .impact-immunity { top: 68%; left: 0; bottom: auto; }
   #page-dashboard .impact-energy { top: 79%; left: 0; bottom: auto; }
-  #page-dashboard .impact-eyes { top: 8%; right: 15%; }
+  #page-dashboard .impact-eyes { top: 8%; right: 0; }
   #page-dashboard .impact-heart { top: 18%; right: 0; }
   #page-dashboard .impact-digestion { top: 45%; right: 0; }
-  #page-dashboard .impact-skin { top: 59%; right: 15%; }
-  #page-dashboard .impact-recovery { top: 68%; right: 15%; bottom: auto; }
+  #page-dashboard .impact-skin { top: 59%; right: 0; }
+  #page-dashboard .impact-recovery { top: 68%; right: 0; bottom: auto; }
   #page-dashboard .impact-bones { top: 79%; right: 0; bottom: auto; }
   #page-dashboard .body-impact-note { margin-top: 4px; padding: 5px; border-radius: 5px; font-size: 4.5px; }
   #page-dashboard .nutrition-panel { padding: 8px; border-radius: 8px; }
