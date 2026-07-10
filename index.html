@@ -12,6 +12,40 @@
 </head>
 <body>
   <main id="app" class="site-shell">
+    <section id="authGate" class="auth-view">
+      <div class="auth-shell">
+        <p class="eyebrow">Private family space</p>
+        <h1 id="authTitle">Checking your session</h1>
+        <p id="authSubtitle" class="auth-subtitle">Loading your private family space.</p>
+        <form id="authEmailForm" class="auth-card hidden">
+          <label>Email
+            <input id="authEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required>
+          </label>
+          <button class="primary-button" type="submit">Send code</button>
+        </form>
+        <form id="authVerifyForm" class="auth-card hidden">
+          <p class="auth-helper">We sent a code to <strong id="authPendingEmail"></strong></p>
+          <label>6-digit code
+            <input id="authOtpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" required>
+          </label>
+          <button id="authVerifyButton" class="primary-button" type="submit">Verify code</button>
+          <div class="auth-inline-actions">
+            <button id="authResendButton" class="secondary-button" type="button">Resend code</button>
+            <button id="authChangeEmailButton" class="secondary-button" type="button">Use another email</button>
+          </div>
+        </form>
+        <form id="authFamilyForm" class="auth-card hidden">
+          <p class="auth-helper">Create the family name your household will use.</p>
+          <label>Family name
+            <input id="authFamilyNameInput" type="text" autocomplete="organization" placeholder="Johnson Family" required>
+          </label>
+          <button id="authCreateFamilyButton" class="primary-button" type="submit">Create family</button>
+          <button id="authSignOutButton" class="secondary-button" type="button">Sign out</button>
+        </form>
+        <p id="authFeedback" class="auth-feedback"></p>
+      </div>
+    </section>
+
     <section id="landing" class="landing-view">
       <div class="landing-shell">
         <div class="selector-handle" aria-hidden="true"></div>
