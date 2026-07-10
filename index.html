@@ -213,7 +213,7 @@
               </div>
               <div class="calorie-scanner wide">
                 <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Rescan Food Details</button>
-                <small id="calorieEstimate">Add a photo and AI will scan automatically. Save the result to your scan album, then add it to the food diary later if you want.</small>
+                <small id="calorieEstimate">Add a photo and AI will scan automatically. Saving will store the scan and add it to your food diary.</small>
               </div>
               <section id="scanInsightsPanel" class="scan-insights-panel wide hidden" aria-live="polite">
                 <div class="scan-insights-header">
@@ -252,7 +252,7 @@
                 <input id="price" name="price" type="number" min="0" step="0.01" placeholder="0">
               </div>
               <div class="scan-action-row wide">
-                <button class="primary-button" type="submit">Save Scan</button>
+                <button class="primary-button" type="submit">Save to Food Diary</button>
                 <button id="clearSnapForm" class="secondary-button" type="button">New Scan</button>
               </div>
             </form>
@@ -269,7 +269,7 @@
               <div>
                 <p class="eyebrow">Scan Album</p>
                 <h3>Saved scans for later</h3>
-                <p>These stay separate from your food diary until you choose to add them.</p>
+                <p>Each saved scan is also added to your food diary automatically.</p>
               </div>
             </div>
             <div id="snapAlbumList" class="snap-album-grid"></div>

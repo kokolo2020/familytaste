@@ -1479,7 +1479,7 @@ function renderSnapAlbum() {
           </div>
           ${scan.ai_note ? `<small>${escapeHtml(scan.ai_note)}</small>` : ''}
           ${cleanNotes ? `<p>${escapeHtml(cleanNotes)}</p>` : ''}
-          ${linked ? '<span class="snap-saved-status">Added to food diary</span>' : ''}
+          ${linked ? '<span class="snap-saved-status">Added to food diary</span>' : '<span class="snap-saved-status">Not in food diary yet</span>'}
         </div>
         <div class="snap-saved-actions">
           <button class="primary-button" type="button" data-add-scan-meal="${escapeAttr(scan.id)}" ${linked ? 'disabled' : ''}>${linked ? 'Saved to diary' : 'Add to food diary'}</button>
@@ -2514,20 +2514,39 @@ async function saveSnapScan(event) {
   const mealType = document.getElementById('mealType').value;
   const mealDate = document.getElementById('mealDate').value;
   const mealTime = document.getElementById('mealTime').value;
+  const finalMealType = mealType || inferMealTypeFromTimestamp(buildMealTimestamp(mealDate, mealTime));
+  const baseNotes = document.getElementById('notes').value.trim();
+  const meal = await persistNewMeal({
+    id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+    family_id: appState.familyId,
+    member_id: appState.currentMember.id,
+    food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
+    restaurant_name: '',
+    location_name: '',
+    price: null,
+    calories: numberOrNull(document.getElementById('calories').value),
+    notes: notesWithMealType(baseNotes || snapScanDraft.note || '', finalMealType, {
+      scanIngredients: snapScanDraft.ingredients,
+      scanTags: snapScanDraft.tags
+    }),
+    photo_url: savedPhotoUrl,
+    eaten_at: buildMealTimestamp(mealDate, mealTime)
+  });
   const scan = normalizeSnapScan({
     id: crypto.randomUUID ? crypto.randomUUID() : `scan-${Date.now()}`,
     family_id: appState.familyId,
     member_id: appState.currentMember.id,
-    food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
+    food_name: meal.food_name,
     calories: numberOrNull(document.getElementById('calories').value),
-    notes: notesWithMealType(document.getElementById('notes').value.trim(), mealType),
+    notes: notesWithMealType(baseNotes, finalMealType),
     photo_url: savedPhotoUrl,
     ingredients: [...snapScanDraft.ingredients],
     tags: [...snapScanDraft.tags],
     confidence: snapScanDraft.confidence,
     ai_note: snapScanDraft.note,
     foods: [...snapScanDraft.foods],
-    created_at: buildMealTimestamp(mealDate, mealTime)
+    created_at: meal.eaten_at,
+    linked_meal_id: meal.id
   });
 
   appState.snapScans.unshift(scan);
