@@ -240,7 +240,6 @@ function bindEvents() {
   document.getElementById('saveBioStats')?.addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
   document.getElementById('authEmailForm')?.addEventListener('submit', handleAuthEmailSubmit);
-  document.getElementById('authVerifyForm')?.addEventListener('submit', handleAuthVerifySubmit);
   document.getElementById('authFamilyForm')?.addEventListener('submit', handleCreateFamilySubmit);
   document.getElementById('authResendButton')?.addEventListener('click', handleAuthResendOtp);
   document.getElementById('authChangeEmailButton')?.addEventListener('click', handleAuthChangeEmail);
@@ -379,7 +378,7 @@ function renderAuthState() {
     subtitle.textContent = 'Loading your private family space.';
   } else if (state === 'signed_out') {
     title.textContent = 'Sign in with email';
-    subtitle.textContent = 'Enter any email and we will send a one-time code.';
+    subtitle.textContent = 'Enter any email and we will send a secure sign-in link.';
   } else if (state === 'otp_sent') {
     title.textContent = 'Check your email';
     subtitle.textContent = 'Open the sign-in email and tap the link on this device to continue automatically.';
@@ -398,10 +397,10 @@ function formatAuthError(error) {
     return 'Too many login emails were sent. Please wait and try again later.';
   }
   if (message.includes('security purposes')) {
-    return 'Please wait about a minute before requesting another login code.';
+    return 'Please wait about a minute before requesting another sign-in email.';
   }
   if (message.includes('invalid login credentials') || message.includes('token has expired') || message.includes('otp expired') || message.includes('token is invalid')) {
-    return 'That code is invalid or expired. Request a new code and try again.';
+    return 'That sign-in link is invalid or expired. Request a new email and try again.';
   }
   if (message.includes('signup is disabled')) {
     return 'Email sign-in is not enabled in Supabase yet.';
@@ -758,35 +757,15 @@ async function handleAuthEmailSubmit(event) {
   }
 
   try {
-    setAuthFeedback('Sending your code…');
+    setAuthFeedback('Sending your sign-in email…');
     await window.familyBitesDb.sendOtp(email);
     appState.auth.pendingEmail = email;
     appState.auth.status = 'otp_sent';
     sessionStorage.setItem(pendingOtpEmailStorageKey, email);
-    setAuthFeedback(`Code sent to ${email}.`, 'success');
+    setAuthFeedback(`Sign-in email sent to ${email}.`, 'success');
     renderAuthState();
-    document.getElementById('authOtpInput')?.focus();
   } catch (error) {
     console.warn('OTP send failed.', error);
-    setAuthFeedback(formatAuthError(error), 'error');
-  }
-}
-
-async function handleAuthVerifySubmit(event) {
-  event.preventDefault();
-  const token = String(document.getElementById('authOtpInput')?.value || '').trim();
-  const email = appState.auth.pendingEmail;
-  if (!email || !token) {
-    setAuthFeedback('Enter the verification code from your email.', 'error');
-    return;
-  }
-
-  try {
-    setAuthFeedback('Verifying code…');
-    await window.familyBitesDb.verifyOtp(email, token);
-    setAuthFeedback('Sign-in confirmed.', 'success');
-  } catch (error) {
-    console.warn('OTP verification failed.', error);
     setAuthFeedback(formatAuthError(error), 'error');
   }
 }
@@ -794,9 +773,9 @@ async function handleAuthVerifySubmit(event) {
 async function handleAuthResendOtp() {
   if (!appState.auth.pendingEmail) return;
   try {
-    setAuthFeedback('Sending a new code…');
+    setAuthFeedback('Sending a new sign-in email…');
     await window.familyBitesDb.sendOtp(appState.auth.pendingEmail);
-    setAuthFeedback(`New code sent to ${appState.auth.pendingEmail}.`, 'success');
+    setAuthFeedback(`New sign-in email sent to ${appState.auth.pendingEmail}.`, 'success');
   } catch (error) {
     console.warn('OTP resend failed.', error);
     setAuthFeedback(formatAuthError(error), 'error');

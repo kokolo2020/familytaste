@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260711a" />
+  <link rel="stylesheet" href="style.css?v=20260711b" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -21,16 +21,13 @@
           <label>Email
             <input id="authEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required>
           </label>
-          <button class="primary-button" type="submit">Send code</button>
+          <button class="primary-button" type="submit">Send sign-in link</button>
         </form>
         <form id="authVerifyForm" class="auth-card hidden">
           <p class="auth-helper">We sent a sign-in email to <strong id="authPendingEmail"></strong>. Opening the link on this device will continue automatically.</p>
-          <label>Verification code
-            <input id="authOtpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter code" maxlength="8" required>
-          </label>
-          <button id="authVerifyButton" class="primary-button" type="submit">Verify code</button>
+          <p class="auth-helper">If nothing happens after tapping the link, return here and refresh this page once.</p>
           <div class="auth-inline-actions">
-            <button id="authResendButton" class="secondary-button" type="button">Resend code</button>
+            <button id="authResendButton" class="secondary-button" type="button">Resend email</button>
             <button id="authChangeEmailButton" class="secondary-button" type="button">Use another email</button>
           </div>
         </form>
@@ -615,6 +612,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260711a"></script>
+  <script src="app.js?v=20260711b"></script>
 </body>
 </html>
