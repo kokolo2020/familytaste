@@ -401,6 +401,18 @@ function formatAuthError(error) {
   if (message.includes('family_memberships')) {
     return 'Database setup is incomplete. Run the new auth SQL migration first.';
   }
+  if (message.includes('email rate limit exceeded')) {
+    return 'Too many login emails were sent. Please wait and try again later.';
+  }
+  if (message.includes('security purposes')) {
+    return 'Please wait about a minute before requesting another login code.';
+  }
+  if (message.includes('invalid login credentials') || message.includes('token has expired') || message.includes('otp expired') || message.includes('token is invalid')) {
+    return 'That code is invalid or expired. Request a new code and try again.';
+  }
+  if (message.includes('signup is disabled')) {
+    return 'Email sign-in is not enabled in Supabase yet.';
+  }
   return message || 'Sign-in is unavailable right now. Please try again.';
 }
 
@@ -759,7 +771,7 @@ async function handleAuthEmailSubmit(event) {
     document.getElementById('authOtpInput')?.focus();
   } catch (error) {
     console.warn('OTP send failed.', error);
-    setAuthFeedback(error.message || 'Could not send the code.', 'error');
+    setAuthFeedback(formatAuthError(error), 'error');
   }
 }
 
@@ -778,7 +790,7 @@ async function handleAuthVerifySubmit(event) {
     setAuthFeedback('Sign-in confirmed.', 'success');
   } catch (error) {
     console.warn('OTP verification failed.', error);
-    setAuthFeedback(error.message || 'That code did not work. Try again.', 'error');
+    setAuthFeedback(formatAuthError(error), 'error');
   }
 }
 
@@ -790,7 +802,7 @@ async function handleAuthResendOtp() {
     setAuthFeedback(`New code sent to ${appState.auth.pendingEmail}.`, 'success');
   } catch (error) {
     console.warn('OTP resend failed.', error);
-    setAuthFeedback(error.message || 'Could not resend the code.', 'error');
+    setAuthFeedback(formatAuthError(error), 'error');
   }
 }
 
@@ -825,7 +837,7 @@ async function handleCreateFamilySubmit(event) {
     console.warn('Family creation failed.', error);
     appState.auth.status = 'needs_family';
     renderAuthState();
-    setAuthFeedback(error.message || 'Could not create the family.', 'error');
+    setAuthFeedback(formatAuthError(error), 'error');
   }
 }
 
