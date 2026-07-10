@@ -1597,6 +1597,29 @@ function mealDescriptionSummary(meal) {
   return `Ingredients: ${ingredients.slice(0, 4).join(', ')}`;
 }
 
+function buildDashboardMealExtra(meal, analysis) {
+  const note = notesWithoutMealType(meal?.notes);
+  const ingredients = getMealIngredients(meal);
+  const sections = [];
+  if (note) {
+    sections.push(`<small class="meal-description meal-extra-copy">${escapeHtml(note)}</small>`);
+  }
+  if (ingredients.length) {
+    sections.push(`<small class="meal-description meal-extra-copy"><span>Ingredients:</span> ${escapeHtml(ingredients.join(', '))}</small>`);
+  }
+  if (analysis.swap) {
+    sections.push(`<small class="meal-health-swap meal-extra-copy"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>`);
+  }
+  if (!sections.length) return '';
+  return `
+        <details class="meal-extra-details">
+          <summary>More info</summary>
+          <div class="meal-extra-panel">
+            ${sections.join('')}
+          </div>
+        </details>`;
+}
+
 function timelineCompactStats(meal) {
   return `${Number(meal.calories || 0).toLocaleString()} cal · ${formatTimelineTime(meal.eaten_at)}`;
 }
@@ -1619,10 +1642,7 @@ function mealTemplate(meal, withActions = false) {
         <div class="meal-health-reasons" aria-label="Meal breakdown">
           ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
         </div>` : '';
-  const swap = analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : '';
-  const description = mealDescriptionSummary(meal)
-    ? `<small class="meal-description">${escapeHtml(mealDescriptionSummary(meal))}</small>`
-    : '';
+  const extraDetails = buildDashboardMealExtra(meal, analysis);
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
@@ -1632,8 +1652,7 @@ function mealTemplate(meal, withActions = false) {
         <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
         ${reasons}
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>
-        ${description}
-        ${swap}
+        ${extraDetails}
         ${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>

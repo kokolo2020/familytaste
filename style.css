@@ -1400,6 +1400,45 @@ h1 span {
   line-height: 1.4;
 }
 
+.meal-extra-details {
+  margin-top: 8px;
+}
+
+.meal-extra-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7d654e;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.meal-extra-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.meal-extra-details summary::after {
+  content: "▾";
+  font-size: 10px;
+  transition: transform .18s ease;
+}
+
+.meal-extra-details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.meal-extra-panel {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.meal-extra-copy {
+  margin-top: 0;
+}
+
 .meal-health-pill {
   display: inline-flex;
   align-items: center;
@@ -3373,7 +3412,10 @@ h1 span {
   #page-dashboard .dashboard-meal-list .meal-health-pill { margin-bottom: 8px; padding: 7px 12px; font-size: 13px; }
   #page-dashboard .dashboard-meal-list .meal-health-reasons { gap: 8px; margin-bottom: 8px; }
   #page-dashboard .dashboard-meal-list .meal-reason-chip { padding: 5px 10px; font-size: 11px; }
-  #page-dashboard .dashboard-meal-list .meal-health-swap { margin-top: 8px; font-size: 11px; line-height: 1.35; }
+  #page-dashboard .dashboard-meal-list .meal-extra-details { margin-top: 10px; }
+  #page-dashboard .dashboard-meal-list .meal-extra-details summary { font-size: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-health-swap,
+  #page-dashboard .dashboard-meal-list .meal-extra-copy { font-size: 11px; line-height: 1.35; }
   #page-dashboard .dashboard-meal-list .meal-card > strong { align-self: end; padding: 8px 12px; font-size: 12px; }
   #page-dashboard .dashboard-meal-list .meal-actions { gap: 10px; margin-top: 12px; }
   #page-dashboard .dashboard-meal-list .meal-actions summary { width: 22px; height: 22px; font-size: 18px; }
