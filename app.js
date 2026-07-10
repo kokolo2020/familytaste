@@ -76,6 +76,7 @@ let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
 let snapScanDraft = createEmptySnapScanDraft();
 let lastSnapEstimateSignature = '';
+let latestSnapPhotoScanToken = 0;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -2472,17 +2473,19 @@ async function handlePhotoChange(event) {
 
   try {
     const photoUrl = await resizeImageFile(file, 900, 0.82);
+    const scanToken = ++latestSnapPhotoScanToken;
     const photoPreview = document.getElementById('photoPreview');
     photoPreview.src = photoUrl;
     photoPreview.dataset.photoUrl = photoUrl;
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
-    document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'Review the details below, then scan or save when ready.';
+    document.getElementById('photoTitle').textContent = 'Scanning photo...';
+    document.getElementById('photoHint').textContent = 'AI is scanning the photo automatically. You can review and edit before saving.';
     const estimateStatus = document.getElementById('calorieEstimate');
     estimateStatus.classList.remove('estimate-success', 'estimate-error');
-    estimateStatus.textContent = 'Photo ready. Tap "Scan Food Details" when you want an estimate. Nothing is added until you tap Save Meal.';
+    estimateStatus.textContent = 'Photo ready. AI scan is starting automatically. Nothing is added until you tap Save Meal.';
     updateMealPreview();
+    await applyAiCalorieEstimate({ requestToken: scanToken });
   } catch (error) {
     console.warn('Could not load food photo.', error);
     alert('Could not load that food photo. Please try another image.');
@@ -2492,6 +2495,7 @@ async function handlePhotoChange(event) {
 }
 
 function resetPhotoPreview() {
+  latestSnapPhotoScanToken += 1;
   const photoPreview = document.getElementById('photoPreview');
   const previewPhoto = document.getElementById('previewPhoto');
   photoPreview.removeAttribute('src');
@@ -2504,7 +2508,7 @@ function resetPhotoPreview() {
   document.getElementById('photoHint').textContent = 'Choose where your photo comes from. Nothing is added until you save.';
   const estimateStatus = document.getElementById('calorieEstimate');
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
-  estimateStatus.textContent = 'Add a photo, then tap scan when you want an AI estimate. Nothing is added until you tap Save Meal.';
+  estimateStatus.textContent = 'Add a photo and AI will scan automatically. You can still rescan after editing before you save.';
   document.getElementById('scanIngredientInput').value = '';
 }
 
@@ -2530,7 +2534,7 @@ function formatPreviewDateTime(dateValue, timeValue) {
 
 async function applyAiCalorieEstimate(options = {}) {
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
-  const { preserveFoodName = false } = options;
+  const { preserveFoodName = false, requestToken = null } = options;
   await requestAiCalorieEstimate({
     imageUrl: photoUrl,
     foodName: document.getElementById('foodName').value.trim(),
@@ -2542,16 +2546,19 @@ async function applyAiCalorieEstimate(options = {}) {
     statusElement: document.getElementById('calorieEstimate'),
     buttonElement: document.getElementById('aiEstimateCalories'),
     caloriesInput: document.getElementById('calories'),
+    isStale: () => requestToken !== null && requestToken !== latestSnapPhotoScanToken,
     onSuccess: (estimate) => {
       const foodInput = document.getElementById('foodName');
       if (!preserveFoodName && estimate.foods?.length) {
         foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
       }
       setSnapInsightsFromEstimate(estimate);
+      document.getElementById('photoTitle').textContent = 'Photo ready';
       document.getElementById('photoHint').textContent = 'AI estimate ready. Review the meal, then save when ready.';
       updateMealPreview();
     },
     onError: () => {
+      document.getElementById('photoTitle').textContent = 'Photo ready';
       document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
     }
   });
@@ -2626,6 +2633,7 @@ async function requestAiCalorieEstimate({
   statusElement,
   buttonElement,
   caloriesInput,
+  isStale,
   onSuccess,
   onError
 }) {
@@ -2663,6 +2671,7 @@ async function requestAiCalorieEstimate({
     }
     if (!response.ok) throw new Error(estimate?.error || 'AI scan is unavailable. Enter calories manually and try again later.');
     if (!estimate) throw new Error('AI scan is unavailable. Enter calories manually and try again later.');
+    if (isStale?.()) return null;
 
     const calories = Math.max(0, Math.round(Number(estimate.total_calories) || 0));
     caloriesInput.value = String(calories);
@@ -2672,13 +2681,16 @@ async function requestAiCalorieEstimate({
     if (onSuccess) onSuccess(estimate);
     return estimate;
   } catch (error) {
+    if (isStale?.()) return null;
     statusElement.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
     statusElement.classList.add('estimate-error');
     if (onError) onError(error);
     return null;
   } finally {
-    buttonElement.disabled = false;
-    buttonElement.textContent = originalLabel;
+    if (!isStale?.()) {
+      buttonElement.disabled = false;
+      buttonElement.textContent = originalLabel;
+    }
   }
 }
 
