@@ -75,6 +75,7 @@ let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
 let snapScanDraft = createEmptySnapScanDraft();
+let lastSnapEstimateSignature = '';
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -235,6 +236,10 @@ function bindEvents() {
   ['foodName', 'mealType', 'restaurantName', 'calories', 'mealDate', 'mealTime'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
+  ['foodName', 'restaurantName', 'notes'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', updateSnapEstimateStatus);
+  });
+  document.getElementById('mealType').addEventListener('change', updateSnapEstimateStatus);
   ['timelineMemberFilter', 'timelineMealTypeFilter', 'timelineDateFilter', 'timelineHealthFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', handleTimelineFilterChange);
   });
@@ -508,7 +513,9 @@ function formatScanLabel(value) {
 
 function clearSnapScanDraft() {
   snapScanDraft = createEmptySnapScanDraft();
+  lastSnapEstimateSignature = '';
   renderSnapInsights();
+  updateSnapEstimateStatus();
 }
 
 function renderSnapInsights() {
@@ -554,7 +561,9 @@ function setSnapInsightsFromEstimate(estimate = {}) {
     confidence: String(estimate.confidence || ''),
     note: String(estimate.note || '').trim()
   };
+  lastSnapEstimateSignature = getSnapEstimateSignature();
   renderSnapInsights();
+  updateSnapEstimateStatus();
 }
 
 function removeSnapIngredient(value) {
@@ -562,6 +571,7 @@ function removeSnapIngredient(value) {
   if (!ingredient) return;
   snapScanDraft.ingredients = snapScanDraft.ingredients.filter((item) => item !== ingredient);
   renderSnapInsights();
+  updateSnapEstimateStatus();
 }
 
 function toggleSnapTag(value) {
@@ -571,6 +581,7 @@ function toggleSnapTag(value) {
     ? snapScanDraft.tags.filter((item) => item !== tag)
     : [...snapScanDraft.tags, tag];
   renderSnapInsights();
+  updateSnapEstimateStatus();
 }
 
 function handleAddSnapIngredient() {
@@ -583,6 +594,33 @@ function handleAddSnapIngredient() {
   snapScanDraft.ingredients = uniqueList([...snapScanDraft.ingredients, ingredient]).slice(0, 12);
   input.value = '';
   renderSnapInsights();
+  updateSnapEstimateStatus();
+}
+
+function getSnapEstimateSignature() {
+  return JSON.stringify({
+    foodName: document.getElementById('foodName')?.value.trim() || '',
+    restaurantName: document.getElementById('restaurantName')?.value.trim() || '',
+    mealType: document.getElementById('mealType')?.value || '',
+    notes: document.getElementById('notes')?.value.trim() || '',
+    ingredients: [...snapScanDraft.ingredients].sort(),
+    tags: [...snapScanDraft.tags].sort()
+  });
+}
+
+function snapEstimateNeedsRefresh() {
+  const photoUrl = document.getElementById('photoPreview')?.dataset.photoUrl || '';
+  if (!photoUrl || !lastSnapEstimateSignature) return false;
+  return getSnapEstimateSignature() !== lastSnapEstimateSignature;
+}
+
+function updateSnapEstimateStatus() {
+  const status = document.getElementById('calorieEstimate');
+  if (!status) return;
+  if (snapEstimateNeedsRefresh()) {
+    status.classList.remove('estimate-success', 'estimate-error');
+    status.textContent = 'Details changed. Save will refresh the calorie estimate using your updated ingredients and description.';
+  }
 }
 
 function renderAll() {
@@ -1038,6 +1076,14 @@ async function handleSaveMealEdit() {
     return;
   }
 
+  const meal = editingMealId ? appState.meals.find((item) => item.id === editingMealId) : null;
+  if (meal?.photo_url) {
+    const signature = getEditEstimateSignature();
+    if (signature !== lastEditEstimateSignature) {
+      await applyEditAiCalorieEstimate();
+    }
+  }
+
   const fields = {
     food_name: foodName,
     restaurant_name: document.getElementById('editRestaurant').value.trim(),
@@ -1053,7 +1099,6 @@ async function handleSaveMealEdit() {
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
-    const meal = appState.meals.find((item) => item.id === editingMealId);
     if (!meal) return;
     Object.assign(meal, fields);
     meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
@@ -1208,6 +1253,7 @@ function renderMeals() {
   document.getElementById('timelineList').innerHTML = meals.map((meal) => {
     const analysis = analyzeMealQuality(meal);
     const health = analysis.score;
+    const description = mealDescriptionSummary(meal);
     return `
       <article class="timeline-item">
         <div class="timeline-food-cell">
@@ -1222,6 +1268,7 @@ function renderMeals() {
                 ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
+            ${description ? `<small class="meal-description timeline-meal-description">${escapeHtml(description)}</small>` : ''}
             ${analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
           </div>
         </div>
@@ -1338,6 +1385,14 @@ function buildTimelineMeta(meal) {
   return parts.join(' · ');
 }
 
+function mealDescriptionSummary(meal) {
+  const note = notesWithoutMealType(meal?.notes);
+  if (note) return note;
+  const ingredients = getMealIngredients(meal);
+  if (!ingredients.length) return '';
+  return `Ingredients: ${ingredients.slice(0, 4).join(', ')}`;
+}
+
 function mealTemplate(meal, withActions = false) {
   const analysis = analyzeMealQuality(meal);
   const health = analysis.score;
@@ -1351,6 +1406,9 @@ function mealTemplate(meal, withActions = false) {
           ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
         </div>` : '';
   const swap = analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : '';
+  const description = mealDescriptionSummary(meal)
+    ? `<small class="meal-description">${escapeHtml(mealDescriptionSummary(meal))}</small>`
+    : '';
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
@@ -1360,6 +1418,7 @@ function mealTemplate(meal, withActions = false) {
         <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
         ${reasons}
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>
+        ${description}
         ${swap}
         ${actions}
       </div>
@@ -2224,6 +2283,9 @@ async function syncMemberToSupabase(memberId, fields) {
 async function saveMeal(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  if (snapEstimateNeedsRefresh()) {
+    await applyAiCalorieEstimate({ preserveFoodName: true });
+  }
   const formData = new FormData(form);
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const mealDate = String(formData.get('meal_date') || '').trim();
@@ -2425,20 +2487,23 @@ function formatPreviewDateTime(dateValue, timeValue) {
   return `${formatTimelineDate(previewDate)} · ${formatTimelineTime(previewDate)}`;
 }
 
-async function applyAiCalorieEstimate() {
+async function applyAiCalorieEstimate(options = {}) {
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
+  const { preserveFoodName = false } = options;
   await requestAiCalorieEstimate({
     imageUrl: photoUrl,
     foodName: document.getElementById('foodName').value.trim(),
     restaurantName: document.getElementById('restaurantName').value.trim(),
     mealType: document.getElementById('mealType').value,
     notes: document.getElementById('notes').value.trim(),
+    scanIngredients: snapScanDraft.ingredients,
+    scanTags: snapScanDraft.tags,
     statusElement: document.getElementById('calorieEstimate'),
     buttonElement: document.getElementById('aiEstimateCalories'),
     caloriesInput: document.getElementById('calories'),
     onSuccess: (estimate) => {
       const foodInput = document.getElementById('foodName');
-      if (estimate.foods?.length) {
+      if (!preserveFoodName && estimate.foods?.length) {
         foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
       }
       setSnapInsightsFromEstimate(estimate);
@@ -2459,6 +2524,8 @@ async function applyEditAiCalorieEstimate() {
     restaurantName: document.getElementById('editRestaurant').value.trim(),
     mealType: document.getElementById('editMealType').value,
     notes: document.getElementById('editNotes').value.trim(),
+    scanIngredients: getMealIngredients(meal),
+    scanTags: getMealScanTags(meal),
     statusElement: document.getElementById('editCalorieEstimate'),
     buttonElement: document.getElementById('editAiEstimateCalories'),
     caloriesInput: document.getElementById('editCalories')
@@ -2497,11 +2564,13 @@ function scheduleAutoEditAiCalorieEstimate() {
   }, 900);
 }
 
-function buildEstimateDescription({ restaurantName, mealType, notes }) {
+function buildEstimateDescription({ restaurantName, mealType, notes, scanIngredients = [], scanTags = [] }) {
   const parts = [];
   if (mealType) parts.push(`meal type: ${mealType}`);
   if (restaurantName) parts.push(`restaurant: ${restaurantName}`);
   if (notes) parts.push(`user notes: ${notes}`);
+  if (scanIngredients.length) parts.push(`confirmed ingredients: ${scanIngredients.join(', ')}`);
+  if (scanTags.length) parts.push(`confirmed tags: ${scanTags.join(', ')}`);
   return parts.join(' | ');
 }
 
@@ -2511,6 +2580,8 @@ async function requestAiCalorieEstimate({
   restaurantName,
   mealType,
   notes,
+  scanIngredients = [],
+  scanTags = [],
   statusElement,
   buttonElement,
   caloriesInput,
@@ -2538,7 +2609,7 @@ async function requestAiCalorieEstimate({
       body: JSON.stringify({
         image_url: imageUrl,
         food_name: foodName,
-        description_context: buildEstimateDescription({ restaurantName, mealType, notes }),
+        description_context: buildEstimateDescription({ restaurantName, mealType, notes, scanIngredients, scanTags }),
         portion_size: 'regular'
       })
     });
