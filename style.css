@@ -2171,6 +2171,7 @@ h1 span {
 .timeline-summary article { padding: 14px 16px; border: 1px solid #eee5da; border-radius: 14px; background: #fffdfa; }
 .timeline-summary span { display: block; color: var(--muted); font-size: 11px; font-weight: 800; }
 .timeline-summary strong { display: block; margin-top: 6px; color: #244237; font-size: 24px; }
+.timeline-mobile-card { display: none; }
 .timeline-table-head,
 .timeline-item { display: grid; grid-template-columns: minmax(220px, 1.6fr) 110px 88px minmax(150px, 1.1fr) 100px 92px auto; gap: 12px; align-items: center; }
 .timeline-table-head { padding: 0 18px; color: #8c7f73; font-size: 11px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
@@ -2210,6 +2211,7 @@ h1 span {
 .timeline-health-fair { color: #9a6b18; background: #fff3d9; }
 .timeline-health-low { color: #a14732; background: #fff0eb; }
 .timeline-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 0; }
+.timeline-mobile-swap span { font-weight: 800; }
 
 .profile-detail {
   justify-content: flex-start;
@@ -2730,53 +2732,185 @@ h1 span {
     display: none;
   }
 
-  .timeline-item {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    padding: 12px;
-  }
-
-  .timeline-food-cell {
-    grid-column: 1 / -1;
-  }
-
-  .timeline-food-cell .meal-health-pill { padding: 4px 8px; font-size: 10px; }
-  .timeline-food-cell .meal-reason-chip { padding: 3px 6px; font-size: 9px; }
-  .timeline-food-cell .meal-health-swap { font-size: 10px; }
-  .timeline-food-cell h4 { font-size: 16px; }
-  .timeline-food-cell p { font-size: 11px; }
-  .timeline-meal-description { font-size: 10px; }
-
-  .timeline-date,
-  .timeline-time,
-  .timeline-restaurant,
-  .timeline-calories,
-  .timeline-health {
+  .timeline-list {
     display: grid;
-    gap: 3px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
   }
 
-  .timeline-date::before,
-  .timeline-time::before,
-  .timeline-restaurant::before,
-  .timeline-calories::before,
-  .timeline-health::before {
-    color: #8c7f73;
+  .timeline-item {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .timeline-item > .timeline-food-cell,
+  .timeline-item > .timeline-date,
+  .timeline-item > .timeline-time,
+  .timeline-item > .timeline-restaurant,
+  .timeline-item > .timeline-calories,
+  .timeline-item > .timeline-health,
+  .timeline-item > .timeline-desktop-actions {
+    display: none;
+  }
+
+  .timeline-mobile-card {
+    display: block;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 18px;
+    background: rgba(255, 252, 246, 0.9);
+    box-shadow: var(--soft-shadow);
+    overflow: hidden;
+  }
+
+  .timeline-mobile-card summary {
+    position: relative;
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .timeline-mobile-card summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .timeline-mobile-summary::after {
+    content: "+";
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #6e6258;
+    background: rgba(255, 248, 240, 0.95);
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .timeline-mobile-card[open] .timeline-mobile-summary::after {
+    content: "−";
+  }
+
+  .timeline-mobile-card[open] {
+    box-shadow: 0 14px 26px rgba(69,48,31,.12);
+  }
+
+  .timeline-mobile-photo,
+  .timeline-mobile-emoji {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+  }
+
+  .timeline-mobile-photo {
+    display: block;
+    object-fit: cover;
+    box-shadow: 0 8px 18px rgba(69,48,31,.12);
+  }
+
+  .timeline-mobile-emoji {
+    display: grid;
+    place-items: center;
+    background: #fff1d8;
+    font-size: 52px;
+  }
+
+  .timeline-mobile-copy h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    line-height: 1.18;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .timeline-mobile-copy .meal-health-pill {
+    margin-bottom: 6px;
+    padding: 4px 8px;
     font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
   }
 
-  .timeline-date::before { content: "Date"; }
-  .timeline-time::before { content: "Time"; }
-  .timeline-restaurant::before { content: "Restaurant"; }
-  .timeline-calories::before { content: "Calories"; }
-  .timeline-health::before { content: "Health"; }
+  .timeline-mobile-statline {
+    margin: 0;
+    color: #3f342b;
+    font-size: 11px;
+    font-weight: 800;
+  }
 
-  .timeline-actions {
-    grid-column: 1 / -1;
+  .timeline-mobile-submeta {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .timeline-mobile-extra {
+    display: grid;
+    gap: 8px;
+    padding: 0 10px 10px;
+    border-top: 1px solid #f0e7dd;
+  }
+
+  .timeline-mobile-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 8px;
+    color: #7f7166;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .timeline-mobile-facts span {
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #f7f1e8;
+  }
+
+  .timeline-mobile-reasons {
+    margin-bottom: 0;
+    gap: 5px;
+  }
+
+  .timeline-mobile-reasons .meal-reason-chip {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .timeline-mobile-description {
+    margin-top: 0;
+    font-size: 10px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .timeline-mobile-actions {
     justify-content: flex-start;
-    margin-top: 2px;
+    gap: 6px;
+    margin-top: 0;
+  }
+
+  .timeline-mobile-actions button {
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+
+  .timeline-list > .meal-card {
+    grid-column: 1 / -1;
   }
 
   .avatar-picker {

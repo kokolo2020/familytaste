@@ -1256,8 +1256,38 @@ function renderMeals() {
     const description = mealDescriptionSummary(meal);
     const compactReasons = analysis.reasons.slice(0, 1);
     const secondaryDetail = description || analysis.swap || '';
+    const mobileImage = meal.photo_url
+      ? `<img class="timeline-mobile-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
+      : `<span class="timeline-mobile-emoji">${mealEmoji(meal.food_name)}</span>`;
     return `
       <article class="timeline-item">
+        <details class="timeline-mobile-card">
+          <summary class="timeline-mobile-summary">
+            ${mobileImage}
+            <div class="timeline-mobile-copy">
+              <h4>${escapeHtml(meal.food_name)}</h4>
+              <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
+              <p class="timeline-mobile-statline">${escapeHtml(timelineCompactStats(meal))}</p>
+              <small class="timeline-mobile-submeta">${escapeHtml(timelineCompactSubmeta(meal))}</small>
+            </div>
+          </summary>
+          <div class="timeline-mobile-extra">
+            <div class="timeline-mobile-facts">
+              <span>${escapeHtml(formatTimelineDate(meal.eaten_at))}</span>
+              <span>${escapeHtml(meal.restaurant_name || getMealTypeLabel(meal) || 'Family meal')}</span>
+            </div>
+            ${compactReasons.length ? `
+              <div class="meal-health-reasons timeline-mobile-reasons" aria-label="Meal breakdown">
+                ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
+              </div>` : ''}
+            ${description ? `<small class="meal-description timeline-mobile-description">${escapeHtml(description)}</small>` : ''}
+            ${analysis.swap ? `<small class="meal-description timeline-mobile-description timeline-mobile-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
+            <div class="meal-actions timeline-actions timeline-mobile-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+              <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+              <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+            </div>
+          </div>
+        </details>
         <div class="timeline-food-cell">
           ${meal.photo_url
             ? `<img class="timeline-food-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
@@ -1278,7 +1308,7 @@ function renderMeals() {
         <span class="timeline-restaurant">${escapeHtml(meal.restaurant_name || '—')}</span>
         <strong class="timeline-calories">${Number(meal.calories || 0).toLocaleString()} cal</strong>
         <span class="timeline-health timeline-health-${healthTone(health)}">${health}/100</span>
-        <div class="meal-actions timeline-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+        <div class="meal-actions timeline-actions timeline-desktop-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>
@@ -1392,6 +1422,16 @@ function mealDescriptionSummary(meal) {
   const ingredients = getMealIngredients(meal);
   if (!ingredients.length) return '';
   return `Ingredients: ${ingredients.slice(0, 4).join(', ')}`;
+}
+
+function timelineCompactStats(meal) {
+  return `${Number(meal.calories || 0).toLocaleString()} cal · ${formatTimelineTime(meal.eaten_at)}`;
+}
+
+function timelineCompactSubmeta(meal) {
+  const parts = [getMealTypeLabel(meal) || 'Meal'];
+  if (meal.restaurant_name) parts.push(meal.restaurant_name);
+  return parts.join(' · ');
 }
 
 function mealTemplate(meal, withActions = false) {
