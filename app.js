@@ -77,6 +77,7 @@ let dashboardHistoryRange = 'yesterday';
 let snapScanDraft = createEmptySnapScanDraft();
 let lastSnapEstimateSignature = '';
 let latestSnapPhotoScanToken = 0;
+let snapPhotoScanTimer = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -2485,7 +2486,7 @@ async function handlePhotoChange(event) {
     estimateStatus.classList.remove('estimate-success', 'estimate-error');
     estimateStatus.textContent = 'Photo ready. AI scan is starting automatically. Nothing is added until you tap Save Meal.';
     updateMealPreview();
-    await applyAiCalorieEstimate({ requestToken: scanToken });
+    scheduleAutoSnapAiEstimate(scanToken);
   } catch (error) {
     console.warn('Could not load food photo.', error);
     alert('Could not load that food photo. Please try another image.');
@@ -2496,6 +2497,10 @@ async function handlePhotoChange(event) {
 
 function resetPhotoPreview() {
   latestSnapPhotoScanToken += 1;
+  if (snapPhotoScanTimer) {
+    clearTimeout(snapPhotoScanTimer);
+    snapPhotoScanTimer = null;
+  }
   const photoPreview = document.getElementById('photoPreview');
   const previewPhoto = document.getElementById('previewPhoto');
   photoPreview.removeAttribute('src');
@@ -2510,6 +2515,15 @@ function resetPhotoPreview() {
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
   estimateStatus.textContent = 'Add a photo and AI will scan automatically. You can still rescan after editing before you save.';
   document.getElementById('scanIngredientInput').value = '';
+}
+
+function scheduleAutoSnapAiEstimate(scanToken) {
+  if (snapPhotoScanTimer) clearTimeout(snapPhotoScanTimer);
+  snapPhotoScanTimer = setTimeout(() => {
+    snapPhotoScanTimer = null;
+    if (scanToken !== latestSnapPhotoScanToken) return;
+    applyAiCalorieEstimate({ requestToken: scanToken });
+  }, 120);
 }
 
 function setMealFormDateTimeDefaults(date = new Date()) {
