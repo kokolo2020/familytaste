@@ -2,18 +2,16 @@ const appState = {
   familyId: null,
   currentMember: null,
   currentPage: 'dashboard',
-  members: [
-    { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
-    { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
-    { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
-  ],
+  auth: {
+    status: 'loading',
+    user: null,
+    membership: null,
+    pendingEmail: ''
+  },
+  members: getDefaultAppMembers(),
   meals: [],
   snapScans: [],
-  favorites: [
-    { id: 'fav-1', name: 'Grandma Kitchen', phone: 'Add number', address: 'Near home', notes: 'Comfort food for Sunday dinner.' },
-    { id: 'fav-2', name: 'Pizza Company', phone: '1112', address: 'Delivery', notes: 'Fast Friday-night order.' },
-    { id: 'fav-3', name: 'Sushi Family Bar', phone: 'Add number', address: 'City center', notes: 'Daughter always votes for salmon rolls.' }
-  ],
+  favorites: getDefaultFavoriteRestaurants(),
   chat: [],
   chefOrders: [],
   cart: [],
@@ -32,8 +30,10 @@ const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
-const APP_VERSION = 'v0.7.0';
-const APP_BUILD_DATE = '2026-07-07';
+const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
+const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
+const APP_VERSION = 'v0.8.0';
+const APP_BUILD_DATE = '2026-07-11';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna']);
 const snapTagCatalog = [
@@ -110,13 +110,12 @@ const mobileItems = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyStoredAppData();
-  applyStoredProfilePhotos();
   renderProfiles();
   renderNavigation();
   bindEvents();
   setMealFormDateTimeDefaults();
-  hydrateFromSupabase();
+  renderAuthState();
+  bootstrapAuth();
 });
 
 function bindEvents() {
@@ -240,6 +239,12 @@ function bindEvents() {
   document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats')?.addEventListener('click', handleSaveBioStats);
   document.getElementById('saveMealEdit').addEventListener('click', handleSaveMealEdit);
+  document.getElementById('authEmailForm')?.addEventListener('submit', handleAuthEmailSubmit);
+  document.getElementById('authVerifyForm')?.addEventListener('submit', handleAuthVerifySubmit);
+  document.getElementById('authFamilyForm')?.addEventListener('submit', handleCreateFamilySubmit);
+  document.getElementById('authResendButton')?.addEventListener('click', handleAuthResendOtp);
+  document.getElementById('authChangeEmailButton')?.addEventListener('click', handleAuthChangeEmail);
+  document.getElementById('authSignOutButton')?.addEventListener('click', handleAuthSignOut);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     clearAutoEditEstimate();
     document.getElementById('mealModal').classList.add('hidden');
@@ -278,14 +283,217 @@ function looksLikeUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 }
 
-async function hydrateFromSupabase() {
-  if (!window.familyBitesDb?.isConfigured) {
-    selectMember(getDefaultMember(), { openDashboard: false });
+function getDefaultAppMembers() {
+  return [
+    { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
+    { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
+    { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
+  ];
+}
+
+function getDefaultFavoriteRestaurants() {
+  return [
+    { id: 'fav-1', name: 'Grandma Kitchen', phone: 'Add number', address: 'Near home', notes: 'Comfort food for Sunday dinner.' },
+    { id: 'fav-2', name: 'Pizza Company', phone: '1112', address: 'Delivery', notes: 'Fast Friday-night order.' },
+    { id: 'fav-3', name: 'Sushi Family Bar', phone: 'Add number', address: 'City center', notes: 'Daughter always votes for salmon rolls.' }
+  ];
+}
+
+function resetFamilyState() {
+  appState.familyId = null;
+  appState.currentMember = null;
+  appState.members = getDefaultAppMembers();
+  appState.meals = [];
+  appState.snapScans = [];
+  appState.favorites = getDefaultFavoriteRestaurants();
+  appState.chat = [];
+  appState.chefOrders = [];
+  appState.cart = [];
+  appState.voiceNotes = [];
+  appState.bioLogs = {};
+  appState.profileMeasurements = {};
+}
+
+function clearLocalFamilyCache() {
+  [
+    localMealsStorageKey,
+    localSnapScansStorageKey,
+    localChatStorageKey,
+    localMembersStorageKey,
+    chefOrdersStorageKey,
+    chefCartStorageKey,
+    chefVoiceStorageKey,
+    bioLogsStorageKey,
+    profileMeasurementsStorageKey,
+    profilePhotoStorageKey
+  ].forEach((key) => localStorage.removeItem(key));
+}
+
+function syncBrowserUserScope(userId) {
+  const storedUserId = localStorage.getItem(lastAuthUserStorageKey) || '';
+  if (storedUserId && storedUserId !== userId) {
+    clearLocalFamilyCache();
+  }
+  if (userId) localStorage.setItem(lastAuthUserStorageKey, userId);
+}
+
+function setAuthFeedback(message = '', tone = '') {
+  const feedback = document.getElementById('authFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `auth-feedback${tone ? ` ${tone}` : ''}`;
+}
+
+function renderAuthState() {
+  const authGate = document.getElementById('authGate');
+  const landing = document.getElementById('landing');
+  const workspace = document.getElementById('workspace');
+  const emailForm = document.getElementById('authEmailForm');
+  const verifyForm = document.getElementById('authVerifyForm');
+  const familyForm = document.getElementById('authFamilyForm');
+  const title = document.getElementById('authTitle');
+  const subtitle = document.getElementById('authSubtitle');
+  const pendingEmail = document.getElementById('authPendingEmail');
+  if (!authGate || !landing || !workspace || !emailForm || !verifyForm || !familyForm || !title || !subtitle) return;
+
+  const state = appState.auth.status;
+  const isReady = state === 'ready';
+  authGate.classList.toggle('hidden', isReady);
+  if (isReady) {
+    if (!appState.currentMember) {
+      workspace.classList.add('hidden');
+      landing.classList.remove('hidden');
+    }
     return;
   }
 
+  landing.classList.add('hidden');
+  workspace.classList.add('hidden');
+  emailForm.classList.toggle('hidden', state !== 'signed_out');
+  verifyForm.classList.toggle('hidden', state !== 'otp_sent');
+  familyForm.classList.toggle('hidden', state !== 'needs_family');
+  if (pendingEmail) pendingEmail.textContent = appState.auth.pendingEmail || '';
+
+  if (state === 'loading') {
+    title.textContent = 'Checking your session';
+    subtitle.textContent = 'Loading your private family space.';
+  } else if (state === 'signed_out') {
+    title.textContent = 'Sign in with email';
+    subtitle.textContent = 'Enter any email and we will send a one-time code.';
+  } else if (state === 'otp_sent') {
+    title.textContent = 'Check your email';
+    subtitle.textContent = 'Enter the code from your email. Opening the email link here will also continue automatically.';
+  } else if (state === 'needs_family') {
+    title.textContent = 'Create your family';
+    subtitle.textContent = 'This email is signed in, but it is not linked to a family yet.';
+  }
+}
+
+function formatAuthError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('family_memberships')) {
+    return 'Database setup is incomplete. Run the auth SQL migration first.';
+  }
+  if (message.includes('email rate limit exceeded')) {
+    return 'Too many login emails were sent. Please wait and try again later.';
+  }
+  if (message.includes('security purposes')) {
+    return 'Please wait about a minute before requesting another login code.';
+  }
+  if (message.includes('invalid login credentials') || message.includes('token has expired') || message.includes('otp expired') || message.includes('token is invalid')) {
+    return 'That code is invalid or expired. Request a new code and try again.';
+  }
+  if (message.includes('signup is disabled')) {
+    return 'Email sign-in is not enabled in Supabase yet.';
+  }
+  return String(error?.message || 'Sign-in is unavailable right now. Please try again.');
+}
+
+async function bootstrapAuth() {
+  if (!window.familyBitesDb?.isConfigured) {
+    appState.auth.status = 'signed_out';
+    setAuthFeedback('Supabase auth is not configured for this build.', 'error');
+    renderAuthState();
+    return;
+  }
+
+  const storedPendingEmail = sessionStorage.getItem(pendingOtpEmailStorageKey) || '';
+  if (storedPendingEmail) appState.auth.pendingEmail = storedPendingEmail;
+
+  window.familyBitesDb.onAuthStateChange((session) => {
+    if (session) {
+      handleAuthenticatedSession(session).catch((error) => {
+        console.warn('Auth state change failed.', error);
+        appState.auth.status = 'signed_out';
+        renderAuthState();
+        setAuthFeedback(formatAuthError(error), 'error');
+      });
+    } else {
+      handleSignedOutState();
+    }
+  });
+
   try {
-    await window.familyBitesDb.ensureFamily();
+    const session = await window.familyBitesDb.getSession();
+    if (session) {
+      await handleAuthenticatedSession(session);
+    } else {
+      handleSignedOutState();
+    }
+  } catch (error) {
+    console.warn('Auth bootstrap failed.', error);
+    appState.auth.status = 'signed_out';
+    setAuthFeedback(formatAuthError(error), 'error');
+    renderAuthState();
+  }
+}
+
+async function handleAuthenticatedSession(session) {
+  appState.auth.user = session.user;
+  appState.auth.pendingEmail = '';
+  appState.auth.status = 'loading';
+  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  renderAuthState();
+  setAuthFeedback('');
+  syncBrowserUserScope(session.user?.id || '');
+  resetFamilyState();
+  applyStoredAppData();
+  applyStoredProfilePhotos();
+
+  const membership = await window.familyBitesDb.resolveFamilyMembership();
+  if (!membership) {
+    appState.auth.membership = null;
+    appState.auth.status = 'needs_family';
+    renderAuthState();
+    return;
+  }
+
+  appState.auth.membership = membership;
+  await hydrateFamilyData();
+  appState.auth.status = 'ready';
+  renderProfiles();
+  selectMember(getDefaultMember(), { openDashboard: false });
+  renderAuthState();
+}
+
+function handleSignedOutState() {
+  appState.auth = {
+    status: 'signed_out',
+    user: null,
+    membership: null,
+    pendingEmail: ''
+  };
+  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  resetFamilyState();
+  renderProfiles();
+  setAuthFeedback('');
+  renderAuthState();
+}
+
+async function hydrateFamilyData() {
+  if (!window.familyBitesDb?.isConfigured) return;
+
+  try {
     appState.familyId = window.familyBitesDb.familyId;
     const [members, meals, snapScans, favorites, chat] = (await Promise.allSettled([
       window.familyBitesDb.getMembers(),
@@ -330,13 +538,11 @@ async function hydrateFromSupabase() {
 
     subscribeToFamilyChat();
   } catch (error) {
-    console.warn('Supabase unavailable, using local demo data.', error);
+    console.warn('Supabase unavailable for family hydrate.', error);
+    throw error;
   }
 
   saveStoredAppData();
-
-  renderProfiles();
-  selectMember(getDefaultMember(), { openDashboard: false });
 }
 
 async function backfillLocalSnapScansToSupabase() {
@@ -463,11 +669,13 @@ function selectMember(member, options = { openDashboard: true }) {
     showPage('dashboard');
   } else {
     renderAll();
+    renderAuthState();
   }
 }
 
 function handleAction(action) {
   if (action === 'home') {
+    if (appState.auth.status !== 'ready') return;
     document.getElementById('workspace').classList.add('hidden');
     document.getElementById('landing').classList.remove('hidden');
   }
@@ -494,7 +702,7 @@ function handleAction(action) {
 
   if (action === 'clear-all-data') {
     if (!confirm('Clear all meals, chat, and orders saved in this browser? This cannot be undone.')) return;
-    [localMealsStorageKey, localSnapScansStorageKey, localChatStorageKey, chefOrdersStorageKey, chefCartStorageKey, chefVoiceStorageKey, profilePhotoStorageKey].forEach((key) => localStorage.removeItem(key));
+    clearLocalFamilyCache();
     appState.meals = [];
     appState.snapScans = [];
     appState.chat = [];
@@ -503,9 +711,17 @@ function handleAction(action) {
     appState.voiceNotes = [];
     renderAll();
   }
+
+  if (action === 'sign-out') {
+    handleAuthSignOut();
+  }
 }
 
 function showPage(pageName) {
+  if (appState.auth.status !== 'ready') {
+    renderAuthState();
+    return;
+  }
   if (!appState.currentMember) {
     selectMember(getDefaultMember());
   }
@@ -525,10 +741,112 @@ function showPage(pageName) {
 }
 
 function openDemoPage(pageName) {
+  if (appState.auth.status !== 'ready') return;
   selectMember(appState.currentMember || getDefaultMember(), { openDashboard: false });
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('workspace').classList.remove('hidden');
   showPage(pageName);
+}
+
+async function handleAuthEmailSubmit(event) {
+  event.preventDefault();
+  const input = document.getElementById('authEmailInput');
+  const email = String(input?.value || '').trim().toLowerCase();
+  if (!email) {
+    setAuthFeedback('Enter your email first.', 'error');
+    return;
+  }
+
+  try {
+    setAuthFeedback('Sending your code…');
+    await window.familyBitesDb.sendOtp(email);
+    appState.auth.pendingEmail = email;
+    appState.auth.status = 'otp_sent';
+    sessionStorage.setItem(pendingOtpEmailStorageKey, email);
+    setAuthFeedback(`Code sent to ${email}.`, 'success');
+    renderAuthState();
+    document.getElementById('authOtpInput')?.focus();
+  } catch (error) {
+    console.warn('OTP send failed.', error);
+    setAuthFeedback(formatAuthError(error), 'error');
+  }
+}
+
+async function handleAuthVerifySubmit(event) {
+  event.preventDefault();
+  const token = String(document.getElementById('authOtpInput')?.value || '').trim();
+  const email = appState.auth.pendingEmail;
+  if (!email || !token) {
+    setAuthFeedback('Enter the verification code from your email.', 'error');
+    return;
+  }
+
+  try {
+    setAuthFeedback('Verifying code…');
+    await window.familyBitesDb.verifyOtp(email, token);
+    setAuthFeedback('Sign-in confirmed.', 'success');
+  } catch (error) {
+    console.warn('OTP verification failed.', error);
+    setAuthFeedback(formatAuthError(error), 'error');
+  }
+}
+
+async function handleAuthResendOtp() {
+  if (!appState.auth.pendingEmail) return;
+  try {
+    setAuthFeedback('Sending a new code…');
+    await window.familyBitesDb.sendOtp(appState.auth.pendingEmail);
+    setAuthFeedback(`New code sent to ${appState.auth.pendingEmail}.`, 'success');
+  } catch (error) {
+    console.warn('OTP resend failed.', error);
+    setAuthFeedback(formatAuthError(error), 'error');
+  }
+}
+
+function handleAuthChangeEmail() {
+  appState.auth.status = 'signed_out';
+  appState.auth.pendingEmail = '';
+  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  setAuthFeedback('');
+  renderAuthState();
+  document.getElementById('authEmailInput')?.focus();
+}
+
+async function handleCreateFamilySubmit(event) {
+  event.preventDefault();
+  const input = document.getElementById('authFamilyNameInput');
+  const familyName = String(input?.value || '').trim();
+  if (!familyName) {
+    setAuthFeedback('Enter a family name to continue.', 'error');
+    return;
+  }
+
+  try {
+    appState.auth.status = 'loading';
+    renderAuthState();
+    setAuthFeedback('Creating your family…');
+    await window.familyBitesDb.createFamilyForCurrentUser(familyName);
+    const session = await window.familyBitesDb.getSession();
+    if (!session) throw new Error('Session missing after family creation.');
+    await handleAuthenticatedSession(session);
+    setAuthFeedback('');
+  } catch (error) {
+    console.warn('Family creation failed.', error);
+    appState.auth.status = 'needs_family';
+    renderAuthState();
+    setAuthFeedback(formatAuthError(error), 'error');
+  }
+}
+
+async function handleAuthSignOut() {
+  try {
+    await window.familyBitesDb.signOut();
+  } catch (error) {
+    console.warn('Sign out failed.', error);
+  }
+  clearLocalFamilyCache();
+  localStorage.removeItem(lastAuthUserStorageKey);
+  handleSignedOutState();
 }
 
 function openMealComposer(defaultDay = 'today') {
@@ -3187,8 +3505,10 @@ function mergeMembers(primary, fallback) {
 
 function isSeededDefaultMember(member) {
   if (!member || member.id === 'add' || member.name === 'Add Member') return false;
-  return seededDefaultMemberIds.has(String(member.id || '').toLowerCase())
-    || seededDefaultMemberNames.has(String(member.name || '').toLowerCase());
+  const idKey = String(member.id || '').toLowerCase();
+  const nameKey = String(member.name || '').toLowerCase();
+  return seededDefaultMemberIds.has(idKey)
+    || (!looksLikeUuid(member.id) && seededDefaultMemberNames.has(nameKey));
 }
 
 function getVisibleMembers() {
@@ -3482,7 +3802,16 @@ function renderSettings() {
   if (!el) return;
 
   const realMembers = appState.members.filter((m) => m.id !== 'add');
+  const signedInEmail = appState.auth.user?.email || 'Not signed in';
+  const familyName = appState.auth.membership?.family_name || 'Private family';
   el.innerHTML = `
+    <div class="settings-section">
+      <p class="eyebrow">Account</p>
+      <h3>${escapeHtml(familyName)}</h3>
+      <p>Signed in as ${escapeHtml(signedInEmail)}</p>
+      <button class="secondary-button" data-action="sign-out">Sign out</button>
+    </div>
+
     <div class="settings-section">
       <p class="eyebrow">Family Members</p>
       <h3>${realMembers.length} member${realMembers.length !== 1 ? 's' : ''}</h3>

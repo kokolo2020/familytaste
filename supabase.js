@@ -1,41 +1,123 @@
 (function initFamilyBitesSupabase() {
   const url = window.FAMILYBITES_SUPABASE_URL || 'https://mjnigheggxtythytsqle.supabase.co';
   const anonKey = window.FAMILYBITES_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qbmlnaGVnZ3h0eXRoeXRzcWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzYwMDcsImV4cCI6MjA5NTY1MjAwN30.mh1psePuKeQ8SH5uita7BsUKd6wd5IwHVVlDmJCMA0Q';
-  const familyName = window.FAMILYBITES_FAMILY_NAME || 'FamilyBites Demo Family';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
-  const client = isConfigured ? window.supabase.createClient(url, anonKey) : null;
+  const client = isConfigured ? window.supabase.createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }) : null;
 
   window.familyBitesDb = {
     client,
     familyId: null,
     isConfigured,
-    async ensureFamily() {
+    async getSession() {
       if (!client) return null;
+      const { data, error } = await client.auth.getSession();
+      if (error) throw error;
+      return data?.session || null;
+    },
+    async sendOtp(email) {
+      if (!client) throw new Error('Supabase auth is not configured.');
+      const { error } = await client.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+        }
+      });
+      if (error) throw error;
+    },
+    async verifyOtp(email, token) {
+      if (!client) throw new Error('Supabase auth is not configured.');
+      const { error } = await client.auth.verifyOtp({
+        email,
+        token,
+        type: 'email'
+      });
+      if (error) throw error;
+    },
+    async signOut() {
+      if (!client) return;
+      const { error } = await client.auth.signOut();
+      if (error) throw error;
+    },
+    onAuthStateChange(onSessionChange) {
+      if (!client) return null;
+      return client.auth.onAuthStateChange((_event, session) => onSessionChange(session));
+    },
+    async resolveFamilyMembership() {
+      if (!client) return null;
+      const { data: userData, error: userError } = await client.auth.getUser();
+      if (userError) throw userError;
+      const user = userData?.user;
+      if (!user) return null;
+      const email = String(user.email || '').trim().toLowerCase();
 
-      const { data: existingFamily, error: findError } = await client
-        .from('families')
-        .select('*')
-        .eq('name', familyName)
-        .maybeSingle();
-
-      if (findError) throw findError;
-      if (existingFamily) {
-        this.familyId = existingFamily.id;
-        await seedMembers(this.familyId);
-        return existingFamily;
+      if (email) {
+        const { error: claimError } = await client
+          .from('family_memberships')
+          .update({ user_id: user.id, status: 'active' })
+          .is('user_id', null)
+          .eq('email', email);
+        if (claimError) throw claimError;
       }
 
-      const { data: createdFamily, error: createError } = await client
+      const { data, error } = await client
+        .from('family_memberships')
+        .select('id, family_id, email, role, status, families(id, name)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+
+      const membership = data?.[0] || null;
+      this.familyId = membership?.family_id || null;
+      if (!membership) return null;
+
+      await seedMembers(this.familyId, buildStarterMemberNameFromEmail(user.email));
+      return {
+        id: membership.id,
+        family_id: membership.family_id,
+        family_name: membership.families?.name || 'Family',
+        email: membership.email,
+        role: membership.role,
+        status: membership.status
+      };
+    },
+    async createFamilyForCurrentUser(name) {
+      if (!client) throw new Error('Supabase auth is not configured.');
+      const { data: userData, error: userError } = await client.auth.getUser();
+      if (userError) throw userError;
+      const user = userData?.user;
+      if (!user?.id || !user?.email) {
+        throw new Error('You must sign in before creating a family.');
+      }
+
+      const { data: createdFamily, error: familyError } = await client
         .from('families')
-        .insert({ name: familyName })
+        .insert({ name })
         .select()
         .single();
+      if (familyError) throw familyError;
 
-      if (createError) throw createError;
+      const { error: membershipError } = await client
+        .from('family_memberships')
+        .insert({
+          family_id: createdFamily.id,
+          user_id: user.id,
+          email: String(user.email).trim().toLowerCase(),
+          role: 'owner',
+          status: 'active'
+        });
+      if (membershipError) throw membershipError;
+
       this.familyId = createdFamily.id;
-      await seedMembers(this.familyId);
+      await seedMembers(this.familyId, buildStarterMemberNameFromEmail(user.email));
       return createdFamily;
     },
     async getMembers() {
@@ -261,7 +343,19 @@
     }
   };
 
-  async function seedMembers(familyId) {
+  function buildStarterMemberNameFromEmail(email) {
+    const localPart = String(email || '').split('@')[0] || '';
+    const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+    if (!cleaned) return 'My Profile';
+    return cleaned
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 3)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(' ');
+  }
+
+  async function seedMembers(familyId, ownerName = 'My Profile') {
     const { data: existing, error: findError } = await client
       .from('members')
       .select('id')
@@ -272,8 +366,7 @@
     if (existing?.length) return;
 
     const starterMembers = [
-      { family_id: familyId, name: 'Dad', avatar: '👨', role: 'Family Admin' },
-      { family_id: familyId, name: 'Rithyna', avatar: '👩', role: 'Meal Planner' }
+      { family_id: familyId, name: ownerName, avatar: '👤', role: 'Family Admin' }
     ];
 
     const { error: insertError } = await client.from('members').insert(starterMembers);
