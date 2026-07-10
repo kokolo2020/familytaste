@@ -1254,7 +1254,8 @@ function renderMeals() {
     const analysis = analyzeMealQuality(meal);
     const health = analysis.score;
     const description = mealDescriptionSummary(meal);
-    const compactReasons = analysis.reasons.slice(0, 2);
+    const compactReasons = analysis.reasons.slice(0, 1);
+    const secondaryDetail = description || analysis.swap || '';
     return `
       <article class="timeline-item">
         <div class="timeline-food-cell">
@@ -1269,8 +1270,7 @@ function renderMeals() {
                 ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
-            ${description ? `<small class="meal-description timeline-meal-description">${escapeHtml(description)}</small>` : ''}
-            ${analysis.swap ? `<small class="meal-health-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
+            ${secondaryDetail ? `<small class="meal-description timeline-meal-description">${escapeHtml(secondaryDetail)}</small>` : ''}
           </div>
         </div>
         <span class="timeline-date">${formatTimelineDate(meal.eaten_at)}</span>

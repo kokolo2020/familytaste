@@ -2179,28 +2179,25 @@ h1 span {
 .timeline-food-cell { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: start; min-width: 0; }
 .timeline-food-emoji { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #fff1d8; font-size: 22px; }
 .timeline-food-photo { display: block; width: 42px; height: 42px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 16px rgba(69,48,31,.12); }
-.timeline-food-cell h4 { margin: 0 0 3px; line-height: 1.2; }
+.timeline-food-cell h4 {
+  margin: 0 0 3px;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .timeline-food-cell p { margin: 0; color: var(--muted); font-size: 11px; }
 .timeline-meal-description {
   margin-top: 4px;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .timeline-food-cell .meal-health-pill { margin-bottom: 4px; padding: 5px 9px; font-size: 10px; }
 .timeline-health-reasons { margin-bottom: 4px; gap: 5px; }
 .timeline-food-cell .meal-reason-chip { font-size: 9px; }
-.timeline-food-cell .meal-health-swap {
-  display: -webkit-box;
-  margin-top: 4px;
-  color: #7a5c42;
-  font-size: 10px;
-  line-height: 1.3;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 .timeline-date,
 .timeline-time,
 .timeline-restaurant,
