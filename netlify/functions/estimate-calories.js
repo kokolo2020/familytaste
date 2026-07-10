@@ -33,7 +33,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Extra user context: ${descriptionContext || 'none'}. Portion selected by user: ${portion}. Use the user context to refine ingredients when it matches the photo, such as milk type, sauce, toppings, or preparation details. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Extra user context: ${descriptionContext || 'none'}. Portion selected by user: ${portion}. Use the user context to refine ingredients when it matches the photo, such as milk type, sauce, toppings, or preparation details. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also return a short list of likely ingredients and broad meal tags that a user can confirm, such as fried, grilled, sweet drink, high protein, high fiber, processed, creamy, saucy, dessert, plant-based likely, contains dairy, or contains meat. Do not invent hidden ingredients with high confidence. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]
@@ -61,10 +61,20 @@ exports.handler = async (event) => {
                   }
                 },
                 total_calories: { type: 'integer', minimum: 0, maximum: 10000 },
+                likely_ingredients: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  maxItems: 12
+                },
+                meal_tags: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  maxItems: 8
+                },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
                 note: { type: 'string' }
               },
-              required: ['foods', 'total_calories', 'confidence', 'note']
+              required: ['foods', 'total_calories', 'likely_ingredients', 'meal_tags', 'confidence', 'note']
             }
           }
         }

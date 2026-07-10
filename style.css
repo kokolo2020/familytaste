@@ -1621,6 +1621,96 @@ h1 span {
 .calorie-scanner .estimate-error { color: #a43a28; font-weight: 750; }
 .calorie-scanner button:disabled { opacity: .65; cursor: wait; }
 
+.scan-insights-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #eadbc9;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fffaf3, #f6fbef);
+}
+
+.scan-insights-header,
+.scan-insights-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.scan-insights-header strong,
+.scan-insights-subhead strong {
+  display: block;
+  color: #5f3815;
+}
+
+.scan-insights-header small,
+.scan-insights-subhead small {
+  color: var(--muted);
+}
+
+.scan-summary-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef7de;
+  color: #557425;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.scan-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e6d6c5;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #554233;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.scan-chip.active {
+  border-color: #b7daa5;
+  background: #eef9e8;
+  color: #3f6a22;
+}
+
+.scan-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.scan-ingredient-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.scan-ingredient-add input {
+  min-height: 44px;
+  border: 1px solid #e6d6c5;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+}
+
 .glass-form label {
   display: grid;
   gap: 8px;

@@ -34,6 +34,24 @@ const APP_VERSION = 'v0.7.0';
 const APP_BUILD_DATE = '2026-07-07';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna']);
+const snapTagCatalog = [
+  'fried',
+  'grilled',
+  'steamed',
+  'baked',
+  'roasted',
+  'stir-fried',
+  'sweet drink',
+  'dessert',
+  'high protein',
+  'high fiber',
+  'processed',
+  'creamy',
+  'saucy',
+  'plant-based likely',
+  'contains dairy',
+  'contains meat'
+];
 
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
@@ -56,6 +74,7 @@ const menuItems = [
 let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
+let snapScanDraft = createEmptySnapScanDraft();
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -177,6 +196,16 @@ function bindEvents() {
     if (removeFavTarget) {
       handleRemoveFavorite(removeFavTarget.dataset.removeFav);
     }
+
+    const removeIngredientTarget = event.target.closest('[data-remove-scan-ingredient]');
+    if (removeIngredientTarget) {
+      removeSnapIngredient(removeIngredientTarget.dataset.removeScanIngredient);
+    }
+
+    const toggleTagTarget = event.target.closest('[data-toggle-scan-tag]');
+    if (toggleTagTarget) {
+      toggleSnapTag(toggleTagTarget.dataset.toggleScanTag);
+    }
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
@@ -184,6 +213,7 @@ function bindEvents() {
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
+  document.getElementById('addScanIngredient').addEventListener('click', handleAddSnapIngredient);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
@@ -209,6 +239,12 @@ function bindEvents() {
     document.getElementById(id).addEventListener('change', handleTimelineFilterChange);
   });
   document.getElementById('timelineSearchFilter').addEventListener('input', handleTimelineFilterChange);
+  document.getElementById('scanIngredientInput').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleAddSnapIngredient();
+    }
+  });
   ['editFoodName', 'editRestaurant', 'editNotes'].forEach((id) => {
     document.getElementById(id).addEventListener('input', scheduleAutoEditAiCalorieEstimate);
   });
@@ -431,6 +467,7 @@ function openMealComposer(defaultDay = 'today') {
   if (!form) return;
 
   form.reset();
+  clearSnapScanDraft();
   document.getElementById('mealPhotoUpload').value = '';
   document.getElementById('mealPhotoCamera').value = '';
   resetPhotoPreview();
@@ -443,6 +480,109 @@ function openMealComposer(defaultDay = 'today') {
   updateMealPreview();
   showPage('snap');
   document.getElementById('foodName').focus();
+}
+
+function createEmptySnapScanDraft() {
+  return {
+    ingredients: [],
+    tags: [],
+    confidence: '',
+    note: ''
+  };
+}
+
+function normalizeScanLabel(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[|[\]]/g, '')
+    .slice(0, 60);
+}
+
+function formatScanLabel(value) {
+  return normalizeScanLabel(value)
+    .split(' ')
+    .map((word) => word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : '')
+    .join(' ');
+}
+
+function clearSnapScanDraft() {
+  snapScanDraft = createEmptySnapScanDraft();
+  renderSnapInsights();
+}
+
+function renderSnapInsights() {
+  const panel = document.getElementById('scanInsightsPanel');
+  const ingredientList = document.getElementById('scanIngredientList');
+  const tagList = document.getElementById('scanTagList');
+  const summary = document.getElementById('scanInsightsSummary');
+  const hasInsights = snapScanDraft.ingredients.length || snapScanDraft.tags.length;
+
+  panel.classList.toggle('hidden', !hasInsights);
+  summary.textContent = snapScanDraft.confidence
+    ? `${snapScanDraft.confidence} confidence`
+    : hasInsights ? 'Ready to confirm' : 'No scan yet';
+
+  ingredientList.innerHTML = snapScanDraft.ingredients.length
+    ? snapScanDraft.ingredients.map((ingredient) => `
+        <span class="scan-chip active">
+          ${escapeHtml(formatScanLabel(ingredient))}
+          <button type="button" data-remove-scan-ingredient="${escapeAttr(ingredient)}" aria-label="Remove ${escapeAttr(ingredient)}">×</button>
+        </span>
+      `).join('')
+    : '<span class="muted">Scan first, then remove or add ingredients here.</span>';
+
+  tagList.innerHTML = snapTagCatalog.map((tag) => {
+    const isActive = snapScanDraft.tags.includes(tag);
+    return `
+      <button class="scan-chip ${isActive ? 'active' : ''}" type="button" data-toggle-scan-tag="${escapeAttr(tag)}">
+        ${escapeHtml(formatScanLabel(tag))}
+      </button>
+    `;
+  }).join('');
+}
+
+function setSnapInsightsFromEstimate(estimate = {}) {
+  const ingredientPool = [
+    ...(estimate.likely_ingredients || []),
+    ...((estimate.foods || []).flatMap((food) => String(food.name || '').split(',').map((item) => item.trim())))
+  ];
+  snapScanDraft = {
+    ingredients: uniqueList(ingredientPool.map(normalizeScanLabel).filter(Boolean)).slice(0, 10),
+    tags: uniqueList((estimate.meal_tags || []).map((tag) => normalizeScanLabel(tag).toLowerCase()).filter(Boolean))
+      .filter((tag) => snapTagCatalog.includes(tag)),
+    confidence: String(estimate.confidence || ''),
+    note: String(estimate.note || '').trim()
+  };
+  renderSnapInsights();
+}
+
+function removeSnapIngredient(value) {
+  const ingredient = normalizeScanLabel(value);
+  if (!ingredient) return;
+  snapScanDraft.ingredients = snapScanDraft.ingredients.filter((item) => item !== ingredient);
+  renderSnapInsights();
+}
+
+function toggleSnapTag(value) {
+  const tag = normalizeScanLabel(value).toLowerCase();
+  if (!tag || !snapTagCatalog.includes(tag)) return;
+  snapScanDraft.tags = snapScanDraft.tags.includes(tag)
+    ? snapScanDraft.tags.filter((item) => item !== tag)
+    : [...snapScanDraft.tags, tag];
+  renderSnapInsights();
+}
+
+function handleAddSnapIngredient() {
+  const input = document.getElementById('scanIngredientInput');
+  const ingredient = normalizeScanLabel(input.value);
+  if (!ingredient) {
+    input.value = '';
+    return;
+  }
+  snapScanDraft.ingredients = uniqueList([...snapScanDraft.ingredients, ingredient]).slice(0, 12);
+  input.value = '';
+  renderSnapInsights();
 }
 
 function renderAll() {
@@ -708,7 +848,13 @@ function buildPrimaryImpact(system, meals, totalCalories) {
 }
 
 function foodSearchText(meal) {
-  return [meal.food_name, meal.notes, meal.restaurant_name]
+  return [
+    meal.food_name,
+    notesWithoutSystemMetadata(meal.notes),
+    meal.restaurant_name,
+    getMealIngredients(meal).join(' '),
+    getMealScanTags(meal).join(' ')
+  ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -898,7 +1044,10 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
-    notes: notesWithMealType(document.getElementById('editNotes').value, mealType)
+    notes: notesWithMealType(document.getElementById('editNotes').value, mealType, editingMealId ? {
+      scanIngredients: getMealIngredients(appState.meals.find((item) => item.id === editingMealId)),
+      scanTags: getMealScanTags(appState.meals.find((item) => item.id === editingMealId))
+    } : {})
   };
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
@@ -1287,12 +1436,48 @@ function dashboardMealTypeLabel(type) {
 }
 
 function notesWithoutMealType(notes) {
-  return String(notes || '').replace(/\s*\[\[meal_type:[^\]]+\]\]\s*/ig, ' ').trim();
+  return notesWithoutSystemMetadata(notes);
 }
 
-function notesWithMealType(notes, mealType) {
-  const cleanNotes = notesWithoutMealType(notes);
-  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${mealType}]]`;
+function notesWithoutSystemMetadata(notes) {
+  return String(notes || '').replace(/\s*\[\[[a-z_]+:[^\]]+\]\]\s*/ig, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function getNotesMetadataValue(notes, key) {
+  return String(notes || '').match(new RegExp(`\\[\\[${key}:([^\\]]+)\\]\\]`, 'i'))?.[1] || '';
+}
+
+function decodeNotesMetadataList(value) {
+  return value
+    ? value.split(',').map((item) => decodeURIComponent(item).trim()).filter(Boolean)
+    : [];
+}
+
+function encodeNotesMetadataList(values = []) {
+  return uniqueList(values.map((item) => normalizeScanLabel(item)).filter(Boolean))
+    .map((item) => encodeURIComponent(item))
+    .join(',');
+}
+
+function getMealIngredients(meal) {
+  return decodeNotesMetadataList(getNotesMetadataValue(meal?.notes, 'scan_ingredients'));
+}
+
+function getMealScanTags(meal) {
+  return decodeNotesMetadataList(getNotesMetadataValue(meal?.notes, 'scan_tags'));
+}
+
+function notesWithMetadata(notes, { mealType, scanIngredients = [], scanTags = [] } = {}) {
+  const cleanNotes = notesWithoutSystemMetadata(notes);
+  const tokens = [];
+  if (mealType) tokens.push(`[[meal_type:${mealType}]]`);
+  if (scanIngredients.length) tokens.push(`[[scan_ingredients:${encodeNotesMetadataList(scanIngredients)}]]`);
+  if (scanTags.length) tokens.push(`[[scan_tags:${encodeNotesMetadataList(scanTags)}]]`);
+  return `${cleanNotes}${cleanNotes && tokens.length ? ' ' : ''}${tokens.join(' ')}`.trim();
+}
+
+function notesWithMealType(notes, mealType, metadata = {}) {
+  return notesWithMetadata(notes, { mealType, ...metadata });
 }
 
 function formatTimelineDate(value) {
@@ -2052,7 +2237,10 @@ async function saveMeal(event) {
     location_name: formData.get('location_name').trim(),
     price: numberOrNull(formData.get('price')),
     calories: numberOrNull(formData.get('calories')),
-    notes: notesWithMealType(formData.get('notes'), formData.get('meal_type')),
+    notes: notesWithMealType(formData.get('notes'), formData.get('meal_type'), {
+      scanIngredients: snapScanDraft.ingredients,
+      scanTags: snapScanDraft.tags
+    }),
     photo_url: photoUrl,
     eaten_at: buildMealTimestamp(mealDate, mealTime)
   };
@@ -2062,6 +2250,7 @@ async function saveMeal(event) {
   appState.meals.unshift(meal);
   saveStoredAppData();
   form.reset();
+  clearSnapScanDraft();
   setMealFormDateTimeDefaults();
   resetPhotoPreview();
   showPage('dashboard');
@@ -2175,6 +2364,7 @@ async function handlePhotoChange(event) {
   event.target.value = '';
   document.getElementById('foodName').value = '';
   document.getElementById('calories').value = '';
+  clearSnapScanDraft();
   updateMealPreview();
 
   try {
@@ -2185,9 +2375,11 @@ async function handlePhotoChange(event) {
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
     document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories…';
+    document.getElementById('photoHint').textContent = 'Review the details below, then scan or save when ready.';
+    const estimateStatus = document.getElementById('calorieEstimate');
+    estimateStatus.classList.remove('estimate-success', 'estimate-error');
+    estimateStatus.textContent = 'Photo ready. Tap "Scan Food Details" when you want an estimate. Nothing is added until you tap Save Meal.';
     updateMealPreview();
-    await applyAiCalorieEstimate();
   } catch (error) {
     console.warn('Could not load food photo.', error);
     alert('Could not load that food photo. Please try another image.');
@@ -2206,10 +2398,11 @@ function resetPhotoPreview() {
   previewPhoto.classList.add('hidden');
   document.getElementById('photoIcon').classList.remove('hidden');
   document.getElementById('photoTitle').textContent = 'Add a food photo';
-  document.getElementById('photoHint').textContent = 'Choose where your photo comes from.';
+  document.getElementById('photoHint').textContent = 'Choose where your photo comes from. Nothing is added until you save.';
   const estimateStatus = document.getElementById('calorieEstimate');
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
-  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food and calories.';
+  estimateStatus.textContent = 'Add a photo, then tap scan when you want an AI estimate. Nothing is added until you tap Save Meal.';
+  document.getElementById('scanIngredientInput').value = '';
 }
 
 function setMealFormDateTimeDefaults(date = new Date()) {
@@ -2248,7 +2441,8 @@ async function applyAiCalorieEstimate() {
       if (estimate.foods?.length) {
         foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
       }
-      document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
+      setSnapInsightsFromEstimate(estimate);
+      document.getElementById('photoHint').textContent = 'AI estimate ready. Review the meal, then save when ready.';
       updateMealPreview();
     },
     onError: () => {
