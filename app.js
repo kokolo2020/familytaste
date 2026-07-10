@@ -248,13 +248,14 @@ function bindEvents() {
     if (event.key === 'Enter') handleSaveProfileName();
   });
 
-  ['foodName', 'calories'].forEach((id) => {
+  ['foodName', 'calories', 'mealDate', 'mealTime'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
   ['foodName', 'notes', 'restaurantName'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateSnapEstimateStatus);
   });
   document.getElementById('notes').addEventListener('input', updateMealPreview);
+  document.getElementById('mealType').addEventListener('change', updateMealPreview);
   ['timelineMemberFilter', 'timelineMealTypeFilter', 'timelineDateFilter', 'timelineHealthFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', handleTimelineFilterChange);
   });
@@ -1453,6 +1454,8 @@ function renderSnapAlbum() {
   const scans = getCurrentMemberSnapScans();
   list.innerHTML = scans.map((scan) => {
     const linked = isSnapLinkedToMeal(scan);
+    const mealType = getMealType(scan);
+    const cleanNotes = notesWithoutMealType(scan.notes);
     const facts = uniqueList([
       ...scan.tags.map(formatScanLabel),
       ...scan.ingredients.slice(0, 3).map(formatScanLabel)
@@ -1466,6 +1469,7 @@ function renderSnapAlbum() {
           <h4>${escapeHtml(buildSnapDisplayName(scan))}</h4>
           <div class="snap-saved-meta">
             <span>${Number(scan.calories || 0).toLocaleString()} cal</span>
+            <span>${escapeHtml(mealType ? dashboardMealTypeLabel(mealType) : 'Type not set')}</span>
             <span>${escapeHtml(scan.confidence || 'AI scan')}</span>
             <span>${escapeHtml(formatTimelineDate(scan.created_at))}</span>
             <span>${escapeHtml(formatTimelineTime(scan.created_at))}</span>
@@ -1474,7 +1478,7 @@ function renderSnapAlbum() {
             ${facts.map((fact) => `<span class="scan-chip ${scan.tags.some((tag) => formatScanLabel(tag) === fact) ? 'active' : ''}">${escapeHtml(fact)}</span>`).join('')}
           </div>
           ${scan.ai_note ? `<small>${escapeHtml(scan.ai_note)}</small>` : ''}
-          ${scan.notes ? `<p>${escapeHtml(scan.notes)}</p>` : ''}
+          ${cleanNotes ? `<p>${escapeHtml(cleanNotes)}</p>` : ''}
           ${linked ? '<span class="snap-saved-status">Added to food diary</span>' : ''}
         </div>
         <div class="snap-saved-actions">
@@ -2507,20 +2511,23 @@ async function saveSnapScan(event) {
     }
   }
 
+  const mealType = document.getElementById('mealType').value;
+  const mealDate = document.getElementById('mealDate').value;
+  const mealTime = document.getElementById('mealTime').value;
   const scan = normalizeSnapScan({
     id: crypto.randomUUID ? crypto.randomUUID() : `scan-${Date.now()}`,
     family_id: appState.familyId,
     member_id: appState.currentMember.id,
     food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
     calories: numberOrNull(document.getElementById('calories').value),
-    notes: document.getElementById('notes').value.trim(),
+    notes: notesWithMealType(document.getElementById('notes').value.trim(), mealType),
     photo_url: savedPhotoUrl,
     ingredients: [...snapScanDraft.ingredients],
     tags: [...snapScanDraft.tags],
     confidence: snapScanDraft.confidence,
     ai_note: snapScanDraft.note,
     foods: [...snapScanDraft.foods],
-    created_at: new Date().toISOString()
+    created_at: buildMealTimestamp(mealDate, mealTime)
   });
 
   appState.snapScans.unshift(scan);
@@ -2553,7 +2560,7 @@ function inferMealTypeFromTimestamp(value) {
 async function handleAddScanToDiary(scanId) {
   const scan = appState.snapScans.find((item) => item.id === scanId);
   if (!scan || isSnapLinkedToMeal(scan)) return;
-  const mealType = inferMealTypeFromTimestamp(scan.created_at);
+  const mealType = getMealType(scan) || inferMealTypeFromTimestamp(scan.created_at);
   const savedMeal = await persistNewMeal({
     id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
     family_id: appState.familyId,
@@ -2563,7 +2570,7 @@ async function handleAddScanToDiary(scanId) {
     location_name: '',
     price: null,
     calories: numberOrNull(scan.calories),
-    notes: notesWithMealType(scan.notes || scan.ai_note || '', mealType, {
+    notes: notesWithMealType(notesWithoutMealType(scan.notes || '') || scan.ai_note || '', mealType, {
       scanIngredients: scan.ingredients,
       scanTags: scan.tags
     }),
@@ -2654,6 +2661,9 @@ async function sendChat(event) {
 function updateMealPreview() {
   const food = document.getElementById('foodName').value.trim();
   const calories = document.getElementById('calories').value.trim();
+  const mealType = document.getElementById('mealType').value;
+  const mealDate = document.getElementById('mealDate').value;
+  const mealTime = document.getElementById('mealTime').value;
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const previewPhoto = document.getElementById('previewPhoto');
   const ingredientSummary = snapScanDraft.ingredients.length
@@ -2661,8 +2671,9 @@ function updateMealPreview() {
     : 'Ingredients pending';
   document.getElementById('previewFood').textContent = food || 'Scan result';
   document.getElementById('previewMeta').textContent = [
+    mealType ? dashboardMealTypeLabel(mealType) : 'Meal type not set',
+    formatPreviewDateTime(mealDate, mealTime),
     calories ? `${Number(calories).toLocaleString()} calories` : 'Calories pending',
-    snapScanDraft.confidence ? `${snapScanDraft.confidence} confidence` : 'Waiting for scan',
     ingredientSummary
   ].join(' · ');
 

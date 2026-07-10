@@ -1725,6 +1725,12 @@ h1 span {
   gap: 10px;
 }
 
+.scan-time-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .scan-result-card {
   display: grid;
   gap: 4px;
@@ -2506,6 +2512,10 @@ h1 span {
   }
 
   .scan-results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scan-time-row {
     grid-template-columns: 1fr;
   }
 }

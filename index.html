@@ -178,6 +178,22 @@
                 </div>
               </div>
               <label>Food Name<input id="foodName" name="food_name" placeholder="AI will label the dish after scanning"></label>
+              <label class="meal-type-field">Meal Type
+                <select id="mealType" name="meal_type">
+                  <option value="">Choose meal type</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="brunch">Brunch</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                  <option value="dessert">Dessert</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <div class="scan-time-row wide">
+                <label>Date<input id="mealDate" name="meal_date" type="date"></label>
+                <label>Time<input id="mealTime" name="meal_time" type="time"></label>
+              </div>
               <div class="scan-results-grid wide" aria-live="polite">
                 <article class="scan-result-card">
                   <span>Calories</span>
@@ -231,20 +247,8 @@
               <label class="wide">Scan Notes<textarea id="notes" name="notes" placeholder="Optional notes or ingredient corrections"></textarea></label>
               <input id="calories" name="calories" type="hidden" value="">
               <div class="scan-hidden-fields" hidden>
-                <select id="mealType" name="meal_type">
-                  <option value="">Other</option>
-                  <option value="breakfast">Breakfast</option>
-                  <option value="brunch">Brunch</option>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                  <option value="snack">Snack</option>
-                  <option value="dessert">Dessert</option>
-                  <option value="other">Other</option>
-                </select>
                 <input id="restaurantName" name="restaurant_name" placeholder="Optional">
                 <input id="locationName" name="location_name" placeholder="Optional">
-                <input id="mealDate" name="meal_date" type="date">
-                <input id="mealTime" name="meal_time" type="time">
                 <input id="price" name="price" type="number" min="0" step="0.01" placeholder="0">
               </div>
               <div class="scan-action-row wide">
