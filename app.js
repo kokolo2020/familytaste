@@ -273,6 +273,10 @@ function bindEvents() {
   });
 }
 
+function looksLikeUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
 async function hydrateFromSupabase() {
   if (!window.familyBitesDb?.isConfigured) {
     selectMember(getDefaultMember(), { openDashboard: false });
@@ -305,6 +309,8 @@ async function hydrateFromSupabase() {
     if (favorites.length) appState.favorites = favorites;
     if (chat.length) appState.chat = mergeRecords(chat.map(normalizeChat), appState.chat);
 
+    await backfillLocalSnapScansToSupabase();
+
     try {
       const bioLogs = await window.familyBitesDb.getBioLogs(todayKey());
       bioLogs.forEach((log) => {
@@ -330,6 +336,45 @@ async function hydrateFromSupabase() {
 
   renderProfiles();
   selectMember(getDefaultMember(), { openDashboard: false });
+}
+
+async function backfillLocalSnapScansToSupabase() {
+  if (!window.familyBitesDb?.isConfigured || !appState.familyId) return;
+  const pendingScans = appState.snapScans.filter((scan) => !looksLikeUuid(scan.id));
+  if (!pendingScans.length) return;
+
+  let changed = false;
+  for (const pendingScan of pendingScans) {
+    try {
+      let photoUrl = pendingScan.photo_url || '';
+      if (photoUrl.startsWith('data:')) {
+        try {
+          const uploadedUrl = await window.familyBitesDb.uploadScanPhoto(photoUrl);
+          if (uploadedUrl) photoUrl = uploadedUrl;
+        } catch (uploadError) {
+          console.warn('Pending local scan photo upload failed.', uploadError);
+        }
+      }
+
+      const savedScan = await window.familyBitesDb.saveSnapScan({
+        ...pendingScan,
+        family_id: appState.familyId,
+        photo_url: photoUrl
+      });
+
+      appState.snapScans = appState.snapScans.map((item) =>
+        item.id === pendingScan.id ? normalizeSnapScan(savedScan) : item
+      );
+      changed = true;
+    } catch (error) {
+      console.warn('Pending local scan backfill failed.', error);
+    }
+  }
+
+  if (changed) {
+    saveStoredAppData();
+    renderAll();
+  }
 }
 
 function renderProfiles() {
