@@ -1254,6 +1254,7 @@ function renderMeals() {
     const analysis = analyzeMealQuality(meal);
     const health = analysis.score;
     const description = mealDescriptionSummary(meal);
+    const compactReasons = analysis.reasons.slice(0, 2);
     return `
       <article class="timeline-item">
         <div class="timeline-food-cell">
@@ -1263,9 +1264,9 @@ function renderMeals() {
           <div>
             <h4>${escapeHtml(meal.food_name)}</h4>
             <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
-            ${analysis.reasons.length ? `
+            ${compactReasons.length ? `
               <div class="meal-health-reasons timeline-health-reasons" aria-label="Meal breakdown">
-                ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
+                ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
             ${description ? `<small class="meal-description timeline-meal-description">${escapeHtml(description)}</small>` : ''}

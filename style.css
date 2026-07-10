@@ -2143,8 +2143,8 @@ h1 span {
   font-size: 13px;
 }
 
-.timeline-actions { display: flex; gap: 7px; margin-top: 8px; }
-.timeline-actions button { padding: 7px 10px; border-radius: 7px; font-size: 11px; font-weight: 850; }
+.timeline-actions { display: flex; gap: 6px; margin-top: 6px; }
+.timeline-actions button { padding: 6px 9px; border-radius: 7px; font-size: 10px; font-weight: 850; }
 .meal-edit-button { color: #426b32; background: #edf6e8; }
 .meal-delete-button { color: #a14332; background: #fff0ed; }
 
@@ -2175,17 +2175,32 @@ h1 span {
 .timeline-item { display: grid; grid-template-columns: minmax(220px, 1.6fr) 110px 88px minmax(150px, 1.1fr) 100px 92px auto; gap: 12px; align-items: center; }
 .timeline-table-head { padding: 0 18px; color: #8c7f73; font-size: 11px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
 .timeline-list { gap: 10px; }
-.timeline-item { padding: 16px 18px; border: 1px solid #eee7dc; border-radius: 18px; background: #fff; box-shadow: 0 10px 24px rgba(69,48,31,.05); }
-.timeline-food-cell { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; }
-.timeline-food-emoji { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: #fff1d8; font-size: 26px; }
-.timeline-food-photo { display: block; width: 48px; height: 48px; border-radius: 14px; object-fit: cover; box-shadow: 0 6px 16px rgba(69,48,31,.12); }
-.timeline-food-cell h4 { margin: 0 0 4px; }
-.timeline-food-cell p { margin: 0; color: var(--muted); font-size: 12px; }
-.timeline-meal-description { margin-top: 6px; }
-.timeline-food-cell .meal-health-pill { margin-bottom: 6px; }
-.timeline-health-reasons { margin-bottom: 6px; }
+.timeline-item { padding: 13px 16px; border: 1px solid #eee7dc; border-radius: 18px; background: #fff; box-shadow: 0 10px 24px rgba(69,48,31,.05); }
+.timeline-food-cell { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: start; min-width: 0; }
+.timeline-food-emoji { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #fff1d8; font-size: 22px; }
+.timeline-food-photo { display: block; width: 42px; height: 42px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 16px rgba(69,48,31,.12); }
+.timeline-food-cell h4 { margin: 0 0 3px; line-height: 1.2; }
+.timeline-food-cell p { margin: 0; color: var(--muted); font-size: 11px; }
+.timeline-meal-description {
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.timeline-food-cell .meal-health-pill { margin-bottom: 4px; padding: 5px 9px; font-size: 10px; }
+.timeline-health-reasons { margin-bottom: 4px; gap: 5px; }
 .timeline-food-cell .meal-reason-chip { font-size: 9px; }
-.timeline-food-cell .meal-health-swap { display: block; margin-top: 6px; color: #7a5c42; font-size: 11px; line-height: 1.35; }
+.timeline-food-cell .meal-health-swap {
+  display: -webkit-box;
+  margin-top: 4px;
+  color: #7a5c42;
+  font-size: 10px;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .timeline-date,
 .timeline-time,
 .timeline-restaurant,
@@ -2720,8 +2735,8 @@ h1 span {
 
   .timeline-item {
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 14px;
+    gap: 8px;
+    padding: 12px;
   }
 
   .timeline-food-cell {
@@ -2731,6 +2746,9 @@ h1 span {
   .timeline-food-cell .meal-health-pill { padding: 4px 8px; font-size: 10px; }
   .timeline-food-cell .meal-reason-chip { padding: 3px 6px; font-size: 9px; }
   .timeline-food-cell .meal-health-swap { font-size: 10px; }
+  .timeline-food-cell h4 { font-size: 16px; }
+  .timeline-food-cell p { font-size: 11px; }
+  .timeline-meal-description { font-size: 10px; }
 
   .timeline-date,
   .timeline-time,
@@ -2761,7 +2779,7 @@ h1 span {
   .timeline-actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   .avatar-picker {
