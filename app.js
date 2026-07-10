@@ -382,7 +382,7 @@ function renderAuthState() {
     subtitle.textContent = 'Enter any email and we will send a one-time code.';
   } else if (state === 'otp_sent') {
     title.textContent = 'Check your email';
-    subtitle.textContent = 'Enter the code from your email. Opening the email link here will also continue automatically.';
+    subtitle.textContent = 'Open the sign-in email and tap the link on this device to continue automatically.';
   } else if (state === 'needs_family') {
     title.textContent = 'Create your family';
     subtitle.textContent = 'This email is signed in, but it is not linked to a family yet.';
@@ -471,8 +471,8 @@ async function handleAuthenticatedSession(session) {
   appState.auth.membership = membership;
   await hydrateFamilyData();
   appState.auth.status = 'ready';
+  appState.currentMember = null;
   renderProfiles();
-  selectMember(getDefaultMember(), { openDashboard: false });
   renderAuthState();
 }
 
