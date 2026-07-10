@@ -39,6 +39,23 @@ create table if not exists food_entries (
   created_at timestamptz default now()
 );
 
+create table if not exists snap_scans (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid references families(id) on delete cascade,
+  member_id uuid references members(id) on delete cascade,
+  food_name text,
+  calories integer,
+  notes text,
+  photo_url text,
+  ingredients jsonb default '[]'::jsonb,
+  tags jsonb default '[]'::jsonb,
+  confidence text,
+  ai_note text,
+  foods jsonb default '[]'::jsonb,
+  linked_meal_id uuid references food_entries(id) on delete set null,
+  created_at timestamptz default now()
+);
+
 create table if not exists favorite_restaurants (
   id uuid primary key default gen_random_uuid(),
   family_id uuid references families(id) on delete cascade,

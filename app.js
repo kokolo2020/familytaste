@@ -8,6 +8,7 @@ const appState = {
     { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
   ],
   meals: [],
+  snapScans: [],
   favorites: [
     { id: 'fav-1', name: 'Grandma Kitchen', phone: 'Add number', address: 'Near home', notes: 'Comfort food for Sunday dinner.' },
     { id: 'fav-2', name: 'Pizza Company', phone: '1112', address: 'Delivery', notes: 'Fast Friday-night order.' },
@@ -23,6 +24,7 @@ const appState = {
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
+const localSnapScansStorageKey = 'familyBites.snapScans.v1';
 const localChatStorageKey = 'familyBites.chat.v2';
 const localMembersStorageKey = 'familyBites.members.v1';
 const chefOrdersStorageKey = 'familyBites.chefOrders';
@@ -170,10 +172,20 @@ function bindEvents() {
       handleDeleteMeal(deleteMealTarget.dataset.deleteMeal);
     }
 
+    const addScanTarget = event.target.closest('[data-add-scan-meal]');
+    if (addScanTarget) {
+      handleAddScanToDiary(addScanTarget.dataset.addScanMeal);
+    }
+
+    const deleteScanTarget = event.target.closest('[data-delete-scan]');
+    if (deleteScanTarget) {
+      handleDeleteSnapScan(deleteScanTarget.dataset.deleteScan);
+    }
+
     const addMealTarget = event.target.closest('[data-add-meal]');
     if (addMealTarget) {
       if (addMealTarget.dataset.addMeal === 'yesterday') {
-        openMealComposer('yesterday');
+        openMealModal(null, 'yesterday');
       } else {
         openMealModal(null, addMealTarget.dataset.addMeal);
       }
@@ -211,12 +223,13 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('mealForm').addEventListener('submit', saveMeal);
+  document.getElementById('mealForm').addEventListener('submit', saveSnapScan);
   document.getElementById('chatForm').addEventListener('submit', sendChat);
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
   document.getElementById('addScanIngredient').addEventListener('click', handleAddSnapIngredient);
+  document.getElementById('clearSnapForm').addEventListener('click', resetSnapWorkspace);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
@@ -235,13 +248,13 @@ function bindEvents() {
     if (event.key === 'Enter') handleSaveProfileName();
   });
 
-  ['foodName', 'mealType', 'restaurantName', 'calories', 'mealDate', 'mealTime'].forEach((id) => {
+  ['foodName', 'calories'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
-  ['foodName', 'restaurantName', 'notes'].forEach((id) => {
+  ['foodName', 'notes', 'restaurantName'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateSnapEstimateStatus);
   });
-  document.getElementById('mealType').addEventListener('change', updateSnapEstimateStatus);
+  document.getElementById('notes').addEventListener('input', updateMealPreview);
   ['timelineMemberFilter', 'timelineMealTypeFilter', 'timelineDateFilter', 'timelineHealthFilter'].forEach((id) => {
     document.getElementById(id).addEventListener('change', handleTimelineFilterChange);
   });
@@ -269,9 +282,10 @@ async function hydrateFromSupabase() {
   try {
     await window.familyBitesDb.ensureFamily();
     appState.familyId = window.familyBitesDb.familyId;
-    const [members, meals, favorites, chat] = (await Promise.allSettled([
+    const [members, meals, snapScans, favorites, chat] = (await Promise.allSettled([
       window.familyBitesDb.getMembers(),
       window.familyBitesDb.getMeals(),
+      window.familyBitesDb.getSnapScans(),
       window.familyBitesDb.getFavorites(),
       window.familyBitesDb.getChat()
     ])).map((result) => {
@@ -287,6 +301,7 @@ async function hydrateFromSupabase() {
       applyStoredProfilePhotos();
     }
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
+    if (snapScans.length) appState.snapScans = mergeRecords(snapScans.map(normalizeSnapScan), appState.snapScans);
     if (favorites.length) appState.favorites = favorites;
     if (chat.length) appState.chat = mergeRecords(chat.map(normalizeChat), appState.chat);
 
@@ -433,8 +448,9 @@ function handleAction(action) {
 
   if (action === 'clear-all-data') {
     if (!confirm('Clear all meals, chat, and orders saved in this browser? This cannot be undone.')) return;
-    [localMealsStorageKey, localChatStorageKey, chefOrdersStorageKey, chefCartStorageKey, chefVoiceStorageKey, profilePhotoStorageKey].forEach((key) => localStorage.removeItem(key));
+    [localMealsStorageKey, localSnapScansStorageKey, localChatStorageKey, chefOrdersStorageKey, chefCartStorageKey, chefVoiceStorageKey, profilePhotoStorageKey].forEach((key) => localStorage.removeItem(key));
     appState.meals = [];
+    appState.snapScans = [];
     appState.chat = [];
     appState.chefOrders = [];
     appState.cart = [];
@@ -470,23 +486,28 @@ function openDemoPage(pageName) {
 }
 
 function openMealComposer(defaultDay = 'today') {
+  resetSnapWorkspace(defaultDay);
+  updateMealPreview();
+  showPage('snap');
+  document.getElementById('foodName').focus();
+}
+
+function resetSnapWorkspace(defaultDay = 'today') {
   const form = document.getElementById('mealForm');
   if (!form) return;
-
   form.reset();
   clearSnapScanDraft();
   document.getElementById('mealPhotoUpload').value = '';
   document.getElementById('mealPhotoCamera').value = '';
-  resetPhotoPreview();
-
+  document.getElementById('foodName').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('restaurantName').value = '';
   const targetDate = defaultDay === 'yesterday'
     ? new Date(Date.now() - 24 * 60 * 60 * 1000)
     : new Date();
-
   setMealFormDateTimeDefaults(targetDate);
+  resetPhotoPreview();
   updateMealPreview();
-  showPage('snap');
-  document.getElementById('foodName').focus();
 }
 
 function createEmptySnapScanDraft() {
@@ -494,7 +515,8 @@ function createEmptySnapScanDraft() {
     ingredients: [],
     tags: [],
     confidence: '',
-    note: ''
+    note: '',
+    foods: []
   };
 }
 
@@ -517,6 +539,7 @@ function clearSnapScanDraft() {
   snapScanDraft = createEmptySnapScanDraft();
   lastSnapEstimateSignature = '';
   renderSnapInsights();
+  renderSnapAnalysis();
   updateSnapEstimateStatus();
 }
 
@@ -551,6 +574,40 @@ function renderSnapInsights() {
   }).join('');
 }
 
+function renderSnapAnalysis() {
+  const calories = Number(document.getElementById('calories')?.value || 0);
+  const calorieValue = document.getElementById('scanCaloriesValue');
+  const confidenceValue = document.getElementById('scanConfidenceValue');
+  const ingredientCount = document.getElementById('scanIngredientsCount');
+  const factPanel = document.getElementById('scanFactsPanel');
+  const factList = document.getElementById('scanFactList');
+  const aiNote = document.getElementById('scanAiNote');
+  const previewFacts = document.getElementById('previewFacts');
+  const facts = uniqueList([
+    ...snapScanDraft.tags.map(formatScanLabel),
+    ...(snapScanDraft.foods || []).map((food) => normalizeScanLabel(food.name)).filter(Boolean)
+  ]).slice(0, 6);
+
+  calorieValue.textContent = calories ? calories.toLocaleString() : '—';
+  confidenceValue.textContent = snapScanDraft.confidence ? snapScanDraft.confidence : '—';
+  ingredientCount.textContent = String(snapScanDraft.ingredients.length || 0);
+
+  factPanel.classList.toggle('hidden', !(facts.length || snapScanDraft.note));
+  factList.innerHTML = facts.length
+    ? facts.map((fact) => `<span class="scan-chip active">${escapeHtml(fact)}</span>`).join('')
+    : '<span class="muted">Scan a photo to surface quick facts.</span>';
+  aiNote.textContent = snapScanDraft.note || '';
+
+  previewFacts.innerHTML = [
+    calories ? `<span class="scan-chip active">${calories.toLocaleString()} cal</span>` : '',
+    snapScanDraft.confidence ? `<span class="scan-chip active">${escapeHtml(snapScanDraft.confidence)} confidence</span>` : '',
+    ...facts.slice(0, 3).map((fact) => `<span class="scan-chip">${escapeHtml(fact)}</span>`)
+  ].filter(Boolean).join('');
+
+  const previewFood = document.getElementById('previewFood');
+  if (previewFood) updateMealPreview();
+}
+
 function setSnapInsightsFromEstimate(estimate = {}) {
   const ingredientPool = [
     ...(estimate.likely_ingredients || []),
@@ -561,10 +618,12 @@ function setSnapInsightsFromEstimate(estimate = {}) {
     tags: uniqueList((estimate.meal_tags || []).map((tag) => normalizeScanLabel(tag).toLowerCase()).filter(Boolean))
       .filter((tag) => snapTagCatalog.includes(tag)),
     confidence: String(estimate.confidence || ''),
-    note: String(estimate.note || '').trim()
+    note: String(estimate.note || '').trim(),
+    foods: Array.isArray(estimate.foods) ? estimate.foods : []
   };
   lastSnapEstimateSignature = getSnapEstimateSignature();
   renderSnapInsights();
+  renderSnapAnalysis();
   updateSnapEstimateStatus();
 }
 
@@ -573,6 +632,7 @@ function removeSnapIngredient(value) {
   if (!ingredient) return;
   snapScanDraft.ingredients = snapScanDraft.ingredients.filter((item) => item !== ingredient);
   renderSnapInsights();
+  renderSnapAnalysis();
   updateSnapEstimateStatus();
 }
 
@@ -583,6 +643,7 @@ function toggleSnapTag(value) {
     ? snapScanDraft.tags.filter((item) => item !== tag)
     : [...snapScanDraft.tags, tag];
   renderSnapInsights();
+  renderSnapAnalysis();
   updateSnapEstimateStatus();
 }
 
@@ -596,14 +657,13 @@ function handleAddSnapIngredient() {
   snapScanDraft.ingredients = uniqueList([...snapScanDraft.ingredients, ingredient]).slice(0, 12);
   input.value = '';
   renderSnapInsights();
+  renderSnapAnalysis();
   updateSnapEstimateStatus();
 }
 
 function getSnapEstimateSignature() {
   return JSON.stringify({
     foodName: document.getElementById('foodName')?.value.trim() || '',
-    restaurantName: document.getElementById('restaurantName')?.value.trim() || '',
-    mealType: document.getElementById('mealType')?.value || '',
     notes: document.getElementById('notes')?.value.trim() || '',
     ingredients: [...snapScanDraft.ingredients].sort(),
     tags: [...snapScanDraft.tags].sort()
@@ -621,13 +681,14 @@ function updateSnapEstimateStatus() {
   if (!status) return;
   if (snapEstimateNeedsRefresh()) {
     status.classList.remove('estimate-success', 'estimate-error');
-    status.textContent = 'Details changed. Save will refresh the calorie estimate using your updated ingredients and description.';
+    status.textContent = 'Details changed. Rescan if you want AI to refine the calories with your updated ingredients and notes.';
   }
 }
 
 function renderAll() {
   renderDashboard();
   renderMeals();
+  renderSnapAlbum();
   renderFavorites();
   renderOrderMenu();
   renderCart();
@@ -636,6 +697,7 @@ function renderAll() {
   renderChat();
   renderProfile();
   renderSettings();
+  renderSnapAnalysis();
   updateMealPreview();
 }
 
@@ -1129,16 +1191,19 @@ async function persistNewMeal(meal) {
   appState.meals.unshift(meal);
   saveStoredAppData();
   renderAll();
+  let finalMeal = meal;
   if (window.familyBitesDb?.isConfigured) {
     try {
       const savedMeal = await window.familyBitesDb.saveMeal(meal);
-      appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
+      finalMeal = normalizeMeal(savedMeal);
+      appState.meals = appState.meals.map((item) => item.id === meal.id ? finalMeal : item);
       saveStoredAppData();
       renderAll();
     } catch (error) {
       console.warn('Meal saved locally but Supabase write failed.', error);
     }
   }
+  return finalMeal;
 }
 
 async function handleDeleteMeal(mealId) {
@@ -1317,6 +1382,63 @@ function renderMeals() {
       </article>
     `;
   }).join('') || emptyState('No meals match the current filters.');
+}
+
+function getCurrentMemberSnapScans() {
+  return appState.snapScans
+    .filter((scan) => scan.member_id === appState.currentMember?.id)
+    .sort((left, right) => new Date(right.created_at) - new Date(left.created_at));
+}
+
+function buildSnapDisplayName(scan) {
+  if (scan.food_name && scan.food_name !== 'Scanned food') return scan.food_name;
+  const firstFood = scan.foods?.find((food) => normalizeScanLabel(food?.name));
+  if (firstFood) return normalizeScanLabel(firstFood.name);
+  if (scan.ingredients?.length) return formatScanLabel(scan.ingredients.slice(0, 2).join(', '));
+  return 'Scanned food';
+}
+
+function isSnapLinkedToMeal(scan) {
+  return Boolean(scan?.linked_meal_id && appState.meals.some((meal) => meal.id === scan.linked_meal_id));
+}
+
+function renderSnapAlbum() {
+  const list = document.getElementById('snapAlbumList');
+  if (!list) return;
+  const scans = getCurrentMemberSnapScans();
+  list.innerHTML = scans.map((scan) => {
+    const linked = isSnapLinkedToMeal(scan);
+    const facts = uniqueList([
+      ...scan.tags.map(formatScanLabel),
+      ...scan.ingredients.slice(0, 3).map(formatScanLabel)
+    ]).slice(0, 5);
+    return `
+      <article class="snap-saved-card">
+        ${scan.photo_url
+          ? `<img class="snap-saved-photo" src="${escapeAttr(scan.photo_url)}" alt="${escapeAttr(buildSnapDisplayName(scan))}">`
+          : `<div class="snap-saved-photo"></div>`}
+        <div class="snap-saved-copy">
+          <h4>${escapeHtml(buildSnapDisplayName(scan))}</h4>
+          <div class="snap-saved-meta">
+            <span>${Number(scan.calories || 0).toLocaleString()} cal</span>
+            <span>${escapeHtml(scan.confidence || 'AI scan')}</span>
+            <span>${escapeHtml(formatTimelineDate(scan.created_at))}</span>
+            <span>${escapeHtml(formatTimelineTime(scan.created_at))}</span>
+          </div>
+          <div class="scan-chip-list">
+            ${facts.map((fact) => `<span class="scan-chip ${scan.tags.some((tag) => formatScanLabel(tag) === fact) ? 'active' : ''}">${escapeHtml(fact)}</span>`).join('')}
+          </div>
+          ${scan.ai_note ? `<small>${escapeHtml(scan.ai_note)}</small>` : ''}
+          ${scan.notes ? `<p>${escapeHtml(scan.notes)}</p>` : ''}
+          ${linked ? '<span class="snap-saved-status">Added to food diary</span>' : ''}
+        </div>
+        <div class="snap-saved-actions">
+          <button class="primary-button" type="button" data-add-scan-meal="${escapeAttr(scan.id)}" ${linked ? 'disabled' : ''}>${linked ? 'Saved to diary' : 'Add to food diary'}</button>
+          <button class="secondary-button" type="button" data-delete-scan="${escapeAttr(scan.id)}">Delete</button>
+        </div>
+      </article>
+    `;
+  }).join('') || emptyState('No saved scans yet. Scan a photo to start your album.');
 }
 
 function renderTimelineMemberFilter() {
@@ -2323,59 +2445,115 @@ async function syncMemberToSupabase(memberId, fields) {
   }
 }
 
-async function saveMeal(event) {
+async function saveSnapScan(event) {
   event.preventDefault();
-  const form = event.currentTarget;
+  const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
+  if (!photoUrl) return;
   if (snapEstimateNeedsRefresh()) {
     await applyAiCalorieEstimate({ preserveFoodName: true });
   }
-  const formData = new FormData(form);
-  const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
-  const mealDate = String(formData.get('meal_date') || '').trim();
-  const mealTime = String(formData.get('meal_time') || '').trim();
-  const meal = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+  let savedPhotoUrl = photoUrl;
+  if (window.familyBitesDb?.isConfigured && photoUrl.startsWith('data:')) {
+    try {
+      const uploadedUrl = await window.familyBitesDb.uploadScanPhoto(photoUrl);
+      if (uploadedUrl) savedPhotoUrl = uploadedUrl;
+    } catch (uploadError) {
+      console.warn('Scan photo upload failed, keeping local copy.', uploadError);
+    }
+  }
+
+  const scan = normalizeSnapScan({
+    id: crypto.randomUUID ? crypto.randomUUID() : `scan-${Date.now()}`,
     family_id: appState.familyId,
     member_id: appState.currentMember.id,
-    food_name: formData.get('food_name').trim(),
-    restaurant_name: formData.get('restaurant_name').trim(),
-    location_name: formData.get('location_name').trim(),
-    price: numberOrNull(formData.get('price')),
-    calories: numberOrNull(formData.get('calories')),
-    notes: notesWithMealType(formData.get('notes'), formData.get('meal_type'), {
-      scanIngredients: snapScanDraft.ingredients,
-      scanTags: snapScanDraft.tags
-    }),
-    photo_url: photoUrl,
-    eaten_at: buildMealTimestamp(mealDate, mealTime)
-  };
+    food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
+    calories: numberOrNull(document.getElementById('calories').value),
+    notes: document.getElementById('notes').value.trim(),
+    photo_url: savedPhotoUrl,
+    ingredients: [...snapScanDraft.ingredients],
+    tags: [...snapScanDraft.tags],
+    confidence: snapScanDraft.confidence,
+    ai_note: snapScanDraft.note,
+    foods: [...snapScanDraft.foods],
+    created_at: new Date().toISOString()
+  });
 
-  if (!meal.food_name) return;
-
-  appState.meals.unshift(meal);
+  appState.snapScans.unshift(scan);
   saveStoredAppData();
-  form.reset();
-  clearSnapScanDraft();
-  setMealFormDateTimeDefaults();
-  resetPhotoPreview();
-  showPage('dashboard');
-
+  renderAll();
   if (window.familyBitesDb?.isConfigured) {
     try {
-      if (meal.photo_url && meal.photo_url.startsWith('data:')) {
-        try {
-          const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(meal.photo_url);
-          if (uploadedUrl) meal.photo_url = uploadedUrl;
-        } catch (uploadError) {
-          console.warn('Photo upload to storage failed, keeping local copy.', uploadError);
-        }
-      }
-      const savedMeal = await window.familyBitesDb.saveMeal(meal);
-      appState.meals = appState.meals.map((item) => item.id === meal.id ? normalizeMeal(savedMeal) : item);
+      const savedScan = await window.familyBitesDb.saveSnapScan(scan);
+      appState.snapScans = appState.snapScans.map((item) => item.id === scan.id ? normalizeSnapScan(savedScan) : item);
       saveStoredAppData();
       renderAll();
     } catch (error) {
-      console.warn('Meal saved locally but Supabase write failed.', error);
+      console.warn('Scan saved locally but Supabase write failed.', error);
+    }
+  }
+  resetSnapWorkspace();
+}
+
+function inferMealTypeFromTimestamp(value) {
+  const date = new Date(value || Date.now());
+  if (Number.isNaN(date.getTime())) return 'other';
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 10) return 'breakfast';
+  if (hour >= 10 && hour < 12) return 'brunch';
+  if (hour >= 12 && hour < 16) return 'lunch';
+  if (hour >= 16 && hour < 22) return 'dinner';
+  return 'snack';
+}
+
+async function handleAddScanToDiary(scanId) {
+  const scan = appState.snapScans.find((item) => item.id === scanId);
+  if (!scan || isSnapLinkedToMeal(scan)) return;
+  const mealType = inferMealTypeFromTimestamp(scan.created_at);
+  const savedMeal = await persistNewMeal({
+    id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+    family_id: appState.familyId,
+    member_id: scan.member_id || appState.currentMember.id,
+    food_name: buildSnapDisplayName(scan),
+    restaurant_name: '',
+    location_name: '',
+    price: null,
+    calories: numberOrNull(scan.calories),
+    notes: notesWithMealType(scan.notes || scan.ai_note || '', mealType, {
+      scanIngredients: scan.ingredients,
+      scanTags: scan.tags
+    }),
+    photo_url: scan.photo_url || '',
+    eaten_at: scan.created_at || new Date().toISOString()
+  });
+  scan.linked_meal_id = savedMeal?.id || '';
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    try {
+      const updatedScan = await window.familyBitesDb.updateSnapScan(scan.id, { linked_meal_id: scan.linked_meal_id });
+      if (updatedScan) {
+        appState.snapScans = appState.snapScans.map((item) => item.id === scan.id ? normalizeSnapScan(updatedScan) : item);
+        saveStoredAppData();
+        renderAll();
+      }
+    } catch (error) {
+      console.warn('Scan linked locally but Supabase write failed.', error);
+    }
+  }
+}
+
+async function handleDeleteSnapScan(scanId) {
+  const scan = appState.snapScans.find((item) => item.id === scanId);
+  if (!scan) return;
+  if (!confirm(`Delete scan "${buildSnapDisplayName(scan)}"?`)) return;
+  appState.snapScans = appState.snapScans.filter((item) => item.id !== scanId);
+  saveStoredAppData();
+  renderAll();
+  if (window.familyBitesDb?.isConfigured) {
+    try {
+      await window.familyBitesDb.deleteSnapScan(scanId);
+    } catch (error) {
+      console.warn('Scan deleted locally but Supabase delete failed.', error);
     }
   }
 }
@@ -2430,19 +2608,17 @@ async function sendChat(event) {
 
 function updateMealPreview() {
   const food = document.getElementById('foodName').value.trim();
-  const mealType = document.getElementById('mealType').value;
-  const restaurant = document.getElementById('restaurantName').value.trim();
   const calories = document.getElementById('calories').value.trim();
-  const mealDate = document.getElementById('mealDate').value;
-  const mealTime = document.getElementById('mealTime').value;
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const previewPhoto = document.getElementById('previewPhoto');
-  document.getElementById('previewFood').textContent = food || 'New family bite';
+  const ingredientSummary = snapScanDraft.ingredients.length
+    ? `${snapScanDraft.ingredients.length} possible ingredients`
+    : 'Ingredients pending';
+  document.getElementById('previewFood').textContent = food || 'Scan result';
   document.getElementById('previewMeta').textContent = [
-    mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal type not selected',
-    restaurant || 'Restaurant not set',
-    formatPreviewDateTime(mealDate, mealTime),
-    calories ? `${calories} calories` : 'Calories pending'
+    calories ? `${Number(calories).toLocaleString()} calories` : 'Calories pending',
+    snapScanDraft.confidence ? `${snapScanDraft.confidence} confidence` : 'Waiting for scan',
+    ingredientSummary
   ].join(' · ');
 
   previewPhoto.classList.toggle('hidden', !photoUrl);
@@ -2469,6 +2645,7 @@ async function handlePhotoChange(event) {
   event.target.value = '';
   document.getElementById('foodName').value = '';
   document.getElementById('calories').value = '';
+  document.getElementById('notes').value = '';
   clearSnapScanDraft();
   updateMealPreview();
 
@@ -2484,7 +2661,7 @@ async function handlePhotoChange(event) {
     document.getElementById('photoHint').textContent = 'AI is scanning the photo automatically. You can review and edit before saving.';
     const estimateStatus = document.getElementById('calorieEstimate');
     estimateStatus.classList.remove('estimate-success', 'estimate-error');
-    estimateStatus.textContent = 'Photo ready. AI scan is starting automatically. Nothing is added until you tap Save Meal.';
+    estimateStatus.textContent = 'Photo ready. AI scan is starting automatically. Nothing is added to your food diary yet.';
     updateMealPreview();
     scheduleAutoSnapAiEstimate(scanToken);
   } catch (error) {
@@ -2510,10 +2687,10 @@ function resetPhotoPreview() {
   previewPhoto.classList.add('hidden');
   document.getElementById('photoIcon').classList.remove('hidden');
   document.getElementById('photoTitle').textContent = 'Add a food photo';
-  document.getElementById('photoHint').textContent = 'Choose where your photo comes from. Nothing is added until you save.';
+  document.getElementById('photoHint').textContent = 'Choose where your photo comes from. This only saves a scan unless you add it to the diary later.';
   const estimateStatus = document.getElementById('calorieEstimate');
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
-  estimateStatus.textContent = 'Add a photo and AI will scan automatically. You can still rescan after editing before you save.';
+  estimateStatus.textContent = 'Add a photo and AI will scan automatically. Save the scan when you are ready.';
   document.getElementById('scanIngredientInput').value = '';
 }
 
@@ -2552,8 +2729,8 @@ async function applyAiCalorieEstimate(options = {}) {
   await requestAiCalorieEstimate({
     imageUrl: photoUrl,
     foodName: document.getElementById('foodName').value.trim(),
-    restaurantName: document.getElementById('restaurantName').value.trim(),
-    mealType: document.getElementById('mealType').value,
+    restaurantName: document.getElementById('restaurantName')?.value.trim() || '',
+    mealType: document.getElementById('mealType')?.value || '',
     notes: document.getElementById('notes').value.trim(),
     scanIngredients: snapScanDraft.ingredients,
     scanTags: snapScanDraft.tags,
@@ -2568,7 +2745,7 @@ async function applyAiCalorieEstimate(options = {}) {
       }
       setSnapInsightsFromEstimate(estimate);
       document.getElementById('photoTitle').textContent = 'Photo ready';
-      document.getElementById('photoHint').textContent = 'AI estimate ready. Review the meal, then save when ready.';
+      document.getElementById('photoHint').textContent = 'AI estimate ready. Review the scan, save it, or add it to the diary later.';
       updateMealPreview();
     },
     onError: () => {
@@ -2870,6 +3047,7 @@ function savedOrDefaultProfilePhoto(member, savedPhoto) {
 function applyStoredAppData() {
   const storedMembers = getStoredJson(localMembersStorageKey, []).map(normalizeMember);
   const storedMeals = getStoredJson(localMealsStorageKey, []).map(normalizeMeal);
+  const storedSnapScans = getStoredJson(localSnapScansStorageKey, []).map(normalizeSnapScan);
   const storedChat = getStoredJson(localChatStorageKey, []).map(normalizeChat);
   const storedOrders = getStoredJson(chefOrdersStorageKey, []);
   const storedCart = getStoredJson(chefCartStorageKey, []);
@@ -2880,6 +3058,7 @@ function applyStoredAppData() {
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
   if (Object.keys(storedProfileMeasurements).length) appState.profileMeasurements = storedProfileMeasurements;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
+  if (storedSnapScans.length) appState.snapScans = mergeRecords(storedSnapScans, appState.snapScans);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
   if (storedCart.length) appState.cart = storedCart;
@@ -2889,6 +3068,7 @@ function applyStoredAppData() {
 function saveStoredAppData() {
   setStoredJson(localMembersStorageKey, appState.members);
   setStoredJson(localMealsStorageKey, appState.meals);
+  setStoredJson(localSnapScansStorageKey, appState.snapScans);
   setStoredJson(localChatStorageKey, appState.chat);
   setStoredJson(chefOrdersStorageKey, appState.chefOrders);
   setStoredJson(chefCartStorageKey, appState.cart);
@@ -3006,6 +3186,24 @@ function normalizeMeal(meal) {
     notes: meal.notes || meal.description || '',
     photo_url: meal.photo_url || '',
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
+  };
+}
+
+function normalizeSnapScan(scan) {
+  return {
+    ...scan,
+    id: scan.id || `scan-${Date.now()}`,
+    food_name: scan.food_name || 'Scanned food',
+    photo_url: scan.photo_url || '',
+    calories: numberOrNull(scan.calories),
+    notes: scan.notes || '',
+    ingredients: Array.isArray(scan.ingredients) ? uniqueList(scan.ingredients.map(normalizeScanLabel).filter(Boolean)) : [],
+    tags: Array.isArray(scan.tags) ? uniqueList(scan.tags.map((tag) => normalizeScanLabel(tag).toLowerCase()).filter(Boolean)) : [],
+    confidence: scan.confidence || '',
+    ai_note: scan.ai_note || '',
+    foods: Array.isArray(scan.foods) ? scan.foods : [],
+    created_at: scan.created_at || new Date().toISOString(),
+    linked_meal_id: scan.linked_meal_id || ''
   };
 }
 

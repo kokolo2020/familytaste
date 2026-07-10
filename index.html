@@ -177,34 +177,33 @@
                   <label class="photo-choice photo-choice-primary" for="mealPhotoCamera">📷 Take Photo</label>
                 </div>
               </div>
-              <label>Food Name<input id="foodName" name="food_name" required placeholder="Chicken rice"></label>
-              <label class="meal-type-field">Meal Type <span class="required-hint">Required</span>
-                <select id="mealType" name="meal_type" required>
-                  <option value="" selected disabled>Choose meal type</option>
-                  <option value="breakfast">Breakfast</option>
-                  <option value="brunch">Brunch</option>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                  <option value="snack">Snack</option>
-                  <option value="dessert">Dessert</option>
-                  <option value="other">Other</option>
-                </select>
-              </label>
-              <label>Restaurant<input id="restaurantName" name="restaurant_name" placeholder="Favorite local spot"></label>
-              <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
-              <label>Date<input id="mealDate" name="meal_date" type="date"></label>
-              <label>Time<input id="mealTime" name="meal_time" type="time"></label>
-              <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
-              <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <label>Food Name<input id="foodName" name="food_name" placeholder="AI will label the dish after scanning"></label>
+              <div class="scan-results-grid wide" aria-live="polite">
+                <article class="scan-result-card">
+                  <span>Calories</span>
+                  <strong id="scanCaloriesValue">—</strong>
+                  <small>AI estimate</small>
+                </article>
+                <article class="scan-result-card">
+                  <span>Confidence</span>
+                  <strong id="scanConfidenceValue">—</strong>
+                  <small>Current scan</small>
+                </article>
+                <article class="scan-result-card">
+                  <span>Ingredients</span>
+                  <strong id="scanIngredientsCount">0</strong>
+                  <small>Possible items</small>
+                </article>
+              </div>
               <div class="calorie-scanner wide">
                 <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Rescan Food Details</button>
-                <small id="calorieEstimate">Add a photo and AI will scan automatically. Nothing is added until you tap Save Meal. After editing the description, you can rescan for a refined estimate.</small>
+                <small id="calorieEstimate">Add a photo and AI will scan automatically. Save the result to your scan album, then add it to the food diary later if you want.</small>
               </div>
               <section id="scanInsightsPanel" class="scan-insights-panel wide hidden" aria-live="polite">
                 <div class="scan-insights-header">
                   <div>
                     <strong>Likely ingredients</strong>
-                    <small>Confirm what AI found before you save.</small>
+                    <small>Confirm or edit what AI found before you save this scan.</small>
                   </div>
                   <span id="scanInsightsSummary" class="scan-summary-pill">No scan yet</span>
                 </div>
@@ -219,16 +218,58 @@
                 </div>
                 <div id="scanTagList" class="scan-chip-list"></div>
               </section>
-              <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
-              <button class="primary-button wide" type="submit">Save Meal</button>
+              <section id="scanFactsPanel" class="scan-facts-panel wide hidden" aria-live="polite">
+                <div class="scan-insights-header">
+                  <div>
+                    <strong>Useful facts</strong>
+                    <small>Fast labels from the current scan.</small>
+                  </div>
+                </div>
+                <div id="scanFactList" class="scan-chip-list"></div>
+                <small id="scanAiNote" class="muted"></small>
+              </section>
+              <label class="wide">Scan Notes<textarea id="notes" name="notes" placeholder="Optional notes or ingredient corrections"></textarea></label>
+              <input id="calories" name="calories" type="hidden" value="">
+              <div class="scan-hidden-fields" hidden>
+                <select id="mealType" name="meal_type">
+                  <option value="">Other</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="brunch">Brunch</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="snack">Snack</option>
+                  <option value="dessert">Dessert</option>
+                  <option value="other">Other</option>
+                </select>
+                <input id="restaurantName" name="restaurant_name" placeholder="Optional">
+                <input id="locationName" name="location_name" placeholder="Optional">
+                <input id="mealDate" name="meal_date" type="date">
+                <input id="mealTime" name="meal_time" type="time">
+                <input id="price" name="price" type="number" min="0" step="0.01" placeholder="0">
+              </div>
+              <div class="scan-action-row wide">
+                <button class="primary-button" type="submit">Save Scan</button>
+                <button id="clearSnapForm" class="secondary-button" type="button">New Scan</button>
+              </div>
             </form>
             <aside class="preview-card">
-              <p class="eyebrow">Live Preview</p>
+              <p class="eyebrow">Scan Preview</p>
               <img id="previewPhoto" class="preview-photo hidden" alt="Food preview">
-              <h3 id="previewFood">New family bite</h3>
-              <p id="previewMeta">Fill the form to preview the saved meal.</p>
+              <h3 id="previewFood">Scan a meal</h3>
+              <p id="previewMeta">Upload or take a photo to estimate calories and possible ingredients.</p>
+              <div id="previewFacts" class="preview-facts"></div>
             </aside>
           </div>
+          <section class="dashboard-card scan-album-section">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Scan Album</p>
+                <h3>Saved scans for later</h3>
+                <p>These stay separate from your food diary until you choose to add them.</p>
+              </div>
+            </div>
+            <div id="snapAlbumList" class="snap-album-grid"></div>
+          </section>
         </section>
 
         <section id="page-order" class="page" data-title="Chef Menu" data-kicker="Family ordering">

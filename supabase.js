@@ -58,6 +58,16 @@
       if (error) throw error;
       return data || [];
     },
+    async getSnapScans() {
+      if (!client || !this.familyId) return [];
+      const { data, error } = await client
+        .from('snap_scans')
+        .select('*')
+        .eq('family_id', this.familyId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
     async saveMeal(meal) {
       if (!client || !this.familyId) return meal;
       const payload = {
@@ -80,6 +90,31 @@
       if (error) throw error;
       return data;
     },
+    async saveSnapScan(scan) {
+      if (!client || !this.familyId) return scan;
+      const payload = {
+        family_id: this.familyId,
+        member_id: scan.member_id,
+        food_name: scan.food_name || null,
+        calories: scan.calories,
+        notes: scan.notes || null,
+        photo_url: scan.photo_url || null,
+        ingredients: scan.ingredients || [],
+        tags: scan.tags || [],
+        confidence: scan.confidence || null,
+        ai_note: scan.ai_note || null,
+        foods: scan.foods || [],
+        linked_meal_id: scan.linked_meal_id || null,
+        created_at: scan.created_at
+      };
+      const { data, error } = await client
+        .from('snap_scans')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
     async updateMeal(mealId, fields) {
       if (!client) return null;
       const payload = { ...fields };
@@ -96,12 +131,35 @@
       if (error) throw error;
       return data;
     },
+    async updateSnapScan(scanId, fields) {
+      if (!client) return null;
+      const payload = { ...fields };
+      if ('linked_meal_id' in payload && !payload.linked_meal_id) {
+        payload.linked_meal_id = null;
+      }
+      const { data, error } = await client
+        .from('snap_scans')
+        .update(payload)
+        .eq('id', scanId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
     async deleteMeal(mealId) {
       if (!client) return;
       const { error } = await client
         .from('food_entries')
         .delete()
         .eq('id', mealId);
+      if (error) throw error;
+    },
+    async deleteSnapScan(scanId) {
+      if (!client) return;
+      const { error } = await client
+        .from('snap_scans')
+        .delete()
+        .eq('id', scanId);
       if (error) throw error;
     },
     async getFavorites() {
@@ -151,6 +209,9 @@
     },
     async uploadMealPhoto(dataUrl) {
       return this.uploadImage(dataUrl, 'meals');
+    },
+    async uploadScanPhoto(dataUrl) {
+      return this.uploadImage(dataUrl, 'scans');
     },
     async uploadAvatar(dataUrl) {
       return this.uploadImage(dataUrl, 'avatars');
