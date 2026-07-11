@@ -3607,31 +3607,18 @@ h1 span {
   }
 
   .meal-breakdown-card {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 94px minmax(0, 1fr);
+    gap: 10px;
     padding: 8px 0 10px;
   }
 
-  .meal-breakdown-chart {
-    justify-content: center;
-  }
-
   .meal-breakdown-donut {
-    width: 96px;
-    height: 96px;
+    width: 82px;
+    height: 82px;
   }
 
   .meal-breakdown-center strong {
     font-size: 14px;
-  }
-
-  .meal-breakdown-legend {
-    gap: 8px;
-  }
-
-  .meal-breakdown-item {
-    grid-template-columns: 9px minmax(0, 1fr);
-    gap: 7px;
   }
 
   .meal-breakdown-item small {
