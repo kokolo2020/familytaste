@@ -1578,6 +1578,53 @@ h1 span {
   line-height: 1;
 }
 
+.meal-feeling-row {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+}
+
+.meal-feeling-current {
+  color: #6f6255;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.meal-feeling-placeholder {
+  color: #998a7b;
+}
+
+.meal-feeling-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.meal-feeling-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border: 1px solid #eadfce;
+  border-radius: 999px;
+  background: #fffdfa;
+  color: #6f6255;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.meal-feeling-chip span {
+  font-size: 11px;
+}
+
+.meal-feeling-chip.active {
+  border-color: #d7c08d;
+  background: #fff4d6;
+  color: #7a5821;
+}
+
 .meal-health-swap {
   display: block;
   margin-top: 5px;
@@ -2468,6 +2515,9 @@ h1 span {
 .timeline-food-cell .meal-health-pill { margin-bottom: 4px; padding: 5px 9px; font-size: 10px; }
 .timeline-health-reasons { margin-bottom: 4px; gap: 5px; }
 .timeline-food-cell .meal-reason-chip { font-size: 9px; }
+.timeline-food-cell .meal-feeling-row { margin-top: 5px; }
+.timeline-food-cell .meal-feeling-current { font-size: 9px; }
+.timeline-food-cell .meal-feeling-chip { padding: 3px 6px; font-size: 8px; }
 .timeline-date,
 .timeline-time,
 .timeline-restaurant,
@@ -2957,6 +3007,19 @@ h1 span {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .timeline-mobile-extra .meal-feeling-row {
+    margin-top: 0;
+  }
+
+  .timeline-mobile-extra .meal-feeling-current {
+    font-size: 9px;
+  }
+
+  .timeline-mobile-extra .meal-feeling-chip {
+    padding: 3px 6px;
+    font-size: 8px;
   }
 
   .timeline-mobile-actions {
