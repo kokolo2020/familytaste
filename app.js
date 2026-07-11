@@ -1535,10 +1535,11 @@ function analyzeMealPatternSignals(meals) {
   const processedWords = ['fish ball', 'fish balls', 'sausage', 'nugget', 'bacon', 'ham', 'processed'];
   const hydrationWords = ['water', 'tea', 'sparkling water'];
 
-  return meals.reduce((stats, meal) => {
+  const stats = meals.reduce((totals, meal) => {
     const searchText = foodSearchText(meal);
     const mealType = getMealType(meal) || inferMealTypeFromTimestamp(meal.eaten_at || meal.created_at);
     const calories = Number(meal.calories) || 0;
+    const dayKey = mealDayKey(meal);
     const hasAny = (words) => words.some((word) => searchText.includes(word));
     const hasProtein = hasAny(proteinWords);
     const hasFiber = hasAny(fiberWords);
@@ -1551,31 +1552,37 @@ function analyzeMealPatternSignals(meals) {
     const isDessert = mealType === 'dessert' || ['cake', 'pie', 'pastry', 'cookie', 'brownie', 'ice cream', 'soft serve', 'dessert'].some((word) => searchText.includes(word));
     const isHydrationFriendly = hasAny(hydrationWords);
 
-    stats.mealCount += 1;
-    stats.calories += calories;
-    if (hasProtein) stats.proteinMeals += 1;
-    if (hasFiber) stats.fiberMeals += 1;
-    if (hasVegetables) stats.vegetableMeals += 1;
-    if (hasFruit) stats.fruitMeals += 1;
-    if (isSugaryDrink) stats.sugaryDrinks += 1;
-    if (isFried) stats.friedMeals += 1;
-    if (isProcessed) stats.processedMeals += 1;
-    if (isLate) stats.lateMeals += 1;
-    if (isDessert) stats.dessertMeals += 1;
-    if (isHydrationFriendly) stats.hydrationFriendlyMeals += 1;
+    totals.mealCount += 1;
+    totals.calories += calories;
+    if (hasProtein) totals.proteinMeals += 1;
+    if (hasFiber) totals.fiberMeals += 1;
+    if (hasVegetables) totals.vegetableMeals += 1;
+    if (hasFruit) totals.fruitMeals += 1;
+    if (isSugaryDrink) totals.sugaryDrinks += 1;
+    if (isFried) totals.friedMeals += 1;
+    if (isProcessed) totals.processedMeals += 1;
+    if (isLate) totals.lateMeals += 1;
+    if (isDessert) totals.dessertMeals += 1;
+    if (isHydrationFriendly) totals.hydrationFriendlyMeals += 1;
     if (!hasProtein && !hasFiber && ['rice', 'plain rice', 'steamed rice', 'white rice', 'bread', 'toast', 'baguette', 'noodle', 'pasta'].some((word) => searchText.includes(word))) {
-      stats.plainStapleMeals += 1;
+      totals.plainStapleMeals += 1;
     }
     if (mealType === 'breakfast' || mealType === 'brunch') {
-      stats.breakfastCount += 1;
-      if (!hasProtein) stats.lowProteinBreakfasts += 1;
+      totals.breakfastCount += 1;
+      if (dayKey) {
+        totals.breakfastDayMap[dayKey] = totals.breakfastDayMap[dayKey] || { hadProtein: false };
+        if (hasProtein) totals.breakfastDayMap[dayKey].hadProtein = true;
+      }
     }
     if (mealType === 'lunch') {
-      stats.lunchCount += 1;
-      if (!hasVegetables && !hasFiber) stats.lowVegLunches += 1;
+      totals.lunchCount += 1;
+      if (dayKey) {
+        totals.lunchDayMap[dayKey] = totals.lunchDayMap[dayKey] || { hadVegetablesOrFiber: false };
+        if (hasVegetables || hasFiber) totals.lunchDayMap[dayKey].hadVegetablesOrFiber = true;
+      }
     }
-    if (mealType === 'snack' && calories >= 300 && !hasProtein) stats.heavySnackCount += 1;
-    return stats;
+    if (mealType === 'snack' && calories >= 300 && !hasProtein) totals.heavySnackCount += 1;
+    return totals;
   }, {
     mealCount: 0,
     calories: 0,
@@ -1594,8 +1601,20 @@ function analyzeMealPatternSignals(meals) {
     lowProteinBreakfasts: 0,
     lunchCount: 0,
     lowVegLunches: 0,
-    heavySnackCount: 0
+    heavySnackCount: 0,
+    breakfastDayMap: {},
+    lunchDayMap: {}
   });
+
+  const breakfastDays = Object.keys(stats.breakfastDayMap);
+  const lunchDays = Object.keys(stats.lunchDayMap);
+  stats.breakfastDayCount = breakfastDays.length;
+  stats.lowProteinBreakfasts = breakfastDays.filter((day) => !stats.breakfastDayMap[day].hadProtein).length;
+  stats.lunchDayCount = lunchDays.length;
+  stats.lowVegLunches = lunchDays.filter((day) => !stats.lunchDayMap[day].hadVegetablesOrFiber).length;
+  delete stats.breakfastDayMap;
+  delete stats.lunchDayMap;
+  return stats;
 }
 
 function buildMissingTodayRecommendation(signals, mealCount) {
@@ -1679,18 +1698,18 @@ function buildPatternAlertRecommendation(weekSignals) {
       copy: `${weekSignals.sugaryDrinks} sugary drinks were logged in the last 7 days. Cutting one or two would improve energy and calories fast.`
     };
   }
-  if (weekSignals.lowProteinBreakfasts >= 2 && weekSignals.breakfastCount >= 2) {
+  if (weekSignals.lowProteinBreakfasts >= 2 && weekSignals.breakfastDayCount >= 2) {
     return {
       icon: '🍳',
       title: 'Pattern alert: low-protein mornings',
-      copy: `${weekSignals.lowProteinBreakfasts} breakfasts were light on protein this week. Eggs, yogurt, tofu, or nuts would help.`
+      copy: `${weekSignals.lowProteinBreakfasts} mornings were light on protein this week. Eggs, yogurt, tofu, or nuts would help.`
     };
   }
-  if (weekSignals.lowVegLunches >= 2 && weekSignals.lunchCount >= 2) {
+  if (weekSignals.lowVegLunches >= 2 && weekSignals.lunchDayCount >= 2) {
     return {
       icon: '🥗',
       title: 'Pattern alert: low-veg lunches',
-      copy: `${weekSignals.lowVegLunches} lunches were missing vegetables or fiber this week. Adding one side could shift the trend.`
+      copy: `${weekSignals.lowVegLunches} lunch periods were missing vegetables or fiber this week. Adding one side could shift the trend.`
     };
   }
   if (weekSignals.lateMeals >= 3) {
