@@ -56,14 +56,6 @@ const snapTagCatalog = [
   'contains meat'
 ];
 
-const mealFeelingOptions = [
-  { value: 'energized', emoji: '⚡', label: 'Energized' },
-  { value: 'sleepy', emoji: '😴', label: 'Sleepy' },
-  { value: 'bloated', emoji: '😵', label: 'Bloated' },
-  { value: 'satisfied', emoji: '😊', label: 'Satisfied' },
-  { value: 'still-hungry', emoji: '🍽️', label: 'Still hungry' }
-];
-
 const micronutrientSignals = [
   {
     key: 'fiber',
@@ -278,11 +270,6 @@ function bindEvents() {
     const removeFavTarget = event.target.closest('[data-remove-fav]');
     if (removeFavTarget) {
       handleRemoveFavorite(removeFavTarget.dataset.removeFav);
-    }
-
-    const mealFeelingTarget = event.target.closest('[data-set-meal-feeling]');
-    if (mealFeelingTarget) {
-      handleSetMealFeeling(mealFeelingTarget.dataset.setMealFeeling, mealFeelingTarget.dataset.feelingValue || '');
     }
 
     const removeIngredientTarget = event.target.closest('[data-remove-scan-ingredient]');
@@ -1553,9 +1540,6 @@ function buildRecommendations({ memberMeals, todayMeals, calories, calorieGoal, 
   });
   if (recoveryMode) items.push(recoveryMode);
 
-  const feelingRecommendation = buildFeelingRecommendation(todayMeals);
-  if (feelingRecommendation) items.push(feelingRecommendation);
-
   const patternAlert = buildPatternAlertRecommendation(weekSignals, todaySignals);
   if (patternAlert) items.push(patternAlert);
 
@@ -1864,49 +1848,6 @@ function buildMicronutrientRecommendation(todayMeals) {
   return null;
 }
 
-function buildFeelingRecommendation(todayMeals) {
-  const recentMeals = [...todayMeals]
-    .sort((left, right) => new Date(right.eaten_at || right.created_at) - new Date(left.eaten_at || left.created_at))
-    .slice(0, 4);
-  const feelings = recentMeals.map((meal) => getMealFeeling(meal)).filter(Boolean);
-  if (!feelings.length) return null;
-  const count = (value) => feelings.filter((item) => item === value).length;
-  if (count('bloated') >= 2) {
-    return { icon: '😵', title: 'Recent meals felt heavy', copy: 'You marked bloating more than once today. A lighter, less fried, less saucy meal may feel better next.' };
-  }
-  if (count('sleepy') >= 2) {
-    return { icon: '😴', title: 'Energy dip after meals', copy: 'You marked sleepiness after recent meals. Try smaller portions and add more protein or fiber.' };
-  }
-  if (count('still-hungry') >= 2) {
-    return { icon: '🍽️', title: 'Meals may not be filling enough', copy: 'You still felt hungry after recent meals. Protein, fiber, and a steadier meal size may help.' };
-  }
-  if (count('energized') >= 2) {
-    return { icon: '⚡', title: 'You found a good rhythm', copy: 'Recent meals left you energized. Repeat those protein and fiber patterns tomorrow.' };
-  }
-  return null;
-}
-
-async function handleSetMealFeeling(mealId, nextFeeling) {
-  const meal = appState.meals.find((item) => item.id === mealId);
-  if (!meal) return;
-  const normalizedFeeling = getMealFeelingOption(String(nextFeeling || '').trim())?.value || '';
-  meal.notes = notesWithMetadata(notesWithoutMealType(meal.notes), {
-    mealType: getMealType(meal),
-    scanIngredients: getMealIngredients(meal),
-    scanTags: getMealScanTags(meal),
-    mealFeeling: normalizedFeeling
-  });
-  saveStoredAppData();
-  renderAll();
-  if (window.familyBitesDb?.isConfigured) {
-    try {
-      await window.familyBitesDb.updateMeal(meal.id, { notes: meal.notes });
-    } catch (error) {
-      console.warn('Meal feeling saved locally but Supabase write failed.', error);
-    }
-  }
-}
-
 function dedupeRecommendations(items) {
   const seen = new Set();
   return items.filter((item) => {
@@ -2074,8 +2015,7 @@ async function handleSaveMealEdit() {
     calories: numberOrNull(document.getElementById('editCalories').value),
     notes: notesWithMealType(document.getElementById('editNotes').value, mealType, editingMealId ? {
       scanIngredients: getMealIngredients(appState.meals.find((item) => item.id === editingMealId)),
-      scanTags: getMealScanTags(appState.meals.find((item) => item.id === editingMealId)),
-      mealFeeling: getMealFeeling(appState.meals.find((item) => item.id === editingMealId))
+      scanTags: getMealScanTags(appState.meals.find((item) => item.id === editingMealId))
     } : {})
   };
   const dateValue = document.getElementById('editDate').value;
@@ -2243,7 +2183,6 @@ function renderMeals() {
     const compactReasons = analysis.reasons.slice(0, 1);
     const secondaryDetail = description || analysis.swap || '';
     const micronutrients = buildMicronutrientChips(analysis.micronutrientHighlights.slice(0, 2), 'timeline');
-    const feelingControls = buildMealFeelingControls(meal, 'timeline');
     const mobileImage = meal.photo_url
       ? `<img class="timeline-mobile-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
       : `<span class="timeline-mobile-emoji">${mealEmoji(meal.food_name)}</span>`;
@@ -2269,7 +2208,6 @@ function renderMeals() {
                 ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             ${micronutrients}
-            ${feelingControls}
             ${description ? `<small class="meal-description timeline-mobile-description">${escapeHtml(description)}</small>` : ''}
             ${analysis.swap ? `<small class="meal-description timeline-mobile-description timeline-mobile-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
             <div class="meal-actions timeline-actions timeline-mobile-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
@@ -2290,7 +2228,6 @@ function renderMeals() {
                 ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
             ${micronutrients}
-            ${feelingControls}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
             ${secondaryDetail ? `<small class="meal-description timeline-meal-description">${escapeHtml(secondaryDetail)}</small>` : ''}
           </div>
@@ -2529,7 +2466,6 @@ function mealTemplate(meal, withActions = false) {
           ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
         </div>` : '';
   const micronutrients = buildMicronutrientChips(analysis.micronutrientHighlights.slice(0, 2), 'dashboard');
-  const feelingControls = buildMealFeelingControls(meal, 'dashboard');
   const extraDetails = buildDashboardMealExtra(meal, analysis);
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
@@ -2541,7 +2477,6 @@ function mealTemplate(meal, withActions = false) {
         ${reasons}
         ${micronutrients}
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>
-        ${feelingControls}
         ${extraDetails}
         ${actions}
       </div>
@@ -2556,11 +2491,6 @@ function mealDisplayMeta(meal) {
   return `${label} · ${time}`;
 }
 
-function getMealFeeling(meal) {
-  const value = getNotesMetadataValue(meal?.notes, 'meal_feeling').toLowerCase();
-  return mealFeelingOptions.find((option) => option.value === value)?.value || '';
-}
-
 function buildMicronutrientChips(signals = [], variant = 'dashboard') {
   if (!signals.length) return '';
   return `
@@ -2570,35 +2500,6 @@ function buildMicronutrientChips(signals = [], variant = 'dashboard') {
           ${escapeHtml(signal.badge)}
         </span>
       `).join('')}
-    </div>`;
-}
-
-function getMealFeelingOption(value) {
-  return mealFeelingOptions.find((option) => option.value === value) || null;
-}
-
-function buildMealFeelingControls(meal, variant = 'dashboard') {
-  const activeFeeling = getMealFeeling(meal);
-  const activeOption = getMealFeelingOption(activeFeeling);
-  const summary = activeOption
-    ? `<span class="meal-feeling-current">${activeOption.emoji} ${escapeHtml(activeOption.label)}</span>`
-    : '';
-  return `
-    <div class="meal-feeling-row meal-feeling-row-${variant}">
-      ${summary}
-      <div class="meal-feeling-chips" aria-label="How you felt after ${escapeAttr(meal.food_name)}">
-        ${mealFeelingOptions.map((option) => `
-          <button
-            class="meal-feeling-chip ${activeFeeling === option.value ? 'active' : ''}"
-            type="button"
-            data-set-meal-feeling="${escapeAttr(meal.id)}"
-            data-feeling-value="${escapeAttr(activeFeeling === option.value ? '' : option.value)}"
-            aria-pressed="${activeFeeling === option.value ? 'true' : 'false'}"
-          >
-            <span>${option.emoji}</span>${escapeHtml(option.label)}
-          </button>
-        `).join('')}
-      </div>
     </div>`;
 }
 
@@ -2695,13 +2596,12 @@ function getMealScanTags(meal) {
   return decodeNotesMetadataList(getNotesMetadataValue(meal?.notes, 'scan_tags'));
 }
 
-function notesWithMetadata(notes, { mealType, scanIngredients = [], scanTags = [], mealFeeling = '' } = {}) {
+function notesWithMetadata(notes, { mealType, scanIngredients = [], scanTags = [] } = {}) {
   const cleanNotes = notesWithoutSystemMetadata(notes);
   const tokens = [];
   if (mealType) tokens.push(`[[meal_type:${mealType}]]`);
   if (scanIngredients.length) tokens.push(`[[scan_ingredients:${encodeNotesMetadataList(scanIngredients)}]]`);
   if (scanTags.length) tokens.push(`[[scan_tags:${encodeNotesMetadataList(scanTags)}]]`);
-  if (mealFeeling) tokens.push(`[[meal_feeling:${mealFeeling}]]`);
   return `${cleanNotes}${cleanNotes && tokens.length ? ' ' : ''}${tokens.join(' ')}`.trim();
 }
 
