@@ -1202,7 +1202,7 @@ function renderDashboard() {
   renderDashboardHistory(memberMeals, yesterdayMeals);
   renderFavoriteFoods(memberMeals);
   renderBioInputs();
-  renderHealthInsights(todayMeals, calories, goal);
+  renderHealthInsights(memberMeals, todayMeals, calories, goal);
 }
 
 function renderDashboardHistory(memberMeals, yesterdayMeals) {
@@ -1226,7 +1226,7 @@ function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function renderHealthInsights(todayMeals, calories, calorieGoal) {
+function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
   const log = getTodayBioLog();
   const steps = Number(log.steps) || 0;
   const glucose = Number(log.sugar_level) || 0;
@@ -1289,7 +1289,16 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
       <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>
     </article>`).join('');
 
-  const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
+  const recommendations = buildRecommendations({
+    memberMeals,
+    todayMeals,
+    calories,
+    calorieGoal,
+    steps,
+    glucose,
+    mealCount,
+    nutrition
+  });
   const recommendationList = document.getElementById('aiRecommendationList');
   if (recommendationList) recommendationList.innerHTML = recommendations.map((item) => `
     <article class="recommendation-item">
@@ -1449,16 +1458,31 @@ function countUniqueKeywords(meals, words = []) {
   return new Set(words.filter((word) => combinedText.includes(word))).size;
 }
 
-function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
+function buildRecommendations({ memberMeals, todayMeals, calories, calorieGoal, steps, glucose, mealCount, nutrition }) {
   const items = [];
-  if (!mealCount) items.push({ icon: '🥗', title: 'Start with a balanced meal', copy: 'Add protein, vegetables, and a steady-energy carbohydrate.' });
-  else if (calories < calorieGoal * .55) items.push({ icon: '🍲', title: 'Fuel the rest of your day', copy: `You have about ${Math.max(calorieGoal - calories, 0).toLocaleString()} calories remaining toward your goal.` });
-  else if (calories > calorieGoal) items.push({
-    icon: '🥬',
-    title: 'You’re over today’s calorie goal',
-    copy: `About ${(calories - calorieGoal).toLocaleString()} calories over. Favor vegetables, lean protein, water, and a lighter next meal.`
+  const todaySignals = analyzeMealPatternSignals(todayMeals);
+  const weekSignals = analyzeMealPatternSignals(memberMeals.filter((meal) => {
+    const timestamp = new Date(meal.eaten_at || meal.created_at).getTime();
+    return Number.isFinite(timestamp) && timestamp >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }));
+
+  const calorieRecommendation = buildCalorieRecommendation(calories, calorieGoal, mealCount);
+  if (calorieRecommendation) items.push(calorieRecommendation);
+
+  const missingToday = buildMissingTodayRecommendation(todaySignals, mealCount);
+  if (missingToday) items.push(missingToday);
+
+  const recoveryMode = buildRecoveryRecommendation({
+    todaySignals,
+    calories,
+    calorieGoal,
+    steps,
+    glucose
   });
-  else items.push({ icon: '✓', title: 'Calories are pacing well', copy: 'Your intake is tracking close to today’s energy target.' });
+  if (recoveryMode) items.push(recoveryMode);
+
+  const patternAlert = buildPatternAlertRecommendation(weekSignals);
+  if (patternAlert) items.push(patternAlert);
 
   if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
   else if (glucose > 140) items.push({ icon: '🥦', title: 'Choose steady-energy foods', copy: 'Pair fiber and protein, and avoid another sugary snack right now.' });
@@ -1473,8 +1497,227 @@ function buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount
       ? { icon: '👟', title: 'Movement goal reached', copy: 'Great work—gentle recovery and hydration are a good finish.' }
       : { icon: '🚶', title: 'Take a short walk', copy: `${remainingSteps.toLocaleString()} steps remain; even 10 minutes after a meal can help.` });
   }
-  if (nutrition < 65 && mealCount) items.push({ icon: '🌈', title: 'Add more color', copy: 'A fruit or vegetable can improve today’s nutrition balance.' });
-  return items.slice(0, 3);
+
+  if (nutrition < 65 && mealCount) {
+    items.push({ icon: '🌈', title: 'Add more color', copy: 'A fruit or vegetable can improve today’s nutrition balance.' });
+  }
+
+  return dedupeRecommendations(items).slice(0, 5);
+}
+
+function buildCalorieRecommendation(calories, calorieGoal, mealCount) {
+  if (!mealCount) {
+    return { icon: '🥗', title: 'Start with a balanced meal', copy: 'Add protein, vegetables, and a steady-energy carbohydrate.' };
+  }
+  if (calories < calorieGoal * .55) {
+    return {
+      icon: '🍲',
+      title: 'Fuel the rest of your day',
+      copy: `You have about ${Math.max(calorieGoal - calories, 0).toLocaleString()} calories remaining toward your goal.`
+    };
+  }
+  if (calories > calorieGoal) {
+    return {
+      icon: '🥬',
+      title: 'You’re over today’s calorie goal',
+      copy: `About ${(calories - calorieGoal).toLocaleString()} calories over. Favor vegetables, lean protein, water, and a lighter next meal.`
+    };
+  }
+  return { icon: '✓', title: 'Calories are pacing well', copy: 'Your intake is tracking close to today’s energy target.' };
+}
+
+function analyzeMealPatternSignals(meals) {
+  const proteinWords = ['chicken', 'beef', 'fish', 'salmon', 'egg', 'tofu', 'yogurt', 'protein', 'pork', 'bean', 'shrimp'];
+  const fiberWords = ['vegetable', 'greens', 'salad', 'cabbage', 'fruit', 'berry', 'bean', 'oat', 'pineapple', 'broccoli', 'spinach'];
+  const vegetableWords = ['vegetable', 'greens', 'salad', 'cabbage', 'broccoli', 'spinach', 'carrot', 'tomato'];
+  const fruitWords = ['fruit', 'berry', 'pineapple', 'banana', 'apple', 'orange', 'mango', 'watermelon'];
+  const friedWords = ['fried', 'fries', 'crispy'];
+  const processedWords = ['fish ball', 'fish balls', 'sausage', 'nugget', 'bacon', 'ham', 'processed'];
+  const hydrationWords = ['water', 'tea', 'sparkling water'];
+
+  return meals.reduce((stats, meal) => {
+    const searchText = foodSearchText(meal);
+    const mealType = getMealType(meal) || inferMealTypeFromTimestamp(meal.eaten_at || meal.created_at);
+    const calories = Number(meal.calories) || 0;
+    const hasAny = (words) => words.some((word) => searchText.includes(word));
+    const hasProtein = hasAny(proteinWords);
+    const hasFiber = hasAny(fiberWords);
+    const hasVegetables = hasAny(vegetableWords);
+    const hasFruit = hasAny(fruitWords);
+    const isSugaryDrink = isSugaryDrinkMeal(meal);
+    const isFried = hasAny(friedWords);
+    const isProcessed = hasAny(processedWords);
+    const isLate = isLateMeal(meal);
+    const isDessert = mealType === 'dessert' || ['cake', 'pie', 'pastry', 'cookie', 'brownie', 'ice cream', 'soft serve', 'dessert'].some((word) => searchText.includes(word));
+    const isHydrationFriendly = hasAny(hydrationWords);
+
+    stats.mealCount += 1;
+    stats.calories += calories;
+    if (hasProtein) stats.proteinMeals += 1;
+    if (hasFiber) stats.fiberMeals += 1;
+    if (hasVegetables) stats.vegetableMeals += 1;
+    if (hasFruit) stats.fruitMeals += 1;
+    if (isSugaryDrink) stats.sugaryDrinks += 1;
+    if (isFried) stats.friedMeals += 1;
+    if (isProcessed) stats.processedMeals += 1;
+    if (isLate) stats.lateMeals += 1;
+    if (isDessert) stats.dessertMeals += 1;
+    if (isHydrationFriendly) stats.hydrationFriendlyMeals += 1;
+    if (!hasProtein && !hasFiber && ['rice', 'plain rice', 'steamed rice', 'white rice', 'bread', 'toast', 'baguette', 'noodle', 'pasta'].some((word) => searchText.includes(word))) {
+      stats.plainStapleMeals += 1;
+    }
+    if (mealType === 'breakfast' || mealType === 'brunch') {
+      stats.breakfastCount += 1;
+      if (!hasProtein) stats.lowProteinBreakfasts += 1;
+    }
+    if (mealType === 'lunch') {
+      stats.lunchCount += 1;
+      if (!hasVegetables && !hasFiber) stats.lowVegLunches += 1;
+    }
+    if (mealType === 'snack' && calories >= 300 && !hasProtein) stats.heavySnackCount += 1;
+    return stats;
+  }, {
+    mealCount: 0,
+    calories: 0,
+    proteinMeals: 0,
+    fiberMeals: 0,
+    vegetableMeals: 0,
+    fruitMeals: 0,
+    sugaryDrinks: 0,
+    friedMeals: 0,
+    processedMeals: 0,
+    lateMeals: 0,
+    dessertMeals: 0,
+    hydrationFriendlyMeals: 0,
+    plainStapleMeals: 0,
+    breakfastCount: 0,
+    lowProteinBreakfasts: 0,
+    lunchCount: 0,
+    lowVegLunches: 0,
+    heavySnackCount: 0
+  });
+}
+
+function buildMissingTodayRecommendation(signals, mealCount) {
+  if (!mealCount) return null;
+  if (!signals.proteinMeals) {
+    return {
+      icon: '💪',
+      title: 'Protein is missing today',
+      copy: 'Add eggs, fish, tofu, yogurt, beans, or chicken in the next meal for better fullness and recovery.'
+    };
+  }
+  if (!signals.vegetableMeals && signals.fiberMeals < Math.max(1, Math.ceil(mealCount / 2))) {
+    return {
+      icon: '🥦',
+      title: 'Fiber and vegetables are light',
+      copy: 'A side of greens, cabbage, beans, or fruit would improve today’s wellness balance.'
+    };
+  }
+  if (!signals.fruitMeals && signals.sugaryDrinks >= 1) {
+    return {
+      icon: '🍎',
+      title: 'Swap sweetness for whole fruit',
+      copy: 'You logged a sweet drink today. Fruit or unsweetened tea would give a steadier lift.'
+    };
+  }
+  if (signals.plainStapleMeals >= 1 && signals.vegetableMeals < mealCount) {
+    return {
+      icon: '🍚',
+      title: 'One meal needs more support',
+      copy: 'A plain staple was logged today. Add protein or vegetables next time to make it more complete.'
+    };
+  }
+  return null;
+}
+
+function buildRecoveryRecommendation({ todaySignals, calories, calorieGoal, steps, glucose }) {
+  if (calories > calorieGoal + 250) {
+    return {
+      icon: '🌿',
+      title: 'Recovery mode for the next meal',
+      copy: 'Go lighter next: protein, vegetables, water, and a short walk will help reset the day.'
+    };
+  }
+  if (todaySignals.sugaryDrinks >= 2) {
+    return {
+      icon: '🧃',
+      title: 'Sugar load is climbing',
+      copy: 'Pause sweet drinks for the rest of today. Water or unsweetened tea is the cleanest recovery move.'
+    };
+  }
+  if (todaySignals.friedMeals >= 2 || todaySignals.processedMeals >= 2) {
+    return {
+      icon: '🍳',
+      title: 'Balance out the heavier meals',
+      copy: 'Choose grilled, steamed, or broth-based foods next, and add produce to smooth out the day.'
+    };
+  }
+  if (todaySignals.lateMeals >= 1 && steps < 7000) {
+    return {
+      icon: '🌙',
+      title: 'Late meal recovery',
+      copy: 'Keep tonight lighter, hydrate well, and add a short walk if possible to support digestion.'
+    };
+  }
+  if (glucose > 140) {
+    return {
+      icon: '🫛',
+      title: 'Steady the next meal',
+      copy: 'Build the next plate around protein and fiber, and skip another dessert or sweet drink for now.'
+    };
+  }
+  return null;
+}
+
+function buildPatternAlertRecommendation(weekSignals) {
+  if (!weekSignals.mealCount) return null;
+  if (weekSignals.sugaryDrinks >= 3) {
+    return {
+      icon: '⚠️',
+      title: 'Pattern alert: sweet drinks',
+      copy: `${weekSignals.sugaryDrinks} sugary drinks were logged in the last 7 days. Cutting one or two would improve energy and calories fast.`
+    };
+  }
+  if (weekSignals.lowProteinBreakfasts >= 2 && weekSignals.breakfastCount >= 2) {
+    return {
+      icon: '🍳',
+      title: 'Pattern alert: low-protein mornings',
+      copy: `${weekSignals.lowProteinBreakfasts} breakfasts were light on protein this week. Eggs, yogurt, tofu, or nuts would help.`
+    };
+  }
+  if (weekSignals.lowVegLunches >= 2 && weekSignals.lunchCount >= 2) {
+    return {
+      icon: '🥗',
+      title: 'Pattern alert: low-veg lunches',
+      copy: `${weekSignals.lowVegLunches} lunches were missing vegetables or fiber this week. Adding one side could shift the trend.`
+    };
+  }
+  if (weekSignals.lateMeals >= 3) {
+    return {
+      icon: '⏰',
+      title: 'Pattern alert: late eating',
+      copy: `${weekSignals.lateMeals} meals were logged late this week. An earlier dinner a few times could improve recovery.`
+    };
+  }
+  if (weekSignals.processedMeals >= 3) {
+    return {
+      icon: '📦',
+      title: 'Pattern alert: processed foods',
+      copy: `${weekSignals.processedMeals} processed-style meals showed up this week. Swapping even one for a simpler meal would help.`
+    };
+  }
+  return null;
+}
+
+function dedupeRecommendations(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.title}|${item.copy}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function setText(id, value) {
