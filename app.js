@@ -2582,13 +2582,10 @@ function buildMealFeelingControls(meal, variant = 'dashboard') {
   const activeOption = getMealFeelingOption(activeFeeling);
   const summary = activeOption
     ? `<span class="meal-feeling-current">${activeOption.emoji} ${escapeHtml(activeOption.label)}</span>`
-    : '<span class="meal-feeling-current meal-feeling-placeholder">Tap how you felt</span>';
+    : '';
   return `
     <div class="meal-feeling-row meal-feeling-row-${variant}">
-      <div class="meal-feeling-header">
-        <span class="meal-feeling-label">After meal</span>
-        ${summary}
-      </div>
+      ${summary}
       <div class="meal-feeling-chips" aria-label="How you felt after ${escapeAttr(meal.food_name)}">
         ${mealFeelingOptions.map((option) => `
           <button
