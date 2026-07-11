@@ -1578,6 +1578,33 @@ h1 span {
   line-height: 1;
 }
 
+.meal-micronutrient-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+}
+
+.meal-micronutrient-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.meal-micronutrient-chip-support {
+  color: #486545;
+  background: #edf7e8;
+}
+
+.meal-micronutrient-chip-caution {
+  color: #8a5a1e;
+  background: #fff0d8;
+}
+
 .meal-feeling-row {
   display: grid;
   gap: 6px;
@@ -1634,6 +1661,16 @@ h1 span {
 }
 
 .meal-health-swap span {
+  color: #5f4733;
+  font-weight: 900;
+}
+
+.meal-extra-micronutrients {
+  display: grid;
+  gap: 6px;
+}
+
+.meal-extra-micronutrients > span {
   color: #5f4733;
   font-weight: 900;
 }
@@ -2515,6 +2552,8 @@ h1 span {
 .timeline-food-cell .meal-health-pill { margin-bottom: 4px; padding: 5px 9px; font-size: 10px; }
 .timeline-health-reasons { margin-bottom: 4px; gap: 5px; }
 .timeline-food-cell .meal-reason-chip { font-size: 9px; }
+.timeline-food-cell .meal-micronutrient-row { margin-bottom: 4px; gap: 5px; }
+.timeline-food-cell .meal-micronutrient-chip { padding: 3px 6px; font-size: 8px; }
 .timeline-food-cell .meal-feeling-row { margin-top: 5px; }
 .timeline-food-cell .meal-feeling-current { font-size: 9px; }
 .timeline-food-cell .meal-feeling-chip { padding: 3px 6px; font-size: 8px; }
@@ -3007,6 +3046,16 @@ h1 span {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .timeline-mobile-extra .meal-micronutrient-row {
+    margin-bottom: 0;
+    gap: 5px;
+  }
+
+  .timeline-mobile-extra .meal-micronutrient-chip {
+    padding: 3px 6px;
+    font-size: 8px;
   }
 
   .timeline-mobile-extra .meal-feeling-row {

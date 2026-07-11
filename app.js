@@ -64,6 +64,65 @@ const mealFeelingOptions = [
   { value: 'still-hungry', emoji: '🍽️', label: 'Still hungry' }
 ];
 
+const micronutrientSignals = [
+  {
+    key: 'fiber',
+    label: 'Fiber',
+    badge: 'Fiber support',
+    kind: 'support',
+    words: ['vegetable', 'greens', 'salad', 'cabbage', 'broccoli', 'spinach', 'bean', 'oat', 'fruit', 'berry', 'apple', 'orange', 'pineapple', 'whole grain']
+  },
+  {
+    key: 'calcium',
+    label: 'Calcium',
+    badge: 'Calcium support',
+    kind: 'support',
+    words: ['milk', 'latte', 'yogurt', 'cheese', 'tofu', 'salmon', 'sardine', 'leafy', 'greens', 'cabbage', 'almond']
+  },
+  {
+    key: 'iron',
+    label: 'Iron',
+    badge: 'Iron support',
+    kind: 'support',
+    words: ['beef', 'pork', 'chicken', 'egg', 'spinach', 'greens', 'bean', 'lentil', 'tofu', 'fish', 'salmon']
+  },
+  {
+    key: 'potassium',
+    label: 'Potassium',
+    badge: 'Potassium support',
+    kind: 'support',
+    words: ['banana', 'avocado', 'potato', 'sweet potato', 'bean', 'spinach', 'greens', 'yogurt', 'salmon', 'orange', 'coconut']
+  },
+  {
+    key: 'vitamin-c',
+    label: 'Vitamin C',
+    badge: 'Vitamin C support',
+    kind: 'support',
+    words: ['orange', 'berry', 'pineapple', 'mango', 'tomato', 'broccoli', 'cabbage', 'greens', 'fruit', 'kiwi', 'lemon']
+  },
+  {
+    key: 'vitamin-a',
+    label: 'Vitamin A',
+    badge: 'Vitamin A support',
+    kind: 'support',
+    words: ['carrot', 'pumpkin', 'mango', 'egg', 'spinach', 'leafy', 'greens', 'sweet potato', 'tomato']
+  },
+  {
+    key: 'omega-3',
+    label: 'Omega-3',
+    badge: 'Omega-3 support',
+    kind: 'support',
+    words: ['salmon', 'sardine', 'tuna', 'fish', 'walnut', 'chia', 'flax']
+  },
+  {
+    key: 'sodium',
+    label: 'Sodium',
+    badge: 'Sodium watch',
+    kind: 'caution',
+    words: ['ramen', 'soy', 'sauce', 'chips', 'bacon', 'sausage', 'ham', 'soup', 'burger', 'fries', 'processed', 'fish ball', 'fish balls']
+  }
+];
+
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
   { id: 'rithyna', label: 'Rithyna', url: 'assets/avatars/mom.jpg' },
@@ -1500,6 +1559,9 @@ function buildRecommendations({ memberMeals, todayMeals, calories, calorieGoal, 
   const patternAlert = buildPatternAlertRecommendation(weekSignals, todaySignals);
   if (patternAlert) items.push(patternAlert);
 
+  const micronutrientRecommendation = buildMicronutrientRecommendation(todayMeals);
+  if (micronutrientRecommendation) items.push(micronutrientRecommendation);
+
   if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
   else if (glucose > 140) items.push({ icon: '🥦', title: 'Choose steady-energy foods', copy: 'Pair fiber and protein, and avoid another sugary snack right now.' });
   else if (glucose < 70) items.push({ icon: '🍌', title: 'Glucose looks low', copy: 'Consider a quick carbohydrate and recheck based on your care plan.' });
@@ -1749,6 +1811,54 @@ function buildPatternAlertRecommendation(weekSignals, todaySignals = {}) {
       icon: '📦',
       title: 'Pattern alert: processed foods',
       copy: `${weekSignals.processedMeals} processed-style meals showed up this week. Swapping even one for a simpler meal would help.`
+    };
+  }
+  return null;
+}
+
+function buildMicronutrientRecommendation(todayMeals) {
+  if (!todayMeals.length) return null;
+  const summary = summarizeMicronutrients(todayMeals);
+  if (summary.sodium >= 2) {
+    return {
+      icon: '🧂',
+      title: 'Sodium may be stacking up',
+      copy: 'Sauces, soup, processed items, or fried foods may be pushing salt higher today. Water and simpler foods would help.'
+    };
+  }
+  if (!summary.fiber) {
+    return {
+      icon: '🥬',
+      title: 'Fiber support is still missing',
+      copy: 'Whole fruit, beans, oats, greens, or vegetables would improve digestion and fullness.'
+    };
+  }
+  if (!summary['vitamin-c']) {
+    return {
+      icon: '🍊',
+      title: 'Vitamin C foods are light',
+      copy: 'Fruit, tomatoes, cabbage, broccoli, or citrus would add a useful micronutrient lift today.'
+    };
+  }
+  if (!summary.calcium) {
+    return {
+      icon: '🦴',
+      title: 'Calcium support is low today',
+      copy: 'Yogurt, milk, tofu, greens, or fish would help round out the day better.'
+    };
+  }
+  if (!summary['omega-3']) {
+    return {
+      icon: '🐟',
+      title: 'Omega-3 support is missing',
+      copy: 'Fish, salmon, tuna, or walnuts would improve the nutrient mix for heart and brain support.'
+    };
+  }
+  if ((summary.fiber || 0) >= 2 && (summary['vitamin-c'] || 0) >= 1 && (summary.iron || 0) >= 1) {
+    return {
+      icon: '🧬',
+      title: 'Micronutrients look more balanced',
+      copy: 'You already logged fiber, vitamin C, and iron-supportive foods today. That is a strong baseline to keep going.'
     };
   }
   return null;
@@ -2132,6 +2242,7 @@ function renderMeals() {
     const description = mealDescriptionSummary(meal);
     const compactReasons = analysis.reasons.slice(0, 1);
     const secondaryDetail = description || analysis.swap || '';
+    const micronutrients = buildMicronutrientChips(analysis.micronutrientHighlights.slice(0, 2), 'timeline');
     const feelingControls = buildMealFeelingControls(meal, 'timeline');
     const mobileImage = meal.photo_url
       ? `<img class="timeline-mobile-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
@@ -2157,6 +2268,7 @@ function renderMeals() {
               <div class="meal-health-reasons timeline-mobile-reasons" aria-label="Meal breakdown">
                 ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
+            ${micronutrients}
             ${feelingControls}
             ${description ? `<small class="meal-description timeline-mobile-description">${escapeHtml(description)}</small>` : ''}
             ${analysis.swap ? `<small class="meal-description timeline-mobile-description timeline-mobile-swap"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>` : ''}
@@ -2177,6 +2289,7 @@ function renderMeals() {
               <div class="meal-health-reasons timeline-health-reasons" aria-label="Meal breakdown">
                 ${compactReasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
               </div>` : ''}
+            ${micronutrients}
             ${feelingControls}
             <p>${escapeHtml(buildTimelineMeta(meal))}</p>
             ${secondaryDetail ? `<small class="meal-description timeline-meal-description">${escapeHtml(secondaryDetail)}</small>` : ''}
@@ -2373,6 +2486,13 @@ function buildDashboardMealExtra(meal, analysis) {
   if (ingredients.length) {
     sections.push(`<small class="meal-description meal-extra-copy"><span>Ingredients:</span> ${escapeHtml(ingredients.join(', '))}</small>`);
   }
+  if (analysis.micronutrients.length) {
+    sections.push(`
+      <div class="meal-extra-copy meal-extra-micronutrients">
+        <span>Micronutrients:</span>
+        ${buildMicronutrientChips(analysis.micronutrients, 'detail')}
+      </div>`);
+  }
   if (analysis.swap) {
     sections.push(`<small class="meal-health-swap meal-extra-copy"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>`);
   }
@@ -2408,6 +2528,7 @@ function mealTemplate(meal, withActions = false) {
         <div class="meal-health-reasons" aria-label="Meal breakdown">
           ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
         </div>` : '';
+  const micronutrients = buildMicronutrientChips(analysis.micronutrientHighlights.slice(0, 2), 'dashboard');
   const feelingControls = buildMealFeelingControls(meal, 'dashboard');
   const extraDetails = buildDashboardMealExtra(meal, analysis);
   return `
@@ -2418,6 +2539,7 @@ function mealTemplate(meal, withActions = false) {
         <h4>${escapeHtml(meal.food_name)}</h4>
         <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
         ${reasons}
+        ${micronutrients}
         <p>${escapeHtml(mealDisplayMeta(meal))}</p>
         ${feelingControls}
         ${extraDetails}
@@ -2437,6 +2559,18 @@ function mealDisplayMeta(meal) {
 function getMealFeeling(meal) {
   const value = getNotesMetadataValue(meal?.notes, 'meal_feeling').toLowerCase();
   return mealFeelingOptions.find((option) => option.value === value)?.value || '';
+}
+
+function buildMicronutrientChips(signals = [], variant = 'dashboard') {
+  if (!signals.length) return '';
+  return `
+    <div class="meal-micronutrient-row meal-micronutrient-row-${variant}" aria-label="Micronutrient signals">
+      ${signals.map((signal) => `
+        <span class="meal-micronutrient-chip meal-micronutrient-chip-${signal.kind}">
+          ${escapeHtml(signal.badge)}
+        </span>
+      `).join('')}
+    </div>`;
 }
 
 function getMealFeelingOption(value) {
@@ -2590,12 +2724,39 @@ function getMemberHealthProfile(member) {
   return appState.profileMeasurements[member.id] || {};
 }
 
+function detectMicronutrientSignals(searchText) {
+  return micronutrientSignals
+    .map((signal) => {
+      const hits = signal.words.filter((word) => searchText.includes(word));
+      return {
+        ...signal,
+        hitCount: new Set(hits).size
+      };
+    })
+    .filter((signal) => signal.hitCount > 0)
+    .sort((left, right) => {
+      if (left.kind !== right.kind) return left.kind === 'support' ? -1 : 1;
+      if (right.hitCount !== left.hitCount) return right.hitCount - left.hitCount;
+      return left.label.localeCompare(right.label);
+    });
+}
+
+function summarizeMicronutrients(meals = []) {
+  return meals.reduce((totals, meal) => {
+    detectMicronutrientSignals(foodSearchText(meal)).forEach((signal) => {
+      totals[signal.key] = (totals[signal.key] || 0) + 1;
+    });
+    return totals;
+  }, {});
+}
+
 function analyzeMealQuality(meal, memberOverride) {
   const member = memberOverride || appState.members.find((item) => item.id === meal.member_id) || appState.currentMember;
   const profile = getMemberHealthProfile(member);
   const searchText = foodSearchText(meal);
   const calories = Number(meal.calories) || 0;
   const mealType = getMealType(meal);
+  const micronutrients = detectMicronutrientSignals(searchText);
   let score = 58;
   const reasonFlags = [];
   const hasAny = (words) => words.some((word) => searchText.includes(word));
@@ -2645,6 +2806,9 @@ function analyzeMealQuality(meal, memberOverride) {
     reasonFlags.push('Processed');
     score -= 4;
   }
+
+  score += micronutrients.filter((signal) => signal.kind === 'support').slice(0, 3).reduce((total, signal) => total + Math.min(signal.hitCount, 2) * 2, 0);
+  score -= micronutrients.filter((signal) => signal.kind === 'caution').reduce((total, signal) => total + Math.min(signal.hitCount, 2) * 3, 0);
 
   if (mealType === 'dessert') score -= 8;
   if (mealType === 'snack' && calories > 450) score -= 6;
@@ -2705,7 +2869,9 @@ function analyzeMealQuality(meal, memberOverride) {
     score: finalScore,
     label: finalScore >= 85 ? 'Excellent' : finalScore >= 70 ? 'Good' : finalScore >= 50 ? 'Limit' : 'Heavy',
     reasons: prioritizedReasons,
-    swap
+    swap,
+    micronutrients,
+    micronutrientHighlights: micronutrients.filter((signal) => !prioritizedReasons.includes(signal.badge))
   };
 }
 
