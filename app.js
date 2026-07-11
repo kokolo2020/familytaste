@@ -32,6 +32,7 @@ const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
 const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
+const uiStateStorageKey = 'familyBites.uiState.v1';
 const APP_VERSION = 'v0.8.0';
 const APP_BUILD_DATE = '2026-07-11';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
@@ -80,6 +81,7 @@ let snapScanDraft = createEmptySnapScanDraft();
 let lastSnapEstimateSignature = '';
 let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
+let authSessionRecoveryPromise = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -245,6 +247,8 @@ function bindEvents() {
   document.getElementById('authResendButton')?.addEventListener('click', handleAuthResendOtp);
   document.getElementById('authChangeEmailButton')?.addEventListener('click', handleAuthChangeEmail);
   document.getElementById('authSignOutButton')?.addEventListener('click', handleAuthSignOut);
+  document.addEventListener('visibilitychange', handleAppResumeSessionCheck);
+  window.addEventListener('pageshow', handleAppResumeSessionCheck);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     clearAutoEditEstimate();
     document.getElementById('mealModal').classList.add('hidden');
@@ -325,8 +329,61 @@ function clearLocalFamilyCache() {
     chefVoiceStorageKey,
     bioLogsStorageKey,
     profileMeasurementsStorageKey,
-    profilePhotoStorageKey
+    profilePhotoStorageKey,
+    uiStateStorageKey
   ].forEach((key) => localStorage.removeItem(key));
+}
+
+function saveUiState() {
+  try {
+    const workspaceVisible = !document.getElementById('workspace')?.classList.contains('hidden');
+    localStorage.setItem(uiStateStorageKey, JSON.stringify({
+      memberId: appState.currentMember?.id || '',
+      page: appState.currentPage || 'dashboard',
+      workspaceVisible
+    }));
+  } catch (error) {
+    console.warn('Could not save UI state.', error);
+  }
+}
+
+function readUiState() {
+  try {
+    const raw = localStorage.getItem(uiStateStorageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      memberId: String(parsed?.memberId || '').trim(),
+      page: String(parsed?.page || 'dashboard').trim() || 'dashboard',
+      workspaceVisible: Boolean(parsed?.workspaceVisible)
+    };
+  } catch (error) {
+    console.warn('Could not read UI state.', error);
+    return null;
+  }
+}
+
+function restoreUiStateAfterAuth() {
+  const savedState = readUiState();
+  const landing = document.getElementById('landing');
+  const workspace = document.getElementById('workspace');
+  const restoreMember = savedState?.memberId
+    ? appState.members.find((member) => member.id === savedState.memberId && member.id !== 'add' && member.name !== 'Add Member')
+    : null;
+
+  if (!restoreMember || !savedState?.workspaceVisible) {
+    appState.currentMember = null;
+    workspace?.classList.add('hidden');
+    landing?.classList.remove('hidden');
+    return false;
+  }
+
+  appState.currentMember = restoreMember;
+  updateProfileUi();
+  landing?.classList.add('hidden');
+  workspace?.classList.remove('hidden');
+  showPage(savedState.page || 'dashboard');
+  return true;
 }
 
 function syncBrowserUserScope(userId) {
@@ -422,21 +479,24 @@ async function bootstrapAuth() {
 
   window.familyBitesDb.onAuthStateChange((session) => {
     if (session) {
-      handleAuthenticatedSession(session).catch((error) => {
+      handleActiveSession(session).catch((error) => {
         console.warn('Auth state change failed.', error);
         appState.auth.status = 'signed_out';
         renderAuthState();
         setAuthFeedback(formatAuthError(error), 'error');
       });
     } else {
-      handleSignedOutState();
+      confirmSignedOutState().catch((error) => {
+        console.warn('Sign-out confirmation failed.', error);
+        handleSignedOutState();
+      });
     }
   });
 
   try {
     const session = await window.familyBitesDb.getSession();
     if (session) {
-      await handleAuthenticatedSession(session);
+      await handleActiveSession(session, { force: true });
     } else {
       handleSignedOutState();
     }
@@ -445,6 +505,54 @@ async function bootstrapAuth() {
     appState.auth.status = 'signed_out';
     setAuthFeedback(formatAuthError(error), 'error');
     renderAuthState();
+  }
+}
+
+async function handleActiveSession(session, options = {}) {
+  const nextUserId = session?.user?.id || '';
+  const sameReadyUser = !options.force
+    && appState.auth.status === 'ready'
+    && appState.auth.user?.id === nextUserId
+    && appState.auth.membership;
+
+  if (sameReadyUser) {
+    appState.auth.user = session.user;
+    setAuthFeedback('');
+    return;
+  }
+
+  await handleAuthenticatedSession(session);
+}
+
+async function confirmSignedOutState() {
+  if (authSessionRecoveryPromise) return authSessionRecoveryPromise;
+  authSessionRecoveryPromise = (async () => {
+    try {
+      const session = await window.familyBitesDb.getSession();
+      if (session) {
+        await handleActiveSession(session, { force: true });
+        return true;
+      }
+      handleSignedOutState();
+      return false;
+    } finally {
+      authSessionRecoveryPromise = null;
+    }
+  })();
+  return authSessionRecoveryPromise;
+}
+
+async function handleAppResumeSessionCheck() {
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
+  if (!window.familyBitesDb?.isConfigured) return;
+  if (appState.auth.status === 'ready') return;
+  try {
+    const session = await window.familyBitesDb.getSession();
+    if (session) {
+      await handleActiveSession(session, { force: true });
+    }
+  } catch (error) {
+    console.warn('Resume session check failed.', error);
   }
 }
 
@@ -471,7 +579,7 @@ async function handleAuthenticatedSession(session) {
   appState.auth.membership = membership;
   await hydrateFamilyData();
   appState.auth.status = 'ready';
-  appState.currentMember = null;
+  restoreUiStateAfterAuth();
   renderProfiles();
   renderAuthState();
 }
@@ -485,6 +593,7 @@ function handleSignedOutState() {
   };
   sessionStorage.removeItem(pendingOtpEmailStorageKey);
   resetFamilyState();
+  saveUiState();
   renderProfiles();
   setAuthFeedback('');
   renderAuthState();
@@ -662,6 +771,7 @@ function selectMember(member, options = { openDashboard: true }) {
 
   appState.currentMember = member;
   updateProfileUi();
+  saveUiState();
 
   if (options.openDashboard) {
     document.getElementById('landing').classList.add('hidden');
@@ -678,6 +788,7 @@ function handleAction(action) {
     if (appState.auth.status !== 'ready') return;
     document.getElementById('workspace').classList.add('hidden');
     document.getElementById('landing').classList.remove('hidden');
+    saveUiState();
   }
 
   if (action === 'demo-dashboard') {
@@ -737,6 +848,7 @@ function showPage(pageName) {
 
   document.getElementById('pageTitle').textContent = page?.dataset.title || 'FamilyBites';
   document.getElementById('activeKicker').textContent = page?.dataset.kicker || 'FamilyBites';
+  saveUiState();
   renderAll();
 }
 
