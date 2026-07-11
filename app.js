@@ -1481,7 +1481,7 @@ function buildRecommendations({ memberMeals, todayMeals, calories, calorieGoal, 
   });
   if (recoveryMode) items.push(recoveryMode);
 
-  const patternAlert = buildPatternAlertRecommendation(weekSignals);
+  const patternAlert = buildPatternAlertRecommendation(weekSignals, todaySignals);
   if (patternAlert) items.push(patternAlert);
 
   if (!glucose) items.push({ icon: '🩸', title: 'Add a glucose reading', copy: 'A reading helps personalize your body-impact estimate.' });
@@ -1689,7 +1689,7 @@ function buildRecoveryRecommendation({ todaySignals, calories, calorieGoal, step
   return null;
 }
 
-function buildPatternAlertRecommendation(weekSignals) {
+function buildPatternAlertRecommendation(weekSignals, todaySignals = {}) {
   if (!weekSignals.mealCount) return null;
   if (weekSignals.sugaryDrinks >= 3) {
     return {
@@ -1698,14 +1698,23 @@ function buildPatternAlertRecommendation(weekSignals) {
       copy: `${weekSignals.sugaryDrinks} sugary drinks were logged in the last 7 days. Cutting one or two would improve energy and calories fast.`
     };
   }
-  if (weekSignals.lowProteinBreakfasts >= 2 && weekSignals.breakfastDayCount >= 2) {
+  const morningPatternRatio = weekSignals.breakfastDayCount
+    ? weekSignals.lowProteinBreakfasts / weekSignals.breakfastDayCount
+    : 0;
+  const lunchPatternRatio = weekSignals.lunchDayCount
+    ? weekSignals.lowVegLunches / weekSignals.lunchDayCount
+    : 0;
+  const todayBreakfastRecovered = (todaySignals.breakfastDayCount || 0) > 0 && (todaySignals.lowProteinBreakfasts || 0) === 0;
+  const todayLunchRecovered = (todaySignals.lunchDayCount || 0) > 0 && (todaySignals.lowVegLunches || 0) === 0;
+
+  if (!todayBreakfastRecovered && weekSignals.lowProteinBreakfasts >= 2 && weekSignals.breakfastDayCount >= 3 && morningPatternRatio >= 0.5) {
     return {
       icon: '🍳',
       title: 'Pattern alert: low-protein mornings',
       copy: `${weekSignals.lowProteinBreakfasts} mornings were light on protein this week. Eggs, yogurt, tofu, or nuts would help.`
     };
   }
-  if (weekSignals.lowVegLunches >= 2 && weekSignals.lunchDayCount >= 2) {
+  if (!todayLunchRecovered && weekSignals.lowVegLunches >= 2 && weekSignals.lunchDayCount >= 3 && lunchPatternRatio >= 0.5) {
     return {
       icon: '🥗',
       title: 'Pattern alert: low-veg lunches',
