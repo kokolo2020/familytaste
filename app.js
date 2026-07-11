@@ -2003,7 +2003,7 @@ async function handleSaveBioStats() {
 
 function renderFoodList(elementId, meals, emptyMessage) {
   const orderedMeals = [...meals].sort(compareDashboardMealOrder);
-  const groupedMarkup = buildDashboardMealGroups(orderedMeals, { showBreakdown: elementId === 'todayFoodList' });
+  const groupedMarkup = buildDashboardMealGroups(orderedMeals);
   document.getElementById(elementId).innerHTML =
     groupedMarkup || emptyState(emptyMessage);
 }
@@ -2613,7 +2613,7 @@ function getMealType(meal) {
   return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || '';
 }
 
-function buildDashboardMealGroups(meals, { showBreakdown = false } = {}) {
+function buildDashboardMealGroups(meals) {
   const groups = new Map();
   meals.forEach((meal) => {
     const type = getMealType(meal) || 'other';
@@ -2626,70 +2626,9 @@ function buildDashboardMealGroups(meals, { showBreakdown = false } = {}) {
         <strong>${dashboardMealTypeLabel(type)}</strong>
         <span>${items.length} item${items.length === 1 ? '' : 's'} · ${sum(items, 'calories').toLocaleString()} cal</span>
       </header>
-      ${showBreakdown ? buildDashboardMealBreakdown(items, dashboardMealTypeLabel(type)) : ''}
       ${items.map((meal) => mealTemplate(meal, true)).join('')}
     </section>
   `).join('');
-}
-
-function buildDashboardMealBreakdown(items, label) {
-  if (items.length < 2) return '';
-  const totalCalories = sum(items, 'calories');
-  const averageHealth = Math.round(items.reduce((total, meal) => total + estimateMealHealthScore(meal), 0) / items.length);
-  const sliceWeights = items.map((meal) => Math.max(Number(meal.calories) || 0, 1));
-  const weightTotal = sliceWeights.reduce((total, value) => total + value, 0) || items.length;
-  let runningShare = 0;
-  const slices = items.map((meal, index) => {
-    const ratio = sliceWeights[index] / weightTotal;
-    const start = runningShare * 100;
-    runningShare += ratio;
-    const end = runningShare * 100;
-    return {
-      meal,
-      start,
-      end,
-      color: mealBreakdownColor(estimateMealHealthScore(meal)),
-      health: estimateMealHealthScore(meal)
-    };
-  });
-  return `
-    <section class="meal-breakdown-card" aria-label="${escapeAttr(label)} meal breakdown">
-      <div class="meal-breakdown-chart">
-        <div class="meal-breakdown-donut" style="${buildMealBreakdownGradient(slices)}">
-          <div class="meal-breakdown-center">
-            <strong>${totalCalories.toLocaleString()}</strong>
-            <small>${escapeHtml(label)}</small>
-            <span>${averageHealth}/100 avg</span>
-          </div>
-        </div>
-      </div>
-      <div class="meal-breakdown-legend">
-        ${items.map((meal, index) => {
-          const health = estimateMealHealthScore(meal);
-          return `
-            <article class="meal-breakdown-item">
-              <i style="background:${escapeAttr(slices[index].color)}"></i>
-              <div>
-                <strong>${escapeHtml(meal.food_name)}</strong>
-                <small>${Number(meal.calories || 0).toLocaleString()} cal · ${health}/100</small>
-              </div>
-            </article>`;
-        }).join('')}
-      </div>
-    </section>`;
-}
-
-function buildMealBreakdownGradient(slices) {
-  const stops = slices.map((slice) => `${slice.color} ${slice.start.toFixed(2)}% ${slice.end.toFixed(2)}%`);
-  const gradient = stops.length ? stops.join(', ') : '#f0e8dc 0 100%';
-  return `--meal-breakdown-gradient: conic-gradient(${gradient});`;
-}
-
-function mealBreakdownColor(score) {
-  if (score >= 80) return '#5fb56f';
-  if (score >= 65) return '#a8d65d';
-  if (score >= 45) return '#ffb33a';
-  return '#f06a3d';
 }
 
 function compareDashboardMealOrder(left, right) {
