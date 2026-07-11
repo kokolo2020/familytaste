@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260711c" />
+  <link rel="stylesheet" href="style.css?v=20260711d" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -24,9 +24,9 @@
           <button class="primary-button" type="submit">Send code</button>
         </form>
         <form id="authVerifyForm" class="auth-card hidden">
-          <p class="auth-helper">We sent a 6-digit code to <strong id="authPendingEmail"></strong>.</p>
-          <label>6-digit code
-            <input id="authOtpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" required>
+          <p class="auth-helper">We sent a sign-in code to <strong id="authPendingEmail"></strong>.</p>
+          <label>Sign-in code
+            <input id="authOtpInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the code from your email" maxlength="12" required>
           </label>
           <button id="authVerifyButton" class="primary-button" type="submit">Verify code</button>
           <p class="auth-helper">If your email app opens the sign-in link on this device, that will also continue automatically.</p>

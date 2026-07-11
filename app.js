@@ -382,7 +382,7 @@ function renderAuthState() {
     subtitle.textContent = 'Enter any email and we will send a one-time code.';
   } else if (state === 'otp_sent') {
     title.textContent = 'Check your email';
-    subtitle.textContent = 'Enter the 6-digit code. If your email app opens the sign-in link here, that also works.';
+    subtitle.textContent = 'Enter the code from your email. If your email app opens the sign-in link here, that also works.';
   } else if (state === 'needs_family') {
     title.textContent = 'Create your family';
     subtitle.textContent = 'This email is signed in, but it is not linked to a family yet.';
@@ -777,7 +777,7 @@ async function handleAuthVerifySubmit(event) {
   const email = appState.auth.pendingEmail;
   const token = String(document.getElementById('authOtpInput')?.value || '').trim();
   if (!email || !token) {
-    setAuthFeedback('Enter the 6-digit code from your email.', 'error');
+    setAuthFeedback('Enter the code from your email.', 'error');
     return;
   }
 
