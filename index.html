@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260712b" />
+  <link rel="stylesheet" href="style.css?v=20260712c" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -455,22 +455,23 @@
             <section class="dashboard-card body-overview-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">Body tab</p>
-                  <h3>Human body wellness map</h3>
+                  <p class="eyebrow">Today’s body summary</p>
+                  <h3>Daily wellness snapshot</h3>
                 </div>
               </div>
-              <p class="panel-subtitle">Bring back the full body view here, with clearer support signals and next-step AI guidance.</p>
+              <p class="panel-subtitle">A quick read on what your meals are supporting, what is missing, and what to improve next.</p>
               <div id="bodyFocusCards" class="body-focus-grid"></div>
             </section>
 
             <section class="dashboard-card body-map-card">
               <div class="section-title">
                 <div>
-                  <p class="eyebrow">AI body impact</p>
-                  <h3>See how today’s food supports your body</h3>
+                  <p class="eyebrow">✦ AI Analysis</p>
+                  <h3>✨ AI Food Impact</h3>
                 </div>
+                <span class="ai-badge">AI</span>
               </div>
-              <p class="panel-subtitle">Each system reflects today’s logged meals, estimated ingredients, and meal quality signals.</p>
+              <p class="panel-subtitle">See how your food nourishes your body.</p>
               <div class="body-map-layout">
                 <div id="bodyMapLeft" class="body-map-column"></div>
                 <div class="body-map-figure" aria-hidden="true">
@@ -485,7 +486,7 @@
               <div class="section-title">
                 <div>
                   <p class="eyebrow">Useful AI</p>
-                  <h3>What to do next</h3>
+                  <h3>Next best actions</h3>
                 </div>
               </div>
               <div id="bodyActionList" class="recommendation-list body-action-list"></div>
@@ -665,6 +666,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260712b"></script>
+  <script src="app.js?v=20260712c"></script>
 </body>
 </html>
