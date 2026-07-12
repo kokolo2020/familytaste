@@ -2726,10 +2726,17 @@ function mealDescriptionSummary(meal) {
   return `Ingredients: ${ingredients.slice(0, 4).join(', ')}`;
 }
 
-function buildDashboardMealExtra(meal, analysis) {
+function buildDashboardMealExtra(meal, analysis, actions = '') {
   const note = notesWithoutMealType(meal?.notes);
   const ingredients = getMealIngredients(meal);
   const sections = [];
+  const health = analysis.score;
+  const reasons = analysis.reasons.length ? `
+      <div class="meal-health-reasons meal-extra-reasons" aria-label="Meal breakdown">
+        ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
+      </div>` : '';
+  sections.push(`<span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>`);
+  if (reasons) sections.push(reasons);
   if (note) {
     sections.push(`<small class="meal-description meal-extra-copy">${escapeHtml(note)}</small>`);
   }
@@ -2746,12 +2753,13 @@ function buildDashboardMealExtra(meal, analysis) {
   if (analysis.swap) {
     sections.push(`<small class="meal-health-swap meal-extra-copy"><span>Better choice:</span> ${escapeHtml(analysis.swap)}</small>`);
   }
-  if (!sections.length) return '';
+  if (!sections.length && !actions) return '';
   return `
         <details class="meal-extra-details">
           <summary>More info</summary>
           <div class="meal-extra-panel">
             ${sections.join('')}
+            ${actions}
           </div>
         </details>`;
 }
@@ -2768,32 +2776,27 @@ function timelineCompactSubmeta(meal) {
 
 function mealTemplate(meal, withActions = false) {
   const analysis = analyzeMealQuality(meal);
-  const health = analysis.score;
   const actions = withActions ? `
         <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
-  const reasons = analysis.reasons.length ? `
-        <div class="meal-health-reasons" aria-label="Meal breakdown">
-          ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
-        </div>` : '';
-  const micronutrients = buildMicronutrientChips(analysis.micronutrientHighlights.slice(0, 2), 'dashboard');
-  const extraDetails = buildDashboardMealExtra(meal, analysis);
+  const extraDetails = buildDashboardMealExtra(meal, analysis, actions);
   return `
-    <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
-      <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
-      ${meal.photo_url ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">` : ''}
-      <div>
-        <h4>${escapeHtml(meal.food_name)}</h4>
-        <span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>
-        ${reasons}
-        ${micronutrients}
-        <p>${escapeHtml(mealDisplayMeta(meal))}</p>
+    <article class="meal-card dashboard-food-card ${meal.photo_url ? 'has-photo' : ''}">
+      <div class="meal-card-summary">
+        <div class="meal-card-media">
+          ${meal.photo_url
+            ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
+            : `<span class="meal-emoji">${mealEmoji(meal.food_name)}</span>`}
+        </div>
+        <div class="meal-title-line">
+          <h4>${escapeHtml(meal.food_name)}</h4>
+          <strong class="meal-calorie-pill">${Number(meal.calories || 0).toLocaleString()} cal</strong>
+        </div>
+        <p class="meal-compact-meta">${escapeHtml(mealDisplayMeta(meal))}</p>
         ${extraDetails}
-        ${actions}
       </div>
-      <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
   `;
 }
