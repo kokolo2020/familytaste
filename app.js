@@ -150,25 +150,14 @@ let timelineFilters = {
 };
 
 const navItems = [
-  { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
-  { page: 'order', icon: '🧑‍🍳', label: 'Chef Menu' },
-  { page: 'snap', icon: '📷', label: 'Snap Food' },
-  { page: 'favorites', icon: '❤️', label: 'Favorites' },
-  { page: 'weekly', icon: '📊', label: 'Weekly Report' },
-  { page: 'chat', icon: '💬', label: 'Family Chat' },
-  { page: 'chef', icon: '📥', label: 'Chef Screen' },
-  { page: 'timeline', icon: '📅', label: 'Timeline' },
-  { page: 'profile', icon: '👤', label: 'Profile' },
-  { page: 'settings', icon: '⚙️', label: 'Settings' }
-];
-
-const mobileItems = [
-  { page: 'dashboard', icon: '⌂', label: 'Home' },
-  { page: 'timeline', icon: '♜', label: 'Meals' },
-  { page: 'snap', icon: '📷', label: 'Snap Food' },
-  { page: 'chat', icon: '◌', label: 'Chat' },
+  { page: 'dashboard', icon: '🏠', label: 'Home' },
+  { page: 'timeline', icon: '📔', label: 'Diary' },
+  { page: 'snap', icon: '📷', label: 'Scan' },
+  { page: 'body', icon: '🧍', label: 'Body' },
   { page: 'settings', icon: '•••', label: 'More' }
 ];
+
+const mobileItems = [...navItems];
 
 document.addEventListener('DOMContentLoaded', () => {
   renderProfiles();
@@ -820,6 +809,11 @@ function navTemplate(item) {
   `;
 }
 
+function resolveNavPage(pageName) {
+  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile'].includes(pageName)) return 'settings';
+  return pageName;
+}
+
 function selectMember(member, options = { openDashboard: true }) {
   if (!member) return;
 
@@ -901,8 +895,9 @@ function showPage(pageName) {
   const page = document.getElementById(`page-${pageName}`);
   if (page) page.classList.add('active-page');
 
+  const activeNavPage = resolveNavPage(pageName);
   document.querySelectorAll('.nav-item').forEach((item) => {
-    item.classList.toggle('active', item.dataset.page === pageName);
+    item.classList.toggle('active', item.dataset.page === activeNavPage);
   });
 
   document.getElementById('pageTitle').textContent = page?.dataset.title || 'FamilyBites';
@@ -1376,6 +1371,16 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
     <article class="recommendation-item">
       <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
     </article>`).join('');
+
+  renderBodyInsightsPage({
+    todayMeals,
+    calories,
+    calorieGoal,
+    nutrition,
+    impacts,
+    recommendations,
+    todaySignals: analyzeMealPatternSignals(todayMeals)
+  });
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
@@ -1485,6 +1490,100 @@ function buildDashboardAiInsightCards({ todayMeals, calories, calorieGoal, nutri
       tone: watchItems[0] === 'No major red flags stand out right now.' ? 'neutral' : 'warning'
     }
   ];
+}
+
+function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, impacts, recommendations, todaySignals }) {
+  const leftColumn = document.getElementById('bodyMapLeft');
+  const rightColumn = document.getElementById('bodyMapRight');
+  const focusCards = document.getElementById('bodyFocusCards');
+  const actionList = document.getElementById('bodyActionList');
+  if (!leftColumn || !rightColumn || !focusCards || !actionList) return;
+
+  const leftPositions = ['brain', 'liver', 'muscles', 'joints', 'immunity', 'energy'];
+  const rightPositions = ['heart', 'eyes', 'digestion', 'skin', 'recovery', 'bones'];
+  const orderedLeft = leftPositions.map((position) => impacts.find((impact) => impact.position === position)).filter(Boolean);
+  const orderedRight = rightPositions.map((position) => impacts.find((impact) => impact.position === position)).filter(Boolean);
+  const hasMeals = todayMeals.length > 0;
+
+  leftColumn.innerHTML = orderedLeft.map(renderBodySystemCard).join('');
+  rightColumn.innerHTML = orderedRight.map(renderBodySystemCard).join('');
+
+  const topImpact = [...impacts].sort((left, right) => right.score - left.score)[0];
+  const zeroSystems = impacts.filter((impact) => impact.score === 0).slice(0, 2);
+  const calorieDelta = calorieGoal ? calories - calorieGoal : 0;
+  const focusItems = [
+    {
+      icon: topImpact?.icon || '🌿',
+      label: 'Top support',
+      value: hasMeals && topImpact ? `${topImpact.name} ${topImpact.score}%` : 'No signals yet',
+      copy: hasMeals && topImpact ? topImpact.copy : 'Log meals to see your strongest body support.'
+    },
+    {
+      icon: '⚠️',
+      label: 'Watch-out',
+      value: !hasMeals
+        ? 'Waiting for meals'
+        : calorieGoal && calorieDelta > 0 ? `${calorieDelta.toLocaleString()} cal over` : (todaySignals.friedMeals >= 2 ? 'Fried foods stacking' : 'No major red flags'),
+      copy: !hasMeals
+        ? 'Body watch-outs will appear after you log food today.'
+        : calorieGoal && calorieDelta > 0
+        ? 'Keep the next meal lighter and add water or movement.'
+        : todaySignals.friedMeals >= 2
+          ? 'Choose one simpler meal to steady digestion and energy.'
+          : 'Your current food pattern looks fairly stable.'
+    },
+    {
+      icon: '🧩',
+      label: 'Still missing',
+      value: !hasMeals ? 'Start with your first meal' : zeroSystems.length ? zeroSystems.map((impact) => impact.name).join(' + ') : 'Good system coverage',
+      copy: !hasMeals
+        ? 'The body map will fill in once today’s meals are logged.'
+        : zeroSystems.length
+        ? 'These areas have little support from today’s logged foods.'
+        : 'Most body systems have at least one food signal today.'
+    },
+    {
+      icon: '🎯',
+      label: 'AI focus',
+      value: nutrition >= 75 ? 'Protect your balance' : 'Improve the next meal',
+      copy: recommendations[0]?.copy || 'Add one protein, one fiber source, and enough water.'
+    }
+  ];
+
+  focusCards.innerHTML = focusItems.map((item) => `
+    <article class="body-focus-card">
+      <span>${item.icon}</span>
+      <small>${escapeHtml(item.label)}</small>
+      <strong>${escapeHtml(item.value)}</strong>
+      <p>${escapeHtml(item.copy)}</p>
+    </article>
+  `).join('');
+
+  actionList.innerHTML = recommendations.slice(0, 4).map((item) => `
+    <article class="recommendation-item body-action-item">
+      <span>${item.icon}</span>
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.copy)}</p>
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderBodySystemCard(impact) {
+  const tone = impact.score >= 70 ? 'good' : impact.score >= 35 ? 'steady' : 'low';
+  return `
+    <article class="body-system-card body-system-card-${tone}">
+      <div class="body-system-card-header">
+        <span>${impact.icon}</span>
+        <div>
+          <strong>${escapeHtml(impact.name)}</strong>
+          <b>${impact.score}%</b>
+        </div>
+      </div>
+      <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>
+    </article>
+  `;
 }
 
 function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
@@ -4498,9 +4597,10 @@ function renderSettings() {
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
+        <button class="settings-nav-btn" data-page="body">🧍 Body Map</button>
         <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
         <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
-        <button class="settings-nav-btn" data-page="timeline">📅 Timeline</button>
+        <button class="settings-nav-btn" data-page="timeline">📔 Diary</button>
         <button class="settings-nav-btn" data-page="favorites">❤️ Favorites</button>
         <button class="settings-nav-btn" data-page="profile">👤 Profile</button>
       </div>

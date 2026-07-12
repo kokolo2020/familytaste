@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260712a" />
+  <link rel="stylesheet" href="style.css?v=20260712b" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -450,13 +450,56 @@
           <p class="muted">Future-ready for photos and voice.</p>
         </section>
 
-        <section id="page-timeline" class="page" data-title="All Foods" data-kicker="Meal history">
+        <section id="page-body" class="page" data-title="Body" data-kicker="AI wellness map">
+          <div class="body-page-layout">
+            <section class="dashboard-card body-overview-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Body tab</p>
+                  <h3>Human body wellness map</h3>
+                </div>
+              </div>
+              <p class="panel-subtitle">Bring back the full body view here, with clearer support signals and next-step AI guidance.</p>
+              <div id="bodyFocusCards" class="body-focus-grid"></div>
+            </section>
+
+            <section class="dashboard-card body-map-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">AI body impact</p>
+                  <h3>See how today’s food supports your body</h3>
+                </div>
+              </div>
+              <p class="panel-subtitle">Each system reflects today’s logged meals, estimated ingredients, and meal quality signals.</p>
+              <div class="body-map-layout">
+                <div id="bodyMapLeft" class="body-map-column"></div>
+                <div class="body-map-figure" aria-hidden="true">
+                  <img src="assets/illustrations/anatomical-body.png" alt="Anatomical wellness illustration showing body systems supported by food">
+                </div>
+                <div id="bodyMapRight" class="body-map-column"></div>
+              </div>
+              <p class="body-impact-note">ⓘ Body signals are nutrition guidance only, not diagnosis or medical treatment.</p>
+            </section>
+
+            <section class="dashboard-card body-actions-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Useful AI</p>
+                  <h3>What to do next</h3>
+                </div>
+              </div>
+              <div id="bodyActionList" class="recommendation-list body-action-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="page-timeline" class="page" data-title="Diary" data-kicker="Food log">
           <div class="timeline-screen">
             <header class="timeline-header dashboard-card">
               <div>
-                <p class="eyebrow">Meal archive</p>
-                <h3>All Foods</h3>
-                <p>Every saved meal in one screen with the key nutrition details.</p>
+                <p class="eyebrow">Food diary</p>
+                <h3>Diary</h3>
+                <p>Browse every saved meal by date, meal type, and health score.</p>
               </div>
               <div class="timeline-summary">
                 <article><span>Total meals</span><strong id="timelineMealCount">0</strong></article>
@@ -564,7 +607,7 @@
           </div>
         </section>
 
-        <section id="page-settings" class="page" data-title="Settings" data-kicker="Family preferences">
+        <section id="page-settings" class="page" data-title="More" data-kicker="Family tools">
           <div id="settingsContent"></div>
         </section>
       </div>
@@ -622,6 +665,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260712a"></script>
+  <script src="app.js?v=20260712b"></script>
 </body>
 </html>

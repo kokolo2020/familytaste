@@ -176,6 +176,184 @@
   border-radius: 50%;
   background: #d4b07b;
 }
+
+.body-page-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.body-overview-card,
+.body-map-card,
+.body-actions-card {
+  padding: 22px;
+}
+
+.body-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.body-focus-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #eee7db;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffdfa, #fff8f1);
+}
+
+.body-focus-card > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: #fff;
+  font-size: 18px;
+}
+
+.body-focus-card small {
+  color: #9b7a4e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.body-focus-card strong {
+  color: #241c16;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.body-focus-card p {
+  margin: 0;
+  color: #6f6256;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.body-map-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 280px) minmax(180px, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.body-map-column {
+  display: grid;
+  gap: 12px;
+}
+
+.body-map-figure {
+  display: grid;
+  place-items: center;
+  min-height: 620px;
+  border-radius: 32px;
+  background: radial-gradient(circle, rgba(255, 224, 190, .42), rgba(255,255,255,0) 70%);
+}
+
+.body-map-figure img {
+  display: block;
+  width: 100%;
+  max-width: 250px;
+  max-height: 580px;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 24px rgba(142, 75, 33, .12));
+}
+
+.body-system-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #ece3d7;
+  border-radius: 16px;
+  background: rgba(255, 253, 249, .96);
+}
+
+.body-system-card-good {
+  background: linear-gradient(180deg, #fcfff9, #f6fbef);
+}
+
+.body-system-card-steady {
+  background: linear-gradient(180deg, #fffdfa, #fff7ef);
+}
+
+.body-system-card-low {
+  background: linear-gradient(180deg, #fffdfb, #f7f3ed);
+}
+
+.body-system-card-header {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.body-system-card-header span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+}
+
+.body-system-card-header strong {
+  display: block;
+  color: #2d241c;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.body-system-card-header b {
+  display: block;
+  margin-top: 2px;
+  color: #35634d;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.body-system-card p {
+  margin: 0;
+  color: #665a4e;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.body-action-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.body-action-item {
+  height: 100%;
+}
+
+@media (max-width: 1100px) {
+  .body-focus-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .body-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .body-map-figure {
+    order: -1;
+    min-height: 0;
+    padding: 18px 0;
+  }
+
+  .body-map-figure img {
+    max-height: 420px;
+  }
+
+  .body-map-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .impact-row { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; }
 .impact-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; color: #477566; background: #edf6f1; font-size: 12px; }
 .impact-row > div > span { display: flex; justify-content: space-between; gap: 8px; color: #4f665d; font-size: 10px; }
@@ -308,6 +486,18 @@
   #page-dashboard .dashboard-intro { flex-direction: row; align-items: center; }
   #page-dashboard .body-impact-content { min-height: 0; }
   #page-dashboard .panel-subtitle { margin-bottom: 10px; }
+  .body-overview-card,
+  .body-map-card,
+  .body-actions-card { padding: 16px; }
+  .body-focus-grid,
+  .body-map-column,
+  .body-action-list { grid-template-columns: 1fr; }
+  .body-map-layout { gap: 10px; }
+  .body-map-figure { padding: 10px 0 2px; border-radius: 20px; }
+  .body-map-figure img { max-height: 320px; }
+  .body-focus-card strong { font-size: 15px; }
+  .body-focus-card p,
+  .body-system-card p { font-size: 11px; }
   .mobile-nav { right: 0; bottom: 0; left: 0; border: 0; border-top: 1px solid #eee9e1; border-radius: 0; background: rgba(255,255,255,.96); }
   .mobile-nav .nav-item { display: grid; justify-items: center; gap: 1px; color: #8f8881; font-size: 9px; }
   .mobile-nav .nav-item span:first-child { font-size: 21px; }
