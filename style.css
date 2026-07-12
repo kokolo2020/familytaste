@@ -3717,6 +3717,12 @@ h1 span {
   font-family: "Playfair Display", Georgia, serif;
 }
 
+.modal-helper-copy {
+  margin: -4px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .modal-field {
   display: grid;
   gap: 8px;

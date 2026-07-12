@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260712i" />
+  <link rel="stylesheet" href="style.css?v=20260712j" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -672,8 +672,33 @@
     </div>
   </div>
 
+  <div id="profileOnboardingModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileOnboardingTitle">
+    <div class="modal-card">
+      <h3 id="profileOnboardingTitle">Complete your profile</h3>
+      <p class="modal-helper-copy">Before you start, add the basics for your personal health tracking. You can update height, goals, and more later in Profile.</p>
+      <div class="modal-field-row">
+        <label class="modal-field">First name<input id="onboardingFirstName" type="text" maxlength="30" placeholder="John" autocomplete="given-name"></label>
+        <label class="modal-field">Last name<input id="onboardingLastName" type="text" maxlength="30" placeholder="Smith" autocomplete="family-name"></label>
+      </div>
+      <div class="modal-field-row">
+        <label class="modal-field">Age<input id="onboardingAge" type="number" min="14" max="100" step="1" inputmode="numeric" placeholder="35"></label>
+        <label class="modal-field">Weight (kg)<input id="onboardingWeight" type="number" min="10" max="400" step="0.1" inputmode="decimal" placeholder="70"></label>
+      </div>
+      <label class="modal-field">Sex
+        <select id="onboardingSex">
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+      </label>
+      <p id="profileOnboardingFeedback" class="auth-feedback"></p>
+      <div class="modal-actions">
+        <button class="primary-button" id="saveProfileOnboarding" type="button">Save and continue</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260712i"></script>
+  <script src="app.js?v=20260712j"></script>
 </body>
 </html>

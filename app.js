@@ -147,6 +147,7 @@ let lastSnapEstimateSignature = '';
 let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
 let authSessionRecoveryPromise = null;
+let profileOnboardingTimer = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -384,6 +385,7 @@ function bindEvents() {
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
+  document.getElementById('saveProfileOnboarding')?.addEventListener('click', handleSaveProfileOnboarding);
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats')?.addEventListener('click', handleSaveBioStats);
@@ -750,6 +752,7 @@ async function handleAuthenticatedSession(session) {
   restoreUiStateAfterAuth();
   renderProfiles();
   renderAuthState();
+  queueProfileOnboardingCheck();
 }
 
 function handleSignedOutState() {
@@ -950,6 +953,7 @@ function selectMember(member, options = { openDashboard: true }) {
     document.getElementById('landing').classList.add('hidden');
     document.getElementById('workspace').classList.remove('hidden');
     showPage('dashboard');
+    queueProfileOnboardingCheck();
   } else {
     renderAll();
     renderAuthState();
@@ -997,6 +1001,70 @@ function handleAction(action) {
   if (action === 'sign-out') {
     handleAuthSignOut();
   }
+}
+
+function parseProfileName(name = '') {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' ')
+  };
+}
+
+function getProfileIdentity(member = appState.currentMember) {
+  if (!member) return { firstName: '', lastName: '' };
+  const measurements = appState.profileMeasurements[member.id] || {};
+  const parsedName = parseProfileName(member.name);
+  return {
+    firstName: String(measurements.first_name || parsedName.firstName || '').trim(),
+    lastName: String(measurements.last_name || parsedName.lastName || '').trim()
+  };
+}
+
+function profileNeedsOnboarding(member = appState.currentMember) {
+  if (!member || member.id === 'add') return false;
+  const measurements = appState.profileMeasurements[member.id] || {};
+  const identity = getProfileIdentity(member);
+  const weight = Number(measurements.weight_kg ?? member.weight_kg);
+  const age = Number(measurements.age);
+  const sex = String(measurements.sex || '').trim().toLowerCase();
+  return !(identity.firstName && identity.lastName && age >= 14 && weight >= 10 && (sex === 'male' || sex === 'female'));
+}
+
+function setProfileOnboardingFeedback(message = '', tone = '') {
+  const feedback = document.getElementById('profileOnboardingFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `auth-feedback${tone ? ` ${tone}` : ''}`;
+}
+
+function openProfileOnboardingModal(member = appState.currentMember) {
+  if (!member) return;
+  const measurements = appState.profileMeasurements[member.id] || {};
+  const identity = getProfileIdentity(member);
+  document.getElementById('onboardingFirstName').value = identity.firstName;
+  document.getElementById('onboardingLastName').value = identity.lastName;
+  document.getElementById('onboardingAge').value = measurements.age ?? '';
+  document.getElementById('onboardingWeight').value = measurements.weight_kg ?? member.weight_kg ?? '';
+  document.getElementById('onboardingSex').value = measurements.sex || 'female';
+  setProfileOnboardingFeedback('');
+  document.getElementById('profileOnboardingModal')?.classList.remove('hidden');
+  document.getElementById('onboardingFirstName')?.focus();
+}
+
+function closeProfileOnboardingModal() {
+  document.getElementById('profileOnboardingModal')?.classList.add('hidden');
+  setProfileOnboardingFeedback('');
+}
+
+function queueProfileOnboardingCheck() {
+  if (profileOnboardingTimer) clearTimeout(profileOnboardingTimer);
+  profileOnboardingTimer = setTimeout(() => {
+    profileOnboardingTimer = null;
+    if (appState.auth.status !== 'ready') return;
+    if (!profileNeedsOnboarding()) return;
+    openProfileOnboardingModal();
+  }, 120);
 }
 
 function showPage(pageName) {
@@ -3669,6 +3737,62 @@ async function handleSaveProfileMeasurements() {
   await syncMemberToSupabase(member.id, { target_calories: targetCalories });
 }
 
+async function handleSaveProfileOnboarding() {
+  const member = appState.currentMember;
+  if (!member) return;
+  const firstName = document.getElementById('onboardingFirstName').value.trim();
+  const lastName = document.getElementById('onboardingLastName').value.trim();
+  const age = numberOrNull(document.getElementById('onboardingAge').value);
+  const weight = numberOrNull(document.getElementById('onboardingWeight').value);
+  const sex = document.getElementById('onboardingSex').value;
+
+  if (!firstName || !lastName) {
+    setProfileOnboardingFeedback('Enter both first name and last name.', 'error');
+    return;
+  }
+  if (!age || age < 14 || age > 100) {
+    setProfileOnboardingFeedback('Enter a valid age.', 'error');
+    return;
+  }
+  if (!weight || weight < 10 || weight > 400) {
+    setProfileOnboardingFeedback('Enter a valid weight in kilograms.', 'error');
+    return;
+  }
+
+  const fullName = `${firstName} ${lastName}`.trim();
+  const measurements = appState.profileMeasurements[member.id] || {};
+  appState.profileMeasurements[member.id] = {
+    ...measurements,
+    first_name: firstName,
+    last_name: lastName,
+    age,
+    sex,
+    weight_kg: weight
+  };
+  member.name = fullName;
+  member.weight_kg = weight;
+  const matchingMember = appState.members.find((item) => item.id === member.id);
+  if (matchingMember) {
+    matchingMember.name = fullName;
+    matchingMember.weight_kg = weight;
+  }
+  if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
+  appState.bioLogs[member.id][todayKey()] = {
+    ...(appState.bioLogs[member.id][todayKey()] || {}),
+    weight_kg: weight
+  };
+
+  saveStoredAppData();
+  updateProfileUi();
+  renderProfiles();
+  renderProfile();
+  renderDashboard();
+  renderSettings();
+  closeProfileOnboardingModal();
+
+  await syncMemberToSupabase(member.id, { name: fullName, weight_kg: weight });
+}
+
 function buildProfileHealthSummary(measurements) {
   const focusLabels = {
     balanced: 'Balanced eating',
@@ -3691,10 +3815,16 @@ async function handleSaveProfileName() {
   const input = document.getElementById('profileNameInput');
   const newName = input.value.trim();
   if (!member || !newName || newName === member.name) return;
+  const parsedName = parseProfileName(newName);
 
   member.name = newName;
   const matchingMember = appState.members.find((item) => item.id === member.id);
   if (matchingMember) matchingMember.name = newName;
+  appState.profileMeasurements[member.id] = {
+    ...(appState.profileMeasurements[member.id] || {}),
+    first_name: parsedName.firstName,
+    last_name: parsedName.lastName
+  };
   saveStoredAppData();
   updateProfileUi();
   renderProfiles();
