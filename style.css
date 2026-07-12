@@ -41,11 +41,36 @@
 .food-panel-title { margin-bottom: 18px; }
 .compact-button { min-height: 38px; padding: 0 15px; font-size: 13px; }
 .dashboard-meal-list { display: grid; gap: 10px; }
-.dashboard-meal-group { display: grid; }
-.dashboard-meal-group + .dashboard-meal-group { border-top: 1px solid #efe7dd; }
-.dashboard-meal-group-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 8px; color: #7d5f43; }
-.dashboard-meal-group-header strong { color: #3b2a1e; font-size: 13px; }
-.dashboard-meal-group-header span { color: #8f8378; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.dashboard-meal-group {
+  display: grid;
+  margin-bottom: 14px;
+  padding: 0 14px 6px;
+  border: 1px solid #eee4d7;
+  border-radius: 18px;
+  background: #fffdfa;
+  box-shadow: 0 10px 28px rgba(71, 45, 22, 0.05);
+}
+.dashboard-meal-group:last-child { margin-bottom: 0; }
+.dashboard-meal-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 0 10px;
+  color: #7d5f43;
+}
+.dashboard-meal-group-header strong {
+  color: #2d2118;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+}
+.dashboard-meal-group-header span {
+  color: #7d6d60;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
 .dashboard-meal-list .meal-card { border-color: rgba(46, 102, 80, .1); background: #fbfdf9; }
 .dashboard-meal-list .meal-card strong { color: var(--dash-green); }
 
@@ -506,8 +531,8 @@
 .food-history-tabs button { padding: 7px 10px; border-radius: 7px; color: #817368; background: transparent; }
 .food-history-tabs button.active { color: #fff; background: #df791b; box-shadow: 0 4px 10px rgba(184, 92, 14, .18); }
 #page-dashboard .dashboard-meal-list { gap: 0; }
-#page-dashboard .dashboard-meal-group:first-child .dashboard-meal-group-header { padding-top: 10px; }
-#page-dashboard .dashboard-meal-list .meal-card { min-height: 116px; padding: 13px 0; border: 0; border-bottom: 1px solid #eeeae5; border-radius: 0; background: #fff; box-shadow: none; }
+#page-dashboard .dashboard-meal-group:first-child .dashboard-meal-group-header { padding-top: 16px; }
+#page-dashboard .dashboard-meal-list .meal-card { min-height: 116px; padding: 13px 0; border: 0; border-bottom: 1px solid #eeeae5; border-radius: 0; background: transparent; box-shadow: none; }
 #page-dashboard .dashboard-meal-list .meal-card:last-child { border-bottom: 0; }
 #page-dashboard .dashboard-meal-list .meal-card.has-photo { grid-template-columns: 104px 1fr auto; gap: 16px; }
 #page-dashboard .dashboard-meal-list .meal-photo { width: 104px; height: 92px; border-radius: 12px; box-shadow: none; }
@@ -4239,8 +4264,9 @@ h1 span {
   #page-dashboard .dashboard-add-button { min-width: 78px; min-height: 38px; padding: 0 12px; font-size: 12px; }
   #page-dashboard .dashboard-add-button span { margin-right: 3px; font-size: 18px; }
   #page-dashboard .today-food-panel { padding: 0 14px; border-radius: 16px; }
-  #page-dashboard .dashboard-meal-group-header { padding: 16px 0 10px; }
-  #page-dashboard .dashboard-meal-group-header strong { font-size: 16px; }
+  #page-dashboard .dashboard-meal-group { margin-bottom: 12px; padding: 0 12px 4px; border-radius: 16px; }
+  #page-dashboard .dashboard-meal-group-header { padding: 15px 0 10px; }
+  #page-dashboard .dashboard-meal-group-header strong { font-size: 17px; }
   #page-dashboard .dashboard-meal-group-header span { font-size: 12px; }
   #page-dashboard .dashboard-meal-list .meal-card { min-height: 0; padding: 14px 0; gap: 0; align-items: start; }
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-media { width: 88px; margin: 0 10px 8px 0; }
