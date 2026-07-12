@@ -3016,6 +3016,12 @@ h1 span {
   gap: 10px;
 }
 
+@media (max-width: 640px) {
+  .modal-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bio-panel {
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 8px;
@@ -3723,6 +3729,10 @@ h1 span {
   line-height: 1.55;
 }
 
+.profile-onboarding-card {
+  width: min(560px, calc(100vw - 32px));
+}
+
 .modal-field {
   display: grid;
   gap: 8px;
@@ -3732,7 +3742,8 @@ h1 span {
 }
 
 .modal-field input,
-.modal-field select {
+.modal-field select,
+.modal-field textarea {
   width: 100%;
   min-height: 48px;
   border: 1px solid #e6d6c5;
@@ -3742,6 +3753,12 @@ h1 span {
   background: rgba(255, 255, 255, 0.86);
   outline: none;
   font: inherit;
+}
+
+.modal-field textarea {
+  min-height: 96px;
+  padding: 12px 14px;
+  resize: vertical;
 }
 
 .modal-actions {

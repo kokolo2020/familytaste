@@ -531,7 +531,7 @@ function restoreUiStateAfterAuth() {
     if (!defaultMember) {
       appState.currentMember = null;
       workspace?.classList.add('hidden');
-      landing?.classList.remove('hidden');
+      landing?.classList.add('hidden');
       return false;
     }
     appState.currentMember = defaultMember;
@@ -591,7 +591,7 @@ function renderAuthState() {
         showPage(appState.currentPage || 'dashboard');
       } else {
         workspace.classList.add('hidden');
-        landing.classList.remove('hidden');
+        landing.classList.add('hidden');
       }
     }
     return;
@@ -793,7 +793,7 @@ async function hydrateFamilyData() {
     });
 
     if (members.length) {
-      appState.members = mergeMembers(appState.members, members.map(normalizeMember));
+      appState.members = mergeMembers(members.map(normalizeMember), appState.members);
       applyStoredProfilePhotos();
     }
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
@@ -1028,10 +1028,24 @@ function profileNeedsOnboarding(member = appState.currentMember) {
   if (!member || member.id === 'add') return false;
   const measurements = appState.profileMeasurements[member.id] || {};
   const identity = getProfileIdentity(member);
+  const height = Number(measurements.height_cm ?? member.height_cm);
   const weight = Number(measurements.weight_kg ?? member.weight_kg);
   const age = Number(measurements.age);
   const sex = String(measurements.sex || '').trim().toLowerCase();
-  return !(identity.firstName && identity.lastName && age >= 14 && weight >= 10 && (sex === 'male' || sex === 'female'));
+  const activity = Number(measurements.activity || 0);
+  const goal = String(measurements.goal || '').trim();
+  const healthFocus = String(measurements.health_focus || '').trim();
+  return !(
+    identity.firstName
+    && identity.lastName
+    && height >= 50
+    && age >= 14
+    && weight >= 10
+    && (sex === 'male' || sex === 'female')
+    && activity > 0
+    && goal
+    && healthFocus
+  );
 }
 
 function setProfileOnboardingFeedback(message = '', tone = '') {
@@ -1047,9 +1061,14 @@ function openProfileOnboardingModal(member = appState.currentMember) {
   const identity = getProfileIdentity(member);
   document.getElementById('onboardingFirstName').value = identity.firstName;
   document.getElementById('onboardingLastName').value = identity.lastName;
+  document.getElementById('onboardingHeight').value = measurements.height_cm ?? member.height_cm ?? '';
   document.getElementById('onboardingAge').value = measurements.age ?? '';
   document.getElementById('onboardingWeight').value = measurements.weight_kg ?? member.weight_kg ?? '';
   document.getElementById('onboardingSex').value = measurements.sex || 'female';
+  document.getElementById('onboardingActivity').value = String(measurements.activity || 1.55);
+  document.getElementById('onboardingGoal').value = measurements.goal || 'maintain';
+  document.getElementById('onboardingHealthFocus').value = measurements.health_focus || 'balanced';
+  document.getElementById('onboardingFoodAlerts').value = measurements.food_alerts || '';
   setProfileOnboardingFeedback('');
   document.getElementById('profileOnboardingModal')?.classList.remove('hidden');
   document.getElementById('onboardingFirstName')?.focus();
@@ -1068,6 +1087,21 @@ function queueProfileOnboardingCheck() {
     if (!profileNeedsOnboarding()) return;
     openProfileOnboardingModal();
   }, 120);
+}
+
+function calculateProfileTargets({ height, weight, age, sex, activity, goal }) {
+  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'male' ? 5 : -161);
+  const adjustment = goal === 'lose' ? -400 : goal === 'gain' ? 300 : 0;
+  const minimumCalories = sex === 'male' ? 1500 : 1200;
+  const targetCalories = Math.max(minimumCalories, Math.round(((bmr * activity) + adjustment) / 50) * 50);
+  const proteinMultiplier = goal === 'maintain' ? 1.2 : 1.6;
+  const proteinGrams = Math.round(weight * proteinMultiplier);
+  const waterLiters = Math.round(weight * 0.035 * 10) / 10;
+  return {
+    targetCalories,
+    proteinGrams,
+    waterLiters
+  };
 }
 
 function showPage(pageName) {
@@ -3508,7 +3542,7 @@ function renderProfileWeeklyHealth(member, meals) {
   const avgCaloriesPerDay = stats.activeDays ? Math.round(stats.calories / Math.max(stats.activeDays, 1)) : 0;
 
   setText('weeklyHealthSnapshotTitle', `${member.name}'s Weekly Health Snapshot`);
-  setText('weeklyHealthSnapshotSubtitle', 'Selected profile only');
+  setText('weeklyHealthSnapshotSubtitle', 'Your data only');
   document.getElementById('familyWeeklyAverage').textContent = stats.avgHealth.toString();
   document.getElementById('familyWeeklyActive').textContent = stats.activeDays.toString();
   document.getElementById('familyWeeklySugary').textContent = stats.sugaryDrinks.toString();
@@ -3699,13 +3733,14 @@ async function handleSaveProfileMeasurements() {
     return;
   }
 
-  const bmr = (10 * weight) + (6.25 * height) - (5 * age) + (sex === 'male' ? 5 : -161);
-  const adjustment = goal === 'lose' ? -400 : goal === 'gain' ? 300 : 0;
-  const minimumCalories = sex === 'male' ? 1500 : 1200;
-  const targetCalories = Math.max(minimumCalories, Math.round(((bmr * activity) + adjustment) / 50) * 50);
-  const proteinMultiplier = goal === 'maintain' ? 1.2 : 1.6;
-  const proteinGrams = Math.round(weight * proteinMultiplier);
-  const waterLiters = Math.round(weight * 0.035 * 10) / 10;
+  const { targetCalories, proteinGrams, waterLiters } = calculateProfileTargets({
+    height,
+    weight,
+    age,
+    sex,
+    activity,
+    goal
+  });
   appState.profileMeasurements[member.id] = {
     height_cm: height,
     weight_kg: weight,
@@ -3745,12 +3780,21 @@ async function handleSaveProfileOnboarding() {
   if (!member) return;
   const firstName = document.getElementById('onboardingFirstName').value.trim();
   const lastName = document.getElementById('onboardingLastName').value.trim();
+  const height = numberOrNull(document.getElementById('onboardingHeight').value);
   const age = numberOrNull(document.getElementById('onboardingAge').value);
   const weight = numberOrNull(document.getElementById('onboardingWeight').value);
   const sex = document.getElementById('onboardingSex').value;
+  const activity = Number(document.getElementById('onboardingActivity').value);
+  const goal = document.getElementById('onboardingGoal').value;
+  const healthFocus = document.getElementById('onboardingHealthFocus').value;
+  const foodAlerts = document.getElementById('onboardingFoodAlerts').value.trim();
 
   if (!firstName || !lastName) {
     setProfileOnboardingFeedback('Enter both first name and last name.', 'error');
+    return;
+  }
+  if (!height || height < 50 || height > 260) {
+    setProfileOnboardingFeedback('Enter a valid height in centimeters.', 'error');
     return;
   }
   if (!age || age < 14 || age > 100) {
@@ -3764,20 +3808,40 @@ async function handleSaveProfileOnboarding() {
 
   const fullName = `${firstName} ${lastName}`.trim();
   const measurements = appState.profileMeasurements[member.id] || {};
+  const { targetCalories, proteinGrams, waterLiters } = calculateProfileTargets({
+    height,
+    weight,
+    age,
+    sex,
+    activity,
+    goal
+  });
   appState.profileMeasurements[member.id] = {
     ...measurements,
     first_name: firstName,
     last_name: lastName,
+    height_cm: height,
     age,
     sex,
-    weight_kg: weight
+    activity,
+    goal,
+    health_focus: healthFocus,
+    food_alerts: foodAlerts,
+    weight_kg: weight,
+    target_calories: targetCalories,
+    protein_grams: proteinGrams,
+    water_liters: waterLiters
   };
   member.name = fullName;
+  member.height_cm = height;
   member.weight_kg = weight;
+  member.target_calories = targetCalories;
   const matchingMember = appState.members.find((item) => item.id === member.id);
   if (matchingMember) {
     matchingMember.name = fullName;
+    matchingMember.height_cm = height;
     matchingMember.weight_kg = weight;
+    matchingMember.target_calories = targetCalories;
   }
   if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
   appState.bioLogs[member.id][todayKey()] = {
@@ -3793,7 +3857,12 @@ async function handleSaveProfileOnboarding() {
   renderSettings();
   closeProfileOnboardingModal();
 
-  await syncMemberToSupabase(member.id, { name: fullName, weight_kg: weight });
+  await syncMemberToSupabase(member.id, {
+    name: fullName,
+    height_cm: height,
+    weight_kg: weight,
+    target_calories: targetCalories
+  });
 }
 
 function buildProfileHealthSummary(measurements) {
@@ -4518,8 +4587,13 @@ function mergeMembers(primary, fallback) {
   });
   const members = Array.from(byId.values());
   const addMember = members.find((member) => member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile');
+  const realMembers = members.filter((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile');
+  const hasPersistedProfiles = realMembers.some((member) => looksLikeUuid(member.id));
+  const cleanedMembers = hasPersistedProfiles
+    ? realMembers.filter((member) => !isSeededDefaultMember(member))
+    : realMembers;
   return [
-    ...members.filter((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile'),
+    ...cleanedMembers,
     addMember || fallback.find((member) => member.id === 'add') || { id: 'add', name: 'Add Profile', avatar: '＋', role: 'Create another profile', photo: '' }
   ];
 }
@@ -4877,7 +4951,6 @@ function renderSettings() {
   const el = document.getElementById('settingsContent');
   if (!el) return;
 
-  const realMembers = appState.members.filter((m) => m.id !== 'add');
   const signedInEmail = appState.auth.user?.email || 'Not signed in';
   const familyName = appState.auth.membership?.family_name || 'Private meal space';
   el.innerHTML = `
@@ -4903,28 +4976,10 @@ function renderSettings() {
       <p class="eyebrow">Account</p>
       <h3>${escapeHtml(familyName)}</h3>
       <p>Signed in as ${escapeHtml(signedInEmail)}</p>
-      <button class="secondary-button" data-action="sign-out">Sign out</button>
-    </div>
-
-    <div class="settings-section">
-      <p class="eyebrow">Profiles</p>
-      <h3>${realMembers.length} profile${realMembers.length !== 1 ? 's' : ''}</h3>
-      <div class="settings-member-list">
-        ${realMembers.map((m) => `
-          <div class="settings-member-row">
-            <div class="mini-avatar">${avatarMarkup(m)}</div>
-            <div class="settings-member-info">
-              <strong>${escapeHtml(m.name)}</strong>
-              <small>${escapeHtml(m.role || 'Profile')}</small>
-            </div>
-            ${m.id === appState.currentMember?.id
-              ? '<span class="you-badge">You</span>'
-              : `<button class="small-danger-btn" data-remove-member="${escapeAttr(m.id)}">Remove</button>`
-            }
-          </div>
-        `).join('')}
+      <div class="settings-nav-grid">
+        <button class="settings-nav-btn" data-page="profile">👤 Profile & goals</button>
       </div>
-      <button class="primary-button" data-action="add-member">+ Add Profile</button>
+      <button class="secondary-button" data-action="sign-out">Sign out</button>
     </div>
 
     <div class="settings-section">
@@ -4973,7 +5028,7 @@ function renderRecipes() {
         <div class="section-title">
           <div>
             <p class="eyebrow">Guided ideas</p>
-            <h3>Recipe options for this family</h3>
+            <h3>Recipe options for your meal map</h3>
           </div>
         </div>
         <p class="panel-subtitle">Browse meal ideas that match the wellness direction of the app: more fiber, stronger protein balance, and calmer dinners.</p>

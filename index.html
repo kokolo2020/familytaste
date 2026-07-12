@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260712j" />
+  <link rel="stylesheet" href="style.css?v=20260713a" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -58,7 +58,7 @@
       </div>
     </section>
 
-    <section id="landing" class="landing-view">
+    <section id="landing" class="landing-view hidden" aria-hidden="true">
       <div class="landing-shell">
         <div class="selector-handle" aria-hidden="true"></div>
         <button class="selector-close" data-action="demo-dashboard" type="button" aria-label="Close profile selector">×</button>
@@ -75,7 +75,7 @@
 
     <section id="workspace" class="workspace-view hidden">
       <aside class="side-nav" aria-label="Primary navigation">
-        <button class="brand-mark compact" data-action="home" aria-label="Back to profiles">
+        <button class="brand-mark compact" data-action="home" aria-label="Go to dashboard">
           <span class="brand-icon">🍽️</span>
           <span>MyMealMap</span>
         </button>
@@ -88,10 +88,6 @@
           </div>
         </div>
       </aside>
-
-      <button class="mobile-landing-button" data-action="home" type="button" aria-label="Go to MyMealMap home">
-        <span aria-hidden="true">⌂</span>
-      </button>
 
       <div class="content-shell">
         <header class="app-header">
@@ -350,7 +346,7 @@
             <div>
               <p class="eyebrow">Chef View</p>
               <h3>Incoming food orders</h3>
-              <p>Only the foods sent to Chef and family voice notes appear here.</p>
+              <p>Only the foods sent to Chef and your voice notes appear here.</p>
             </div>
             <button class="secondary-button" data-page="order" type="button">Back to Chef Menu</button>
           </div>
@@ -399,7 +395,7 @@
             </div>
 
             <section class="weekly-chart-card family-weekly-card">
-              <div class="weekly-card-title"><span class="weekly-card-icon green">♥</span><div><h4 id="weeklyHealthSnapshotTitle">Weekly Health Snapshot</h4><p id="weeklyHealthSnapshotSubtitle">Selected profile only</p></div></div>
+              <div class="weekly-card-title"><span class="weekly-card-icon green">♥</span><div><h4 id="weeklyHealthSnapshotTitle">Weekly Health Snapshot</h4><p id="weeklyHealthSnapshotSubtitle">Your data only</p></div></div>
               <div class="family-weekly-overview">
                 <article><span>Avg health score</span><strong id="familyWeeklyAverage">0</strong><small>/100</small></article>
                 <article><span>Active days</span><strong id="familyWeeklyActive">0</strong><small>this week</small></article>
@@ -565,7 +561,7 @@
           <div class="profile-detail">
             <div id="profileAvatarLarge" class="large-avatar">👨</div>
             <div>
-              <p class="eyebrow">Selected profile</p>
+              <p class="eyebrow">Your account</p>
               <h3 id="profileNameLarge">Dad</h3>
               <div class="profile-name-edit">
                 <input id="profileNameInput" type="text" maxlength="30" placeholder="Display name" autocomplete="off">
@@ -603,7 +599,6 @@
                 <input id="profilePhotoInput" type="file" accept="image/*">
                 <span>Upload Profile Photo</span>
               </label>
-              <button class="secondary-button" data-action="home">Switch Profile</button>
             </div>
           </div>
         </section>
@@ -673,22 +668,56 @@
   </div>
 
   <div id="profileOnboardingModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileOnboardingTitle">
-    <div class="modal-card">
+    <div class="modal-card profile-onboarding-card">
       <h3 id="profileOnboardingTitle">Complete your profile</h3>
-      <p class="modal-helper-copy">Before you start, add the basics for your personal health tracking. You can update height, goals, and more later in Profile.</p>
+      <p class="modal-helper-copy">Before you start, add your basics and health goals so MyMealMap can personalize your calorie target, recommendations, and wellness insights.</p>
       <div class="modal-field-row">
         <label class="modal-field">First name<input id="onboardingFirstName" type="text" maxlength="30" placeholder="John" autocomplete="given-name"></label>
         <label class="modal-field">Last name<input id="onboardingLastName" type="text" maxlength="30" placeholder="Smith" autocomplete="family-name"></label>
       </div>
       <div class="modal-field-row">
+        <label class="modal-field">Height (cm)<input id="onboardingHeight" type="number" min="50" max="260" step="0.1" inputmode="decimal" placeholder="170"></label>
         <label class="modal-field">Age<input id="onboardingAge" type="number" min="14" max="100" step="1" inputmode="numeric" placeholder="35"></label>
         <label class="modal-field">Weight (kg)<input id="onboardingWeight" type="number" min="10" max="400" step="0.1" inputmode="decimal" placeholder="70"></label>
       </div>
-      <label class="modal-field">Sex
-        <select id="onboardingSex">
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-        </select>
+      <div class="modal-field-row">
+        <label class="modal-field">Sex
+          <select id="onboardingSex">
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+          </select>
+        </label>
+        <label class="modal-field">Activity
+          <select id="onboardingActivity">
+            <option value="1.2">Mostly seated</option>
+            <option value="1.375">Light exercise</option>
+            <option value="1.55" selected>Moderate exercise</option>
+            <option value="1.725">Very active</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-field-row">
+        <label class="modal-field">Goal
+          <select id="onboardingGoal">
+            <option value="maintain">Maintain weight</option>
+            <option value="lose">Lose weight</option>
+            <option value="gain">Gain weight</option>
+          </select>
+        </label>
+        <label class="modal-field">Health focus
+          <select id="onboardingHealthFocus">
+            <option value="balanced">Balanced eating</option>
+            <option value="blood-sugar">Blood sugar support</option>
+            <option value="heart-health">Heart health</option>
+            <option value="low-sodium">Lower sodium</option>
+            <option value="higher-protein">Higher protein</option>
+            <option value="glp1-support">GLP-1 support</option>
+            <option value="kid-growth">Kid growth</option>
+          </select>
+        </label>
+      </div>
+      <label class="modal-field">Food alerts / allergies
+        <textarea id="onboardingFoodAlerts" rows="3" placeholder="e.g. nut allergy, almond milk preferred, avoid sugary drinks"></textarea>
       </label>
       <p id="profileOnboardingFeedback" class="auth-feedback"></p>
       <div class="modal-actions">
@@ -699,6 +728,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260712j"></script>
+  <script src="app.js?v=20260713a"></script>
 </body>
 </html>
