@@ -18,6 +18,8 @@ const appState = {
   voiceNotes: [],
   bioLogs: {},
   profileMeasurements: {},
+  workoutHistory: {},
+  savedWorkouts: {},
   workoutTab: 'explore'
 };
 
@@ -31,6 +33,8 @@ const chefCartStorageKey = 'familyBites.chefCart';
 const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
+const workoutHistoryStorageKey = 'familyBites.workoutHistory.v1';
+const savedWorkoutsStorageKey = 'familyBites.savedWorkouts.v1';
 const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
@@ -203,8 +207,8 @@ const workoutCollections = [
     title: 'Stretch & Strengthen',
     subtitle: 'Loosen stiff muscles while building everyday strength.',
     routines: [
-      { title: '6-Minute Core Reset', minutes: 6, type: 'Bodyweight', copy: 'Wake up the core with a short no-equipment routine.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80' },
-      { title: '8-Minute Morning Mobility', minutes: 8, type: 'Stretch', copy: 'Open hips, back, and shoulders before the day starts.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
+      { id: 'core-reset', title: '6-Minute Core Reset', minutes: 6, type: 'Bodyweight', copy: 'Wake up the core with a short no-equipment routine.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80' },
+      { id: 'morning-mobility', title: '8-Minute Morning Mobility', minutes: 8, type: 'Stretch', copy: 'Open hips, back, and shoulders before the day starts.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
     ]
   },
   {
@@ -212,8 +216,8 @@ const workoutCollections = [
     title: 'After-Meal Movement',
     subtitle: 'Gentle routines that pair well with food logging.',
     routines: [
-      { title: '10-Minute Post-Meal Walk', minutes: 10, type: 'Walking', copy: 'A simple walk to support digestion and steady energy.', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80' },
-      { title: '5-Minute Bloat Relief Flow', minutes: 5, type: 'Mobility', copy: 'Breathing and twists to feel lighter after a heavy meal.', image: 'https://images.unsplash.com/photo-1518611012118-fb2f5c8d2f3d?auto=format&fit=crop&w=1200&q=80' }
+      { id: 'post-meal-walk', title: '10-Minute Post-Meal Walk', minutes: 10, type: 'Walking', copy: 'A simple walk to support digestion and steady energy.', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80' },
+      { id: 'bloat-relief-flow', title: '5-Minute Bloat Relief Flow', minutes: 5, type: 'Mobility', copy: 'Breathing and twists to feel lighter after a heavy meal.', image: 'https://images.unsplash.com/photo-1518611012118-fb2f5c8d2f3d?auto=format&fit=crop&w=1200&q=80' }
     ]
   },
   {
@@ -221,8 +225,8 @@ const workoutCollections = [
     title: 'Family Friendly',
     subtitle: 'Short routines everyone in the house can join.',
     routines: [
-      { title: '12-Minute Family Energy Boost', minutes: 12, type: 'All ages', copy: 'Easy movement to get everyone active without equipment.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80' },
-      { title: '7-Minute Evening Stretch', minutes: 7, type: 'Recovery', copy: 'Wind down together before bed or after dinner.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
+      { id: 'family-energy-boost', title: '12-Minute Family Energy Boost', minutes: 12, type: 'All ages', copy: 'Easy movement to get everyone active without equipment.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80' },
+      { id: 'evening-stretch', title: '7-Minute Evening Stretch', minutes: 7, type: 'Recovery', copy: 'Wind down together before bed or after dinner.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
     ]
   }
 ];
@@ -247,6 +251,9 @@ function bindEvents() {
     const pageTarget = event.target.closest('[data-page]');
     const actionTarget = event.target.closest('[data-action]');
     const workoutTabTarget = event.target.closest('[data-workout-tab]');
+    const startWorkoutTarget = event.target.closest('[data-start-workout]');
+    const completeWorkoutTarget = event.target.closest('[data-complete-workout]');
+    const saveWorkoutTarget = event.target.closest('[data-toggle-save-workout]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -259,6 +266,18 @@ function bindEvents() {
     if (workoutTabTarget) {
       appState.workoutTab = workoutTabTarget.dataset.workoutTab;
       renderWorkouts();
+    }
+
+    if (startWorkoutTarget) {
+      handleStartWorkout(startWorkoutTarget.dataset.startWorkout);
+    }
+
+    if (completeWorkoutTarget) {
+      handleCompleteWorkout(completeWorkoutTarget.dataset.completeWorkout);
+    }
+
+    if (saveWorkoutTarget) {
+      handleToggleSaveWorkout(saveWorkoutTarget.dataset.toggleSaveWorkout);
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -444,6 +463,8 @@ function resetFamilyState() {
   appState.voiceNotes = [];
   appState.bioLogs = {};
   appState.profileMeasurements = {};
+  appState.workoutHistory = {};
+  appState.savedWorkouts = {};
 }
 
 function clearLocalFamilyCache() {
@@ -457,6 +478,8 @@ function clearLocalFamilyCache() {
     chefVoiceStorageKey,
     bioLogsStorageKey,
     profileMeasurementsStorageKey,
+    workoutHistoryStorageKey,
+    savedWorkoutsStorageKey,
     profilePhotoStorageKey,
     uiStateStorageKey
   ].forEach((key) => localStorage.removeItem(key));
@@ -4307,9 +4330,13 @@ function applyStoredAppData() {
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
   const storedProfileMeasurements = getStoredJson(profileMeasurementsStorageKey, {});
+  const storedWorkoutHistory = getStoredJson(workoutHistoryStorageKey, {});
+  const storedSavedWorkouts = getStoredJson(savedWorkoutsStorageKey, {});
   if (storedMembers.length) appState.members = mergeMembers(storedMembers, appState.members);
   if (Object.keys(storedBioLogs).length) appState.bioLogs = storedBioLogs;
   if (Object.keys(storedProfileMeasurements).length) appState.profileMeasurements = storedProfileMeasurements;
+  if (Object.keys(storedWorkoutHistory).length) appState.workoutHistory = storedWorkoutHistory;
+  if (Object.keys(storedSavedWorkouts).length) appState.savedWorkouts = storedSavedWorkouts;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedSnapScans.length) appState.snapScans = mergeRecords(storedSnapScans, appState.snapScans);
   if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
@@ -4328,6 +4355,8 @@ function saveStoredAppData() {
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
   setStoredJson(profileMeasurementsStorageKey, appState.profileMeasurements);
+  setStoredJson(workoutHistoryStorageKey, appState.workoutHistory);
+  setStoredJson(savedWorkoutsStorageKey, appState.savedWorkouts);
 }
 
 function mergeMembers(primary, fallback) {
@@ -4845,13 +4874,186 @@ function renderRecipes() {
   `;
 }
 
+function getWorkoutCatalog() {
+  return workoutCollections.flatMap((collection) =>
+    collection.routines.map((routine) => ({
+      ...routine,
+      collectionId: collection.id,
+      collectionTitle: collection.title
+    }))
+  );
+}
+
+function findWorkoutRoutine(routineId) {
+  return getWorkoutCatalog().find((routine) => routine.id === routineId) || null;
+}
+
+function getMemberWorkoutHistory(memberId = appState.currentMember?.id) {
+  if (!memberId) return {};
+  if (!appState.workoutHistory[memberId]) appState.workoutHistory[memberId] = {};
+  return appState.workoutHistory[memberId];
+}
+
+function getMemberSavedWorkoutIds(memberId = appState.currentMember?.id) {
+  if (!memberId) return [];
+  if (!Array.isArray(appState.savedWorkouts[memberId])) appState.savedWorkouts[memberId] = [];
+  return appState.savedWorkouts[memberId];
+}
+
+function getWorkoutRecord(routineId, memberId = appState.currentMember?.id) {
+  return getMemberWorkoutHistory(memberId)[routineId] || {};
+}
+
+function isWorkoutSaved(routineId, memberId = appState.currentMember?.id) {
+  return getMemberSavedWorkoutIds(memberId).includes(routineId);
+}
+
+function getWorkoutWeeklyDoneCount(memberId = appState.currentMember?.id) {
+  const history = Object.values(getMemberWorkoutHistory(memberId));
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return history.reduce((total, item) => {
+    if (!item?.lastCompletedAt) return total;
+    const timestamp = new Date(item.lastCompletedAt).getTime();
+    if (!Number.isFinite(timestamp) || timestamp < cutoff) return total;
+    return total + Math.max(Number(item.completedCount || 1), 1);
+  }, 0);
+}
+
+function formatWorkoutStatus(record) {
+  if (record?.startedAt && !record?.lastCompletedAt) return 'In progress';
+  if (record?.lastCompletedAt) {
+    const count = Number(record.completedCount || 0);
+    return count > 1 ? `Done ${count} times` : 'Done once';
+  }
+  return 'Not started';
+}
+
+function handleStartWorkout(routineId) {
+  const routine = findWorkoutRoutine(routineId);
+  const member = appState.currentMember;
+  if (!routine || !member) return;
+  const history = getMemberWorkoutHistory(member.id);
+  history[routineId] = {
+    ...(history[routineId] || {}),
+    startedAt: new Date().toISOString()
+  };
+  saveStoredAppData();
+  renderWorkouts();
+  showAppNotice(`${routine.title} started for ${member.name}.`, 'success');
+}
+
+function handleCompleteWorkout(routineId) {
+  const routine = findWorkoutRoutine(routineId);
+  const member = appState.currentMember;
+  if (!routine || !member) return;
+  const history = getMemberWorkoutHistory(member.id);
+  const existing = history[routineId] || {};
+  history[routineId] = {
+    ...existing,
+    startedAt: '',
+    lastCompletedAt: new Date().toISOString(),
+    completedCount: Number(existing.completedCount || 0) + 1
+  };
+  saveStoredAppData();
+  renderWorkouts();
+  showAppNotice(`${routine.title} marked done for ${member.name}.`, 'success');
+}
+
+function handleToggleSaveWorkout(routineId) {
+  const routine = findWorkoutRoutine(routineId);
+  const member = appState.currentMember;
+  if (!routine || !member) return;
+  const saved = getMemberSavedWorkoutIds(member.id);
+  if (saved.includes(routineId)) {
+    appState.savedWorkouts[member.id] = saved.filter((id) => id !== routineId);
+  } else {
+    appState.savedWorkouts[member.id] = [...saved, routineId];
+  }
+  saveStoredAppData();
+  renderWorkouts();
+}
+
+function buildWorkoutSuggestions({ memberMeals, todayMeals, calorieGoal, steps }) {
+  const todaySignals = analyzeMealPatternSignals(todayMeals);
+  const weekSignals = analyzeMealPatternSignals(memberMeals.filter((meal) => {
+    const timestamp = new Date(meal.eaten_at || meal.created_at).getTime();
+    return Number.isFinite(timestamp) && timestamp >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }));
+  const todayCalories = todaySignals.calories || sum(todayMeals, 'calories');
+  const suggestions = [];
+
+  if (todayCalories > calorieGoal || todaySignals.friedMeals || todaySignals.heavySnackCount) {
+    suggestions.push({
+      routineId: 'post-meal-walk',
+      title: 'Best after today’s meals',
+      copy: 'A short walk is the cleanest move after heavier, fried, or calorie-dense meals.'
+    });
+  }
+
+  if (todaySignals.lateMeals || weekSignals.lateMeals >= 3) {
+    suggestions.push({
+      routineId: 'evening-stretch',
+      title: 'Late-meal reset',
+      copy: 'A gentle stretch works well when dinner runs late or the week has drifted later.'
+    });
+  }
+
+  if (!todaySignals.fiberMeals || todaySignals.plainStapleMeals) {
+    suggestions.push({
+      routineId: 'bloat-relief-flow',
+      title: 'Digestion support',
+      copy: 'Meals look lighter on fiber or a bit plain today, so a short mobility flow is a useful follow-up.'
+    });
+  }
+
+  if (steps < 4500) {
+    suggestions.push({
+      routineId: 'family-energy-boost',
+      title: 'Low-movement day',
+      copy: 'Step count is still light, so a quick routine can raise movement without adding friction.'
+    });
+  }
+
+  if (!todaySignals.proteinMeals || weekSignals.lowProteinBreakfasts >= 2) {
+    suggestions.push({
+      routineId: 'core-reset',
+      title: 'Steadier morning support',
+      copy: 'Core and posture work is a good match when meals were lighter on protein and structure.'
+    });
+  }
+
+  if (!suggestions.length) {
+    suggestions.push({
+      routineId: 'morning-mobility',
+      title: 'Balanced day option',
+      copy: 'Today looks fairly steady, so a simple mobility routine is enough to keep the momentum going.'
+    });
+  }
+
+  const seen = new Set();
+  return suggestions.filter((item) => {
+    if (seen.has(item.routineId)) return false;
+    seen.add(item.routineId);
+    return true;
+  }).slice(0, 3);
+}
+
 function renderWorkouts() {
   const el = document.getElementById('workoutsContent');
   if (!el) return;
 
+  const memberMeals = getMemberMeals();
+  const todayMeals = memberMeals.filter(isToday);
+  const steps = Number(getTodayBioLog().steps || 0);
+  const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
+  const calorieGoal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
   const activeTab = workoutTabs.find((tab) => tab.id === appState.workoutTab) || workoutTabs[0];
   const activeCollection = workoutCollections.find((collection) => collection.id === activeTab.collectionId) || workoutCollections[0];
   const heroRoutine = activeCollection.routines[0];
+  const heroRecord = getWorkoutRecord(heroRoutine.id);
+  const savedWorkoutCount = getMemberSavedWorkoutIds().length;
+  const weeklyDoneCount = getWorkoutWeeklyDoneCount();
+  const suggestions = buildWorkoutSuggestions({ memberMeals, todayMeals, calorieGoal, steps });
 
   el.innerHTML = `
     <div class="discover-page-shell">
@@ -4863,6 +5065,23 @@ function renderWorkouts() {
           </div>
         </div>
         <p class="panel-subtitle">Short routines keep the app focused on wellness, especially for post-meal walking, mobility, and family-friendly movement.</p>
+        <div class="discover-stat-row">
+          <article class="discover-stat-card">
+            <span>Saved</span>
+            <strong>${savedWorkoutCount}</strong>
+            <small>Favorite routines</small>
+          </article>
+          <article class="discover-stat-card">
+            <span>This week</span>
+            <strong>${weeklyDoneCount}</strong>
+            <small>Completed workouts</small>
+          </article>
+          <article class="discover-stat-card">
+            <span>Today’s steps</span>
+            <strong>${steps.toLocaleString()}</strong>
+            <small>Movement so far</small>
+          </article>
+        </div>
         <div class="workout-tab-row" role="tablist" aria-label="Workout categories">
           ${workoutTabs.map((tab) => `
             <button class="workout-tab-button ${tab.id === activeTab.id ? 'active' : ''}" data-workout-tab="${tab.id}" type="button">
@@ -4870,6 +5089,29 @@ function renderWorkouts() {
             </button>
           `).join('')}
         </div>
+      </section>
+
+      <section class="workout-recommendation-grid">
+        ${suggestions.map((item) => {
+          const routine = findWorkoutRoutine(item.routineId);
+          if (!routine) return '';
+          return `
+            <article class="dashboard-card workout-recommendation-card">
+              <p class="eyebrow">${escapeHtml(item.title)}</p>
+              <h4>${escapeHtml(routine.title)}</h4>
+              <p>${escapeHtml(item.copy)}</p>
+              <div class="workout-meta-row">
+                <span>${routine.minutes} min</span>
+                <span>${escapeHtml(routine.type)}</span>
+                <span>${escapeHtml(formatWorkoutStatus(getWorkoutRecord(routine.id)))}</span>
+              </div>
+              <div class="workout-action-row">
+                <button class="primary-button" data-complete-workout="${escapeAttr(routine.id)}" type="button">Done</button>
+                <button class="secondary-button" data-start-workout="${escapeAttr(routine.id)}" type="button">Start</button>
+              </div>
+            </article>
+          `;
+        }).join('')}
       </section>
 
       <section class="dashboard-card workout-feature-card">
@@ -4882,8 +5124,14 @@ function renderWorkouts() {
           <div class="workout-meta-row">
             <span>${heroRoutine.minutes} min</span>
             <span>${escapeHtml(heroRoutine.type)}</span>
+            <span>${escapeHtml(formatWorkoutStatus(heroRecord))}</span>
           </div>
           <p>${escapeHtml(heroRoutine.copy)}</p>
+          <div class="workout-action-row">
+            <button class="primary-button" data-complete-workout="${escapeAttr(heroRoutine.id)}" type="button">Done</button>
+            <button class="secondary-button" data-start-workout="${escapeAttr(heroRoutine.id)}" type="button">Start</button>
+            <button class="text-button ${isWorkoutSaved(heroRoutine.id) ? 'workout-save-button active' : 'workout-save-button'}" data-toggle-save-workout="${escapeAttr(heroRoutine.id)}" type="button">${isWorkoutSaved(heroRoutine.id) ? 'Saved' : 'Save routine'}</button>
+          </div>
         </div>
       </section>
 
@@ -4895,9 +5143,15 @@ function renderWorkouts() {
               <div class="workout-meta-row">
                 <span>${routine.minutes} min</span>
                 <span>${escapeHtml(routine.type)}</span>
+                <span>${escapeHtml(formatWorkoutStatus(getWorkoutRecord(routine.id)))}</span>
               </div>
               <h4>${escapeHtml(routine.title)}</h4>
               <p>${escapeHtml(routine.copy)}</p>
+              <div class="workout-action-row">
+                <button class="primary-button" data-complete-workout="${escapeAttr(routine.id)}" type="button">Done</button>
+                <button class="secondary-button" data-start-workout="${escapeAttr(routine.id)}" type="button">Start</button>
+                <button class="text-button ${isWorkoutSaved(routine.id) ? 'workout-save-button active' : 'workout-save-button'}" data-toggle-save-workout="${escapeAttr(routine.id)}" type="button">${isWorkoutSaved(routine.id) ? 'Saved' : 'Save routine'}</button>
+              </div>
             </div>
           </article>
         `).join('')}

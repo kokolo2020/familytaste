@@ -4015,6 +4015,54 @@ h1 span {
   gap: 10px;
 }
 
+.workout-recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.workout-recommendation-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.workout-recommendation-card h4 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.workout-recommendation-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.workout-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.workout-action-row .primary-button,
+.workout-action-row .secondary-button,
+.workout-action-row .text-button {
+  min-height: 40px;
+  padding: 0 15px;
+}
+
+.workout-save-button {
+  color: #6b584a;
+  background: #f6f0e8;
+}
+
+.workout-save-button.active {
+  color: #426b32;
+  background: #edf6e8;
+}
+
 .workout-routine-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4064,6 +4112,7 @@ h1 span {
   }
 
   .workout-feature-card,
+  .workout-recommendation-grid,
   .workout-routine-grid {
     grid-template-columns: 1fr;
   }
@@ -4076,6 +4125,10 @@ h1 span {
   .workout-feature-media img,
   .workout-routine-card img {
     height: 190px;
+  }
+
+  .workout-recommendation-card {
+    padding: 16px;
   }
 }
 
