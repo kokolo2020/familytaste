@@ -41,8 +41,8 @@ const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const APP_VERSION = 'v0.8.0';
 const APP_BUILD_DATE = '2026-07-11';
-const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
-const seededDefaultMemberNames = new Set(['dad', 'rithyna']);
+const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
+const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
 const snapTagCatalog = [
   'fried',
   'grilled',
@@ -519,9 +519,12 @@ function restoreUiStateAfterAuth() {
   const savedState = readUiState();
   const landing = document.getElementById('landing');
   const workspace = document.getElementById('workspace');
-  const restoreMember = savedState?.memberId
+  const savedMember = savedState?.memberId
     ? appState.members.find((member) => member.id === savedState.memberId && member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile')
     : null;
+  const restoreMember = savedMember && !isSeededDefaultMember(savedMember)
+    ? savedMember
+    : getDefaultMember();
   const defaultMember = getDefaultMember();
 
   if (!restoreMember || !savedState?.workspaceVisible) {
