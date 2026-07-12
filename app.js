@@ -1340,12 +1340,25 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
     ...buildFoodBodyImpacts(todayMeals, calories),
     ...buildSecondaryFoodBodyImpacts(todayMeals, calories)
   ];
+  const aiInsightCards = buildDashboardAiInsightCards({
+    todayMeals,
+    calories,
+    calorieGoal,
+    nutrition,
+    impacts,
+    todaySignals: analyzeMealPatternSignals(todayMeals)
+  });
   const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map((impact) => `
-    <article class="impact-callout impact-${impact.position}${impact.compact ? ' impact-compact' : ''}">
-      <span class="impact-callout-title">${impact.icon} ${escapeHtml(impact.name)}</span>
-      <strong>${impact.score}%</strong>
-      <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>
+  if (impactList) impactList.innerHTML = aiInsightCards.map((card) => `
+    <article class="ai-insight-card ai-insight-card-${escapeAttr(card.tone || 'neutral')}">
+      <div class="ai-insight-card-header">
+        <span>${card.icon}</span>
+        <strong>${escapeHtml(card.title)}</strong>
+      </div>
+      ${card.highlight ? `<p class="ai-insight-highlight">${escapeHtml(card.highlight)}</p>` : ''}
+      <div class="ai-insight-list">
+        ${card.items.map((item) => `<p>${escapeHtml(item)}</p>`).join('')}
+      </div>
     </article>`).join('');
 
   const recommendations = buildRecommendations({
@@ -1376,6 +1389,102 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
   ];
 
   return systems.map((system) => buildPrimaryImpact(system, todayMeals, totalCalories));
+}
+
+function buildDashboardAiInsightCards({ todayMeals, calories, calorieGoal, nutrition, impacts, todaySignals }) {
+  if (!todayMeals.length) {
+    return [{
+      icon: '✨',
+      title: 'Insights start after your first meal',
+      highlight: 'Log a breakfast, lunch, or snack to unlock stronger AI guidance.',
+      items: [
+        'Top supports will show which systems your food helps most.',
+        'Calorie drivers will spotlight what is pushing the day upward.',
+        'Watch-outs will flag sugar, sodium, fiber, and meal balance.'
+      ],
+      tone: 'neutral'
+    }];
+  }
+
+  const topSupports = impacts
+    .filter((impact) => impact.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3);
+
+  const calorieDrivers = [...todayMeals]
+    .sort((left, right) => (Number(right.calories) || 0) - (Number(left.calories) || 0))
+    .slice(0, 3);
+
+  const scoredMeals = todayMeals
+    .map((meal) => ({ meal, analysis: analyzeMealQuality(meal) }))
+    .sort((left, right) => right.analysis.score - left.analysis.score);
+  const bestMeal = scoredMeals[0];
+  const weakMeal = [...scoredMeals].reverse()[0];
+
+  const micronutrientSummary = summarizeMicronutrients(todayMeals);
+  const watchItems = [];
+  if (calorieGoal && calories > calorieGoal) {
+    watchItems.push(`${(calories - calorieGoal).toLocaleString()} calories over goal today.`);
+  }
+  if ((micronutrientSummary.sodium || 0) >= 2) {
+    watchItems.push('Salt-heavy foods are stacking up today.');
+  }
+  if (todaySignals.sugaryDrinks >= 2) {
+    watchItems.push(`${todaySignals.sugaryDrinks} sugary drinks were logged today.`);
+  }
+  if (!todaySignals.fiberMeals) {
+    watchItems.push('Fiber is still missing from today’s meals.');
+  }
+  if (todaySignals.friedMeals >= 2) {
+    watchItems.push('Multiple fried foods were logged today.');
+  }
+  if (!watchItems.length) {
+    watchItems.push('No major red flags stand out right now.');
+    if (nutrition >= 70) watchItems.push('Today’s balance is holding up reasonably well.');
+  }
+
+  return [
+    {
+      icon: '🌿',
+      title: 'Strongest supports',
+      highlight: topSupports.length ? `${topSupports[0].name} leads today at ${topSupports[0].score}%.` : 'No strong support signals yet.',
+      items: topSupports.length
+        ? topSupports.map((impact) => `${impact.icon} ${impact.name} ${impact.score}%`)
+        : ['Log a few meals to show which body areas your food supports most.'],
+      tone: 'support'
+    },
+    {
+      icon: '🔥',
+      title: 'Top calorie drivers',
+      highlight: calorieDrivers.length ? `${calorieDrivers[0].food_name} is the biggest driver so far.` : 'No calorie drivers yet.',
+      items: calorieDrivers.map((meal) => `${meal.food_name} · ${Number(meal.calories || 0).toLocaleString()} cal · ${estimateMealHealthScore(meal)}/100`),
+      tone: 'neutral'
+    },
+    {
+      icon: '🏅',
+      title: 'Best meal choice',
+      highlight: bestMeal ? `${bestMeal.meal.food_name} scored ${bestMeal.analysis.score}/100.` : 'No best meal yet.',
+      items: bestMeal ? [
+        bestMeal.analysis.reasons.length
+          ? `Why it worked: ${bestMeal.analysis.reasons.join(', ')}.`
+          : 'This meal had the strongest balance today.',
+        bestMeal.analysis.swap
+          ? `Keep in mind: ${bestMeal.analysis.swap}`
+          : 'No obvious swap needed right now.'
+      ] : ['Log meals to identify your best choice today.'],
+      tone: 'support'
+    },
+    {
+      icon: '⚠️',
+      title: 'Watch today',
+      highlight: weakMeal ? `${weakMeal.meal.food_name} needs the most attention at ${weakMeal.analysis.score}/100.` : 'No weak meal yet.',
+      items: weakMeal ? [
+        ...watchItems.slice(0, 2),
+        weakMeal.analysis.swap || 'A lighter, simpler next meal would improve the day.'
+      ] : watchItems.slice(0, 3),
+      tone: watchItems[0] === 'No major red flags stand out right now.' ? 'neutral' : 'warning'
+    }
+  ];
 }
 
 function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {

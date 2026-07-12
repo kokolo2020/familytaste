@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260711k" />
+  <link rel="stylesheet" href="style.css?v=20260712a" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -159,19 +159,14 @@
             <section class="body-impact-panel dashboard-card">
               <div class="section-title">
                 <div>
-                  <h3>✨ AI Food Impact</h3>
+                  <h3>✨ AI Food Insights</h3>
                 </div>
                 <span class="ai-badge">AI</span>
               </div>
-              <p class="panel-subtitle">See how your food nourishes your body.</p>
+              <p class="panel-subtitle">See what is helping, what is driving calories, and what needs attention today.</p>
               <p class="eyebrow body-analysis-label">✦ AI Analysis</p>
-              <div class="body-impact-content">
-                <div class="human-figure" aria-hidden="true">
-                  <img src="assets/illustrations/anatomical-body.png" alt="Anatomical wellness illustration showing the brain, heart, digestive organs, muscles, energy and bones">
-                </div>
-                <div id="bodyImpactList" class="body-impact-list"></div>
-              </div>
-              <p class="body-impact-note">ⓘ Percentages show how much of today’s logged food contributes to each body system. Diet-support signals only, not diagnosis.</p>
+              <div id="bodyImpactList" class="body-impact-content ai-insight-grid"></div>
+              <p class="body-impact-note">ⓘ AI insights are based on today’s logged meals, estimated nutrition signals, and health score patterns.</p>
             </section>
 
             <section class="nutrition-panel dashboard-card">
@@ -627,6 +622,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260711g"></script>
+  <script src="app.js?v=20260712a"></script>
 </body>
 </html>
