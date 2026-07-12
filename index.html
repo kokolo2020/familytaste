@@ -3,31 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FamilyBites | Every Meal. Every Memory. One Family.</title>
-  <meta name="description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
+  <title>MyMealMap | Track Meals. See Your Health Story.</title>
+  <meta name="description" content="MyMealMap is a private AI-powered food diary, wellness tracker, and nutrition assistant." />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="FamilyBites | Every Meal. Every Memory. One Family." />
-  <meta property="og:description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
+  <meta property="og:title" content="MyMealMap | Track Meals. See Your Health Story." />
+  <meta property="og:description" content="MyMealMap is a private AI-powered food diary, wellness tracker, and nutrition assistant." />
   <meta property="og:url" content="https://familytaste.netlify.app/" />
   <meta property="og:image" content="https://familytaste.netlify.app/assets/social/live-thumbnail.jpg?v=20260711a" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="FamilyBites | Every Meal. Every Memory. One Family." />
-  <meta name="twitter:description" content="FamilyBites is a private AI-powered family food journal, ordering system, and nutrition assistant." />
+  <meta name="twitter:title" content="MyMealMap | Track Meals. See Your Health Story." />
+  <meta name="twitter:description" content="MyMealMap is a private AI-powered food diary, wellness tracker, and nutrition assistant." />
   <meta name="twitter:image" content="https://familytaste.netlify.app/assets/social/live-thumbnail.jpg?v=20260711a" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260712h" />
+  <link rel="stylesheet" href="style.css?v=20260712i" />
 </head>
 <body>
   <main id="app" class="site-shell">
     <section id="authGate" class="auth-view">
       <div class="auth-shell">
-        <p class="eyebrow">Private family space</p>
+        <p class="eyebrow">Personal meal space</p>
         <h1 id="authTitle">Checking your session</h1>
-        <p id="authSubtitle" class="auth-subtitle">Loading your private family space.</p>
+        <p id="authSubtitle" class="auth-subtitle">Loading your personal meal space.</p>
         <form id="authEmailForm" class="auth-card hidden">
           <label>Email
             <input id="authEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required>
@@ -47,11 +47,11 @@
           </div>
         </form>
         <form id="authFamilyForm" class="auth-card hidden">
-          <p class="auth-helper">Create the family name your household will use.</p>
-          <label>Family name
-            <input id="authFamilyNameInput" type="text" autocomplete="organization" placeholder="Johnson Family" required>
+          <p class="auth-helper">Create the name for your personal meal map.</p>
+          <label>Meal map name
+            <input id="authFamilyNameInput" type="text" autocomplete="organization" placeholder="MyMealMap" required>
           </label>
-          <button id="authCreateFamilyButton" class="primary-button" type="submit">Create family</button>
+          <button id="authCreateFamilyButton" class="primary-button" type="submit">Create meal map</button>
           <button id="authSignOutButton" class="secondary-button" type="button">Sign out</button>
         </form>
         <p id="authFeedback" class="auth-feedback"></p>
@@ -63,10 +63,10 @@
         <div class="selector-handle" aria-hidden="true"></div>
         <button class="selector-close" data-action="demo-dashboard" type="button" aria-label="Close profile selector">×</button>
         <div class="selector-heading">
-          <p class="eyebrow">Family profiles</p>
-          <h1>Profile</h1>
+          <p class="eyebrow">Profiles</p>
+          <h1>Your profiles</h1>
         </div>
-        <section class="profile-dock selector-dock" aria-label="Choose a family profile">
+        <section class="profile-dock selector-dock" aria-label="Choose a profile">
           <div id="landingCurrentProfile" class="selector-current-profile"></div>
           <div id="profileGrid" class="profile-grid selector-grid"></div>
         </section>
@@ -77,19 +77,19 @@
       <aside class="side-nav" aria-label="Primary navigation">
         <button class="brand-mark compact" data-action="home" aria-label="Back to profiles">
           <span class="brand-icon">🍽️</span>
-          <span>FamilyBites</span>
+          <span>MyMealMap</span>
         </button>
         <nav id="desktopNav" class="nav-list"></nav>
         <div class="nav-profile">
           <div id="navAvatar" class="mini-avatar">👨</div>
           <div>
             <span id="navName">Dad</span>
-            <small>Private family space</small>
+            <small>Personal meal space</small>
           </div>
         </div>
       </aside>
 
-      <button class="mobile-landing-button" data-action="home" type="button" aria-label="Back to FamilyBites landing page">
+      <button class="mobile-landing-button" data-action="home" type="button" aria-label="Go to MyMealMap home">
         <span aria-hidden="true">⌂</span>
       </button>
 
@@ -100,7 +100,7 @@
             <h2 id="pageTitle">Welcome back</h2>
           </div>
           <div class="header-actions">
-            <button class="icon-button" data-page="chat" aria-label="Open family chat">💬</button>
+            <button class="icon-button" data-page="chat" aria-label="Open meal notes">💬</button>
             <button id="activeAvatar" class="profile-chip" data-page="profile">👨 Dad</button>
           </div>
         </header>
@@ -110,7 +110,7 @@
             <div class="dashboard-main-column">
               <div class="dashboard-intro">
                 <div>
-                  <p class="eyebrow">Good morning, <span id="dashboardMemberName">Family</span>! 👋</p>
+                  <p class="eyebrow">Good morning, <span id="dashboardMemberName">there</span>! 👋</p>
                   <h3>Today’s Food</h3>
                   <p class="today-food-totals"><span id="dashboardMealCount">0 meals</span> · <strong id="dashboardCalorieCount">0 cal</strong></p>
                 </div>
@@ -317,7 +317,7 @@
           </section>
         </section>
 
-        <section id="page-order" class="page" data-title="Chef Menu" data-kicker="Family ordering">
+        <section id="page-order" class="page" data-title="Chef Menu" data-kicker="Meal ordering">
           <div class="section-title">
             <div>
               <p class="eyebrow">Chef Menu</p>
@@ -329,7 +329,7 @@
             <aside class="chef-cart">
               <div>
                 <p class="eyebrow">Cart</p>
-                <h3>Family order</h3>
+                <h3>Current order</h3>
               </div>
               <div id="cartList" class="cart-list"></div>
               <button id="sendCartButton" class="primary-button" type="button">Done · Send to Chef</button>
@@ -370,7 +370,7 @@
           </div>
         </section>
 
-        <section id="page-favorites" class="page" data-title="Favorite Restaurants" data-kicker="Family approved">
+        <section id="page-favorites" class="page" data-title="Favorite Restaurants" data-kicker="Saved places">
           <div class="section-title">
             <div>
               <p class="eyebrow">Favorite Restaurants</p>
@@ -384,7 +384,7 @@
           <div class="weekly-report-shell">
             <header class="weekly-report-hero">
               <div>
-                <p class="eyebrow">FamilyBites insights</p>
+                <p class="eyebrow">MyMealMap insights</p>
                 <h3>Weekly Report</h3>
                 <p id="weeklyDateRange" class="weekly-date-range">Last 7 days</p>
               </div>
@@ -441,10 +441,10 @@
           </div>
         </section>
 
-        <section id="page-chat" class="page" data-title="Family Chat" data-kicker="Private chat">
+        <section id="page-chat" class="page" data-title="Meal Notes" data-kicker="Private notes">
           <div id="chatList" class="chat-list"></div>
           <form id="chatForm" class="chat-composer">
-            <input id="chatText" placeholder="Message the family..." autocomplete="off">
+            <input id="chatText" placeholder="Write a quick meal or wellness note..." autocomplete="off">
             <button type="submit">Send</button>
           </form>
           <p class="muted">Future-ready for photos and voice.</p>
@@ -561,7 +561,7 @@
           </div>
         </section>
 
-        <section id="page-profile" class="page" data-title="Profile" data-kicker="Family member">
+        <section id="page-profile" class="page" data-title="Profile" data-kicker="Your profile">
           <div class="profile-detail">
             <div id="profileAvatarLarge" class="large-avatar">👨</div>
             <div>
@@ -616,7 +616,7 @@
           <div id="workoutsContent"></div>
         </section>
 
-        <section id="page-settings" class="page" data-title="More" data-kicker="Family tools">
+        <section id="page-settings" class="page" data-title="More" data-kicker="Personal tools">
           <div id="settingsContent"></div>
         </section>
       </div>
@@ -662,11 +662,11 @@
 
   <div id="addMemberModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <h3>Add Family Member</h3>
+      <h3>Add Profile</h3>
       <label class="modal-field">Name<input id="newMemberName" placeholder="e.g. Uncle Bob" autocomplete="off"></label>
       <label class="modal-field">Role<input id="newMemberRole" placeholder="e.g. Weekend Cook" autocomplete="off"></label>
       <div class="modal-actions">
-        <button class="primary-button" id="confirmAddMember">Add Member</button>
+        <button class="primary-button" id="confirmAddMember">Add Profile</button>
         <button class="secondary-button" id="cancelAddMember">Cancel</button>
       </div>
     </div>
@@ -674,6 +674,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-  <script src="app.js?v=20260712h"></script>
+  <script src="app.js?v=20260712i"></script>
 </body>
 </html>

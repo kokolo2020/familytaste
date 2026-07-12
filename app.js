@@ -131,12 +131,12 @@ const avatarOptions = [
 ];
 
 const menuItems = [
-  { id: 'lemon-chicken', name: 'Lemon Garlic Chicken', detail: 'Roasted veggies, family portion', emoji: '🍗', photo: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=700&q=82' },
+  { id: 'lemon-chicken', name: 'Lemon Garlic Chicken', detail: 'Roasted veggies, hearty portion', emoji: '🍗', photo: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=700&q=82' },
   { id: 'salmon-rice', name: 'Salmon Rice Bowl', detail: 'Protein bowl with greens', emoji: '🍣', photo: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=700&q=82' },
   { id: 'spaghetti', name: 'Spaghetti Bolognese', detail: 'Classic red sauce pasta', emoji: '🍝', photo: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=700&q=82' },
   { id: 'tacos', name: 'Tacos Night', detail: 'Chicken, salsa, and salad', emoji: '🌮', photo: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=700&q=82' },
   { id: 'pizza', name: 'Homemade Pizza', detail: 'Cheese, tomato, basil', emoji: '🍕', photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=700&q=82' },
-  { id: 'brunch', name: 'Family Brunch', detail: 'Pancakes, fruit, and eggs', emoji: '🥞', photo: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=82' }
+  { id: 'brunch', name: 'Weekend Brunch', detail: 'Pancakes, fruit, and eggs', emoji: '🥞', photo: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=82' }
 ];
 
 let voiceRecorder = null;
@@ -174,7 +174,7 @@ const recipeCollections = [
       { title: 'Berry Yogurt Power Bowl', calories: 320, badge: '10 min', image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=80' },
       { title: 'Green Goddess Crunch Plate', calories: 385, badge: 'Fresh', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80' },
       { title: 'Apple Cinnamon Chia Oats', calories: 412, badge: 'Prep ahead', image: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=900&q=80' },
-      { title: 'Hearty Lentil Chili', calories: 340, badge: 'Family pot', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80' }
+      { title: 'Hearty Lentil Chili', calories: 340, badge: 'Batch cook', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80' }
     ]
   },
   {
@@ -221,12 +221,12 @@ const workoutCollections = [
     ]
   },
   {
-    id: 'family',
-    title: 'Family Friendly',
-    subtitle: 'Short routines everyone in the house can join.',
+    id: 'anywhere',
+    title: 'Anytime Routines',
+    subtitle: 'Short routines you can do anywhere without equipment.',
     routines: [
-      { id: 'family-energy-boost', title: '12-Minute Family Energy Boost', minutes: 12, type: 'All ages', copy: 'Easy movement to get everyone active without equipment.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80' },
-      { id: 'evening-stretch', title: '7-Minute Evening Stretch', minutes: 7, type: 'Recovery', copy: 'Wind down together before bed or after dinner.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
+      { id: 'energy-boost', title: '12-Minute Energy Boost', minutes: 12, type: 'All levels', copy: 'Easy movement to reset your energy without equipment.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80' },
+      { id: 'evening-stretch', title: '7-Minute Evening Stretch', minutes: 7, type: 'Recovery', copy: 'Wind down before bed or after dinner.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
     ]
   }
 ];
@@ -234,7 +234,7 @@ const workoutCollections = [
 const workoutTabs = [
   { id: 'explore', label: 'Explore', collectionId: 'stretch-strengthen' },
   { id: 'after-meal', label: 'After meals', collectionId: 'after-meal' },
-  { id: 'family', label: 'Family', collectionId: 'family' }
+  { id: 'anywhere', label: 'Anywhere', collectionId: 'anywhere' }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -436,9 +436,8 @@ function looksLikeUuid(value) {
 
 function getDefaultAppMembers() {
   return [
-    { id: 'dad', name: 'Dad', avatar: '👨', role: 'Family Admin', photo: 'assets/avatars/dad.jpg' },
-    { id: 'rithyna', name: 'Rithyna', avatar: '👩', role: 'Meal Planner', photo: 'assets/avatars/mom.jpg' },
-    { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family' }
+    { id: 'me', name: 'My Profile', avatar: '👤', role: 'Primary profile', photo: 'assets/avatars/dad.jpg' },
+    { id: 'add', name: 'Add Profile', avatar: '＋', role: 'Create another profile' }
   ];
 }
 
@@ -519,14 +518,23 @@ function restoreUiStateAfterAuth() {
   const landing = document.getElementById('landing');
   const workspace = document.getElementById('workspace');
   const restoreMember = savedState?.memberId
-    ? appState.members.find((member) => member.id === savedState.memberId && member.id !== 'add' && member.name !== 'Add Member')
+    ? appState.members.find((member) => member.id === savedState.memberId && member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile')
     : null;
+  const defaultMember = getDefaultMember();
 
   if (!restoreMember || !savedState?.workspaceVisible) {
-    appState.currentMember = null;
-    workspace?.classList.add('hidden');
-    landing?.classList.remove('hidden');
-    return false;
+    if (!defaultMember) {
+      appState.currentMember = null;
+      workspace?.classList.add('hidden');
+      landing?.classList.remove('hidden');
+      return false;
+    }
+    appState.currentMember = defaultMember;
+    updateProfileUi();
+    landing?.classList.add('hidden');
+    workspace?.classList.remove('hidden');
+    showPage(savedState?.page || 'dashboard');
+    return true;
   }
 
   appState.currentMember = restoreMember;
@@ -569,8 +577,17 @@ function renderAuthState() {
   authGate.classList.toggle('hidden', isReady);
   if (isReady) {
     if (!appState.currentMember) {
-      workspace.classList.add('hidden');
-      landing.classList.remove('hidden');
+      const defaultMember = getDefaultMember();
+      if (defaultMember) {
+        appState.currentMember = defaultMember;
+        updateProfileUi();
+        landing.classList.add('hidden');
+        workspace.classList.remove('hidden');
+        showPage(appState.currentPage || 'dashboard');
+      } else {
+        workspace.classList.add('hidden');
+        landing.classList.remove('hidden');
+      }
     }
     return;
   }
@@ -584,7 +601,7 @@ function renderAuthState() {
 
   if (state === 'loading') {
     title.textContent = 'Checking your session';
-    subtitle.textContent = 'Loading your private family space.';
+    subtitle.textContent = 'Loading your personal meal space.';
   } else if (state === 'signed_out') {
     title.textContent = 'Sign in with email';
     subtitle.textContent = 'Enter any email and we will send a one-time code.';
@@ -592,8 +609,8 @@ function renderAuthState() {
     title.textContent = 'Check your email';
     subtitle.textContent = 'Enter the code from your email. If your email app opens the sign-in link here, that also works.';
   } else if (state === 'needs_family') {
-    title.textContent = 'Create your family';
-    subtitle.textContent = 'This email is signed in, but it is not linked to a family yet.';
+    title.textContent = 'Create your meal map';
+    subtitle.textContent = 'This email is signed in, but it is not linked to a personal meal space yet.';
   }
 }
 
@@ -848,7 +865,7 @@ function renderProfiles() {
   const currentProfile = document.getElementById('landingCurrentProfile');
   const profileGrid = document.getElementById('profileGrid');
   const visibleMembers = getVisibleMembers();
-  const realMembers = visibleMembers.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  const realMembers = visibleMembers.filter((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile');
   const featuredMember = realMembers.find((member) => member.id === appState.currentMember?.id) || realMembers[0] || null;
 
   if (currentProfile) {
@@ -858,7 +875,7 @@ function renderProfiles() {
         <span class="selector-current-copy">
           <small>Current profile</small>
           <strong>${escapeHtml(featuredMember.name)}</strong>
-          <span>${escapeHtml(featuredMember.role || 'Family member')}</span>
+          <span>${escapeHtml(featuredMember.role || 'Profile')}</span>
         </span>
         <span class="selector-current-arrow" aria-hidden="true">↗</span>
       </button>
@@ -883,7 +900,7 @@ function renderProfiles() {
     button.addEventListener('click', () => {
       const member = appState.members.find((item) => item.id === button.dataset.memberId);
       if (!member) return;
-      if (member.id === 'add' || member.name === 'Add Member') {
+      if (member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile') {
         selectMember(member);
         return;
       }
@@ -920,7 +937,7 @@ function resolveNavPage(pageName) {
 function selectMember(member, options = { openDashboard: true }) {
   if (!member) return;
 
-  if (member.id === 'add' || member.name === 'Add Member') {
+  if (member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile') {
     openAddMemberModal();
     return;
   }
@@ -942,9 +959,7 @@ function selectMember(member, options = { openDashboard: true }) {
 function handleAction(action) {
   if (action === 'home') {
     if (appState.auth.status !== 'ready') return;
-    document.getElementById('workspace').classList.add('hidden');
-    document.getElementById('landing').classList.remove('hidden');
-    saveUiState();
+    showPage('dashboard');
   }
 
   if (action === 'demo-dashboard') {
@@ -968,7 +983,7 @@ function handleAction(action) {
   }
 
   if (action === 'clear-all-data') {
-    if (!confirm('Clear all meals, chat, and orders saved in this browser? This cannot be undone.')) return;
+    if (!confirm('Clear all meals, notes, and orders saved in this browser? This cannot be undone.')) return;
     clearLocalFamilyCache();
     appState.meals = [];
     appState.snapScans = [];
@@ -1003,8 +1018,8 @@ function showPage(pageName) {
     item.classList.toggle('active', item.dataset.page === activeNavPage);
   });
 
-  document.getElementById('pageTitle').textContent = page?.dataset.title || 'FamilyBites';
-  document.getElementById('activeKicker').textContent = page?.dataset.kicker || 'FamilyBites';
+  document.getElementById('pageTitle').textContent = page?.dataset.title || 'MyMealMap';
+  document.getElementById('activeKicker').textContent = page?.dataset.kicker || 'MyMealMap';
   saveUiState();
   renderAll();
 }
@@ -1088,21 +1103,21 @@ async function handleCreateFamilySubmit(event) {
   const input = document.getElementById('authFamilyNameInput');
   const familyName = String(input?.value || '').trim();
   if (!familyName) {
-    setAuthFeedback('Enter a family name to continue.', 'error');
+    setAuthFeedback('Enter a meal map name to continue.', 'error');
     return;
   }
 
   try {
     appState.auth.status = 'loading';
     renderAuthState();
-    setAuthFeedback('Creating your family…');
+    setAuthFeedback('Creating your meal map…');
     await window.familyBitesDb.createFamilyForCurrentUser(familyName);
     const session = await window.familyBitesDb.getSession();
     if (!session) throw new Error('Session missing after family creation.');
     await handleAuthenticatedSession(session);
     setAuthFeedback('');
   } catch (error) {
-    console.warn('Family creation failed.', error);
+    console.warn('Meal map creation failed.', error);
     appState.auth.status = 'needs_family';
     renderAuthState();
     setAuthFeedback(formatAuthError(error), 'error');
@@ -1403,7 +1418,7 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
   const isOverGoal = overGoalCalories > 0;
 
   setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
-  setText('dashboardMemberName', appState.currentMember?.name || 'Family');
+  setText('dashboardMemberName', appState.currentMember?.name || 'there');
   setText('summaryCalories', calories.toLocaleString());
   const currentWeight = getMemberWeight(appState.currentMember);
   setText('summaryWeight', currentWeight !== null && currentWeight !== undefined ? Number(currentWeight).toLocaleString() : '--');
@@ -2514,7 +2529,7 @@ function renderMeals() {
           <div class="timeline-mobile-extra">
             <div class="timeline-mobile-facts">
               <span>${escapeHtml(formatTimelineDate(meal.eaten_at))}</span>
-              <span>${escapeHtml(meal.restaurant_name || getMealTypeLabel(meal) || 'Family meal')}</span>
+              <span>${escapeHtml(meal.restaurant_name || getMealTypeLabel(meal) || 'Saved meal')}</span>
             </div>
             ${compactReasons.length ? `
               <div class="meal-health-reasons timeline-mobile-reasons" aria-label="Meal breakdown">
@@ -2625,7 +2640,7 @@ function renderTimelineMemberFilter() {
   const realMembers = appState.members.filter((member) => member.id !== 'add');
   const options = [
     { value: 'current', label: `Current profile${appState.currentMember ? ` (${appState.currentMember.name})` : ''}` },
-    { value: 'all', label: 'All family members' },
+    { value: 'all', label: 'All profiles' },
     ...realMembers.map((member) => ({ value: member.id, label: member.name }))
   ];
   const selected = timelineFilters.memberId;
@@ -2802,7 +2817,7 @@ function mealTemplate(meal, withActions = false) {
 }
 
 function mealDisplayMeta(meal) {
-  const label = getMealTypeLabel(meal) || meal.restaurant_name || 'Family meal';
+  const label = getMealTypeLabel(meal) || meal.restaurant_name || 'Saved meal';
   const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(meal.eaten_at));
   return `${label} · ${time}`;
 }
@@ -3142,7 +3157,7 @@ function renderFavorites() {
       <span class="restaurant-emoji">${restaurantEmoji(restaurant.name)}</span>
       <div>
         <h4>${escapeHtml(restaurant.name)}</h4>
-        <p>${escapeHtml(restaurant.notes || restaurant.address || 'Family favorite')}</p>
+        <p>${escapeHtml(restaurant.notes || restaurant.address || 'Saved favorite')}</p>
         <p>${escapeHtml(restaurant.phone || 'Phone not saved')}</p>
       </div>
       <button type="button" data-order-again="${escapeAttr(restaurant.name)}">Order Again</button>
@@ -3175,7 +3190,7 @@ function renderCart() {
       <span>${escapeHtml(item.emoji || '🍽️')}</span>
       <div>
         <strong>${escapeHtml(item.name)}</strong>
-        <small>${escapeHtml(item.member_name || 'Family')}</small>
+        <small>${escapeHtml(item.member_name || 'You')}</small>
       </div>
       <button type="button" data-remove-cart="${escapeAttr(item.cart_id)}" aria-label="Remove ${escapeAttr(item.name)}">×</button>
     </article>
@@ -3195,8 +3210,8 @@ function renderChefInterface() {
       ${order.photo ? `<img src="${escapeAttr(order.photo)}" alt="${escapeAttr(order.food_name)}">` : ''}
       <div>
         <h4>${escapeHtml(order.food_name)}</h4>
-        <p>${escapeHtml(order.detail || 'Family order')}</p>
-        <small>${escapeHtml(order.member_name || 'Family')} · ${formatDate(order.created_at)}</small>
+        <p>${escapeHtml(order.detail || 'Saved order')}</p>
+        <small>${escapeHtml(order.member_name || 'You')} · ${formatDate(order.created_at)}</small>
       </div>
       <button type="button" data-complete-order="${escapeAttr(order.id)}">Done</button>
     </article>
@@ -3205,7 +3220,7 @@ function renderChefInterface() {
   document.getElementById('chefVoiceList').innerHTML = appState.voiceNotes.map((note) => `
     <article class="chef-voice-card">
       <div>
-        <h4>${escapeHtml(note.member_name || 'Family')} voice note</h4>
+        <h4>${escapeHtml(note.member_name || 'You')} voice note</h4>
         <small>${formatDate(note.created_at)}</small>
       </div>
       <audio controls src="${escapeAttr(note.audio_url)}"></audio>
@@ -3558,7 +3573,7 @@ function renderChat() {
     const isMine = message.member_id === member?.id || message.member_name === member?.name;
     return `
       <article class="chat-message ${isMine ? 'mine' : ''}">
-        <strong>${escapeHtml(message.member_name || 'Family')}</strong>
+        <strong>${escapeHtml(message.member_name || 'You')}</strong>
         <span>${escapeHtml(message.message)}</span>
       </article>
     `;
@@ -4271,7 +4286,7 @@ function normalizeMember(member) {
     avatar: member.avatar || '👤',
     photo_url: member.photo_url || '',
     photo: member.photo_url || member.photo || defaultProfilePhoto(member),
-    role: member.role || 'Family member',
+    role: member.role || 'Profile',
     weight_kg: member.weight_kg ?? null,
     height_cm: member.height_cm ?? null,
     target_calories: member.target_calories ?? null
@@ -4285,7 +4300,7 @@ function avatarMarkup(member) {
 }
 
 function defaultProfilePhoto(member) {
-  if (member.id === 'add' || member.name === 'Add Member') return '';
+  if (member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile') return '';
   const map = {
     dad: 'assets/avatars/dad.jpg',
     mom: 'assets/avatars/mom.jpg',
@@ -4369,15 +4384,15 @@ function mergeMembers(primary, fallback) {
     byId.set(member.id, normalizeMember(member));
   });
   const members = Array.from(byId.values());
-  const addMember = members.find((member) => member.id === 'add' || member.name === 'Add Member');
+  const addMember = members.find((member) => member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile');
   return [
-    ...members.filter((member) => member.id !== 'add' && member.name !== 'Add Member'),
-    addMember || fallback.find((member) => member.id === 'add') || { id: 'add', name: 'Add Member', avatar: '＋', role: 'Invite family', photo: '' }
+    ...members.filter((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile'),
+    addMember || fallback.find((member) => member.id === 'add') || { id: 'add', name: 'Add Profile', avatar: '＋', role: 'Create another profile', photo: '' }
   ];
 }
 
 function isSeededDefaultMember(member) {
-  if (!member || member.id === 'add' || member.name === 'Add Member') return false;
+  if (!member || member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile') return false;
   const idKey = String(member.id || '').toLowerCase();
   const nameKey = String(member.name || '').toLowerCase();
   return seededDefaultMemberIds.has(idKey)
@@ -4385,8 +4400,8 @@ function isSeededDefaultMember(member) {
 }
 
 function getVisibleMembers() {
-  const addMember = appState.members.find((member) => member.id === 'add' || member.name === 'Add Member');
-  const realMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member');
+  const addMember = appState.members.find((member) => member.id === 'add' || member.name === 'Add Member' || member.name === 'Add Profile');
+  const realMembers = appState.members.filter((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile');
   const hasCustomFamily = realMembers.some((member) => !isSeededDefaultMember(member));
   return hasCustomFamily
     ? [...realMembers.filter((member) => !isSeededDefaultMember(member)), addMember].filter(Boolean)
@@ -4394,8 +4409,8 @@ function getVisibleMembers() {
 }
 
 function getDefaultMember() {
-  return getVisibleMembers().find((member) => member.id !== 'add' && member.name !== 'Add Member')
-    || appState.members.find((member) => member.id !== 'add' && member.name !== 'Add Member')
+  return getVisibleMembers().find((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile')
+    || appState.members.find((member) => member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile')
     || null;
 }
 
@@ -4629,7 +4644,7 @@ function restaurantEmoji(name = '') {
 }
 
 function emptyState(message) {
-  return `<article class="meal-card"><span class="meal-emoji">🍽️</span><div><h4>${message}</h4><p>FamilyBites is ready when you are.</p></div></article>`;
+  return `<article class="meal-card"><span class="meal-emoji">🍽️</span><div><h4>${message}</h4><p>MyMealMap is ready when you are.</p></div></article>`;
 }
 
 function escapeHtml(value = '') {
@@ -4647,7 +4662,7 @@ function escapeAttr(value = '') {
 }
 
 function emptyChefState(message) {
-  return `<article class="chef-order-card"><span>🍽️</span><div><h4>${message}</h4><p>Ready when the family orders.</p></div></article>`;
+  return `<article class="chef-order-card"><span>🍽️</span><div><h4>${message}</h4><p>Ready when you are.</p></div></article>`;
 }
 
 function orderAgain(restaurantName) {
@@ -4680,7 +4695,7 @@ async function handleConfirmAddMember() {
     id: `member-${Date.now()}`,
     name,
     avatar,
-    role: role || 'Family member',
+    role: role || 'Profile',
     photo: ''
   };
 
@@ -4717,7 +4732,7 @@ function removeMember(memberId) {
     alert('You cannot remove the currently active profile. Switch profiles first.');
     return;
   }
-  if (!confirm(`Remove ${member.name} from this family?`)) return;
+  if (!confirm(`Remove ${member.name} from this app?`)) return;
   appState.members = appState.members.filter((m) => m.id !== memberId);
   appState.meals = appState.meals.filter((m) => m.member_id !== memberId);
   saveStoredAppData();
@@ -4731,12 +4746,12 @@ function renderSettings() {
 
   const realMembers = appState.members.filter((m) => m.id !== 'add');
   const signedInEmail = appState.auth.user?.email || 'Not signed in';
-  const familyName = appState.auth.membership?.family_name || 'Private family';
+  const familyName = appState.auth.membership?.family_name || 'Private meal space';
   el.innerHTML = `
     <div class="settings-section">
       <p class="eyebrow">Discover</p>
       <h3>Recipes and workouts</h3>
-      <p>Open guided meal ideas and simple routines without leaving your family dashboard.</p>
+      <p>Open guided meal ideas and simple routines without leaving your wellness dashboard.</p>
       <div class="settings-discover-grid">
         <button class="settings-discover-card" data-page="recipes" type="button">
           <span class="settings-discover-icon">🥗</span>
@@ -4746,7 +4761,7 @@ function renderSettings() {
         <button class="settings-discover-card" data-page="workouts" type="button">
           <span class="settings-discover-icon">🏃</span>
           <strong>Workouts</strong>
-          <small>Short routines for after meals, mobility, and family movement.</small>
+          <small>Short routines for after meals, mobility, and personal movement.</small>
         </button>
       </div>
     </div>
@@ -4759,15 +4774,15 @@ function renderSettings() {
     </div>
 
     <div class="settings-section">
-      <p class="eyebrow">Family Members</p>
-      <h3>${realMembers.length} member${realMembers.length !== 1 ? 's' : ''}</h3>
+      <p class="eyebrow">Profiles</p>
+      <h3>${realMembers.length} profile${realMembers.length !== 1 ? 's' : ''}</h3>
       <div class="settings-member-list">
         ${realMembers.map((m) => `
           <div class="settings-member-row">
             <div class="mini-avatar">${avatarMarkup(m)}</div>
             <div class="settings-member-info">
               <strong>${escapeHtml(m.name)}</strong>
-              <small>${escapeHtml(m.role || 'Family member')}</small>
+              <small>${escapeHtml(m.role || 'Profile')}</small>
             </div>
             ${m.id === appState.currentMember?.id
               ? '<span class="you-badge">You</span>'
@@ -4776,7 +4791,7 @@ function renderSettings() {
           </div>
         `).join('')}
       </div>
-      <button class="primary-button" data-action="add-member">+ Add Member</button>
+      <button class="primary-button" data-action="add-member">+ Add Profile</button>
     </div>
 
     <div class="settings-section">
