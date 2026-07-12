@@ -563,6 +563,20 @@
 }
 
 @media (max-width: 760px) {
+  .app-notice-region {
+    top: auto;
+    right: 12px;
+    bottom: 92px;
+    left: 12px;
+    width: auto;
+  }
+
+  .app-notice {
+    padding: 12px 13px;
+    border-radius: 14px;
+    font-size: 12px;
+  }
+
   #page-dashboard .dashboard-layout { grid-template-columns: 1fr; }
   #page-dashboard .dashboard-intro { flex-direction: row; align-items: center; }
   #page-dashboard .body-impact-content { min-height: 0; }
@@ -726,6 +740,49 @@ img {
 
 .auth-feedback.success { color: #3f7a34; }
 .auth-feedback.error { color: #ac4331; }
+
+.app-notice-region {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 28px));
+  pointer-events: none;
+}
+
+.app-notice {
+  padding: 13px 15px;
+  border: 1px solid #efe3d2;
+  border-radius: 16px;
+  color: #5f5042;
+  background: rgba(255, 252, 247, 0.98);
+  box-shadow: 0 12px 30px rgba(71, 45, 20, 0.12);
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: auto;
+}
+
+.app-notice.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-notice-warning {
+  border-color: #f1dfbf;
+  color: #76562b;
+  background: rgba(255, 249, 238, 0.98);
+}
+
+.app-notice-error {
+  border-color: #f0d3cd;
+  color: #8d4334;
+  background: rgba(255, 245, 243, 0.98);
+}
 
 .landing-view {
   position: relative;

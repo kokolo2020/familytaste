@@ -33,6 +33,7 @@ const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
 const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
+const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const APP_VERSION = 'v0.8.0';
 const APP_BUILD_DATE = '2026-07-11';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna']);
@@ -4299,6 +4300,61 @@ function getStoredProfilePhotos() {
   return getStoredJson(profilePhotoStorageKey, {});
 }
 
+function getSessionNoticeKeys() {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(sessionNoticeStorageKey) || '[]'));
+  } catch (error) {
+    return new Set();
+  }
+}
+
+function rememberSessionNotice(key) {
+  if (!key) return;
+  try {
+    const keys = getSessionNoticeKeys();
+    keys.add(key);
+    sessionStorage.setItem(sessionNoticeStorageKey, JSON.stringify([...keys]));
+  } catch (error) {
+    console.warn('Could not persist session notice state.', error);
+  }
+}
+
+function hasSeenSessionNotice(key) {
+  if (!key) return false;
+  return getSessionNoticeKeys().has(key);
+}
+
+function showAppNotice(message, tone = 'info', options = {}) {
+  const { onceKey = '', duration = 5200 } = options;
+  if (onceKey && hasSeenSessionNotice(onceKey)) return;
+  if (onceKey) rememberSessionNotice(onceKey);
+
+  let region = document.getElementById('appNoticeRegion');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'appNoticeRegion';
+    region.className = 'app-notice-region';
+    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(region);
+  }
+
+  const notice = document.createElement('div');
+  notice.className = `app-notice app-notice-${tone}`;
+  notice.textContent = message;
+  region.appendChild(notice);
+
+  requestAnimationFrame(() => notice.classList.add('visible'));
+
+  const dismiss = () => {
+    notice.classList.remove('visible');
+    window.setTimeout(() => notice.remove(), 220);
+  };
+
+  window.setTimeout(dismiss, duration);
+  notice.addEventListener('click', dismiss, { once: true });
+}
+
 function saveProfilePhoto(memberId, photoUrl) {
   try {
     const storedPhotos = getStoredProfilePhotos();
@@ -4306,7 +4362,7 @@ function saveProfilePhoto(memberId, photoUrl) {
     localStorage.setItem(profilePhotoStorageKey, JSON.stringify(storedPhotos));
   } catch (error) {
     console.warn('Could not save profile photo locally.', error);
-    alert('Profile photo updated for this session, but the browser could not save it permanently.');
+    showAppNotice('Profile photo updated for this session only. This browser could not save it permanently.', 'warning', { onceKey: 'profile-photo-storage-warning' });
   }
 }
 
@@ -4324,7 +4380,7 @@ function setStoredJson(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.warn(`Could not save ${key}.`, error);
-    alert('Saved for this session, but this browser could not store all data permanently. Try using a smaller photo.');
+    showAppNotice('Saved for this session only. This browser could not store all data permanently, so try a smaller photo.', 'warning', { onceKey: `storage-warning:${key}` });
   }
 }
 
