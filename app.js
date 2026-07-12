@@ -17,7 +17,8 @@ const appState = {
   cart: [],
   voiceNotes: [],
   bioLogs: {},
-  profileMeasurements: {}
+  profileMeasurements: {},
+  workoutTab: 'explore'
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -160,6 +161,78 @@ const navItems = [
 
 const mobileItems = [...navItems];
 
+const recipeCollections = [
+  {
+    id: 'fiber',
+    title: 'High Fiber',
+    subtitle: 'Support digestion and steady fullness',
+    items: [
+      { title: 'Berry Yogurt Power Bowl', calories: 320, badge: '10 min', image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Green Goddess Crunch Plate', calories: 385, badge: 'Fresh', image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Apple Cinnamon Chia Oats', calories: 412, badge: 'Prep ahead', image: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Hearty Lentil Chili', calories: 340, badge: 'Family pot', image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80' }
+    ]
+  },
+  {
+    id: 'protein',
+    title: 'Protein Boost',
+    subtitle: 'Easy meals to strengthen recovery and satiety',
+    items: [
+      { title: 'Chicken Veggie Rice Bowl', calories: 430, badge: 'Balanced', image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Salmon Greens Plate', calories: 440, badge: 'Omega-3', image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Tofu Sesame Stir Fry', calories: 360, badge: 'Plant protein', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Egg & Avocado Toast Duo', calories: 300, badge: 'Quick breakfast', image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=900&q=80' }
+    ]
+  },
+  {
+    id: 'light-dinner',
+    title: 'Lighter Dinners',
+    subtitle: 'Calmer evening meals with less heaviness',
+    items: [
+      { title: 'Chicken Soup With Greens', calories: 220, badge: 'Comfort', image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Steamed Fish & Broccoli', calories: 295, badge: 'Gentle', image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Turkey Lettuce Wraps', calories: 280, badge: 'Low carb', image: 'https://images.unsplash.com/photo-1606787366850-de6330128bfc?auto=format&fit=crop&w=900&q=80' },
+      { title: 'Tofu Miso Bowl', calories: 250, badge: 'Digestive', image: 'https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=900&q=80' }
+    ]
+  }
+];
+
+const workoutCollections = [
+  {
+    id: 'stretch-strengthen',
+    title: 'Stretch & Strengthen',
+    subtitle: 'Loosen stiff muscles while building everyday strength.',
+    routines: [
+      { title: '6-Minute Core Reset', minutes: 6, type: 'Bodyweight', copy: 'Wake up the core with a short no-equipment routine.', image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80' },
+      { title: '8-Minute Morning Mobility', minutes: 8, type: 'Stretch', copy: 'Open hips, back, and shoulders before the day starts.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
+    ]
+  },
+  {
+    id: 'after-meal',
+    title: 'After-Meal Movement',
+    subtitle: 'Gentle routines that pair well with food logging.',
+    routines: [
+      { title: '10-Minute Post-Meal Walk', minutes: 10, type: 'Walking', copy: 'A simple walk to support digestion and steady energy.', image: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80' },
+      { title: '5-Minute Bloat Relief Flow', minutes: 5, type: 'Mobility', copy: 'Breathing and twists to feel lighter after a heavy meal.', image: 'https://images.unsplash.com/photo-1518611012118-fb2f5c8d2f3d?auto=format&fit=crop&w=1200&q=80' }
+    ]
+  },
+  {
+    id: 'family',
+    title: 'Family Friendly',
+    subtitle: 'Short routines everyone in the house can join.',
+    routines: [
+      { title: '12-Minute Family Energy Boost', minutes: 12, type: 'All ages', copy: 'Easy movement to get everyone active without equipment.', image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80' },
+      { title: '7-Minute Evening Stretch', minutes: 7, type: 'Recovery', copy: 'Wind down together before bed or after dinner.', image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80' }
+    ]
+  }
+];
+
+const workoutTabs = [
+  { id: 'explore', label: 'Explore', collectionId: 'stretch-strengthen' },
+  { id: 'after-meal', label: 'After meals', collectionId: 'after-meal' },
+  { id: 'family', label: 'Family', collectionId: 'family' }
+];
+
 document.addEventListener('DOMContentLoaded', () => {
   renderProfiles();
   renderNavigation();
@@ -173,6 +246,7 @@ function bindEvents() {
   document.body.addEventListener('click', (event) => {
     const pageTarget = event.target.closest('[data-page]');
     const actionTarget = event.target.closest('[data-action]');
+    const workoutTabTarget = event.target.closest('[data-workout-tab]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -180,6 +254,11 @@ function bindEvents() {
 
     if (actionTarget) {
       handleAction(actionTarget.dataset.action);
+    }
+
+    if (workoutTabTarget) {
+      appState.workoutTab = workoutTabTarget.dataset.workoutTab;
+      renderWorkouts();
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -811,7 +890,7 @@ function navTemplate(item) {
 }
 
 function resolveNavPage(pageName) {
-  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile'].includes(pageName)) return 'settings';
+  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile', 'recipes', 'workouts'].includes(pageName)) return 'settings';
   return pageName;
 }
 
@@ -1229,6 +1308,8 @@ function renderAll() {
   renderReport();
   renderChat();
   renderProfile();
+  renderRecipes();
+  renderWorkouts();
   renderSettings();
   renderSnapAnalysis();
   updateMealPreview();
@@ -4621,6 +4702,24 @@ function renderSettings() {
   const familyName = appState.auth.membership?.family_name || 'Private family';
   el.innerHTML = `
     <div class="settings-section">
+      <p class="eyebrow">Discover</p>
+      <h3>Recipes and workouts</h3>
+      <p>Open guided meal ideas and simple routines without leaving your family dashboard.</p>
+      <div class="settings-discover-grid">
+        <button class="settings-discover-card" data-page="recipes" type="button">
+          <span class="settings-discover-icon">🥗</span>
+          <strong>Recipes</strong>
+          <small>High-fiber, protein, and lighter dinner ideas.</small>
+        </button>
+        <button class="settings-discover-card" data-page="workouts" type="button">
+          <span class="settings-discover-icon">🏃</span>
+          <strong>Workouts</strong>
+          <small>Short routines for after meals, mobility, and family movement.</small>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <p class="eyebrow">Account</p>
       <h3>${escapeHtml(familyName)}</h3>
       <p>Signed in as ${escapeHtml(signedInEmail)}</p>
@@ -4652,6 +4751,8 @@ function renderSettings() {
       <p class="eyebrow">Navigation</p>
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
+        <button class="settings-nav-btn" data-page="recipes">🥗 Recipes</button>
+        <button class="settings-nav-btn" data-page="workouts">🏃 Workouts</button>
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
         <button class="settings-nav-btn" data-page="body">🧍 Body Map</button>
         <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
@@ -4673,6 +4774,134 @@ function renderSettings() {
       <p class="eyebrow">Release</p>
       <h3>${APP_VERSION}</h3>
       <p>Build date: ${APP_BUILD_DATE}</p>
+    </div>
+  `;
+}
+
+function renderRecipes() {
+  const el = document.getElementById('recipesContent');
+  if (!el) return;
+
+  const todayMeals = getMemberMeals().filter(isToday);
+  const avgHealth = todayMeals.length
+    ? Math.round(sum(todayMeals, 'health_score') / todayMeals.length)
+    : 72;
+
+  el.innerHTML = `
+    <div class="discover-page-shell">
+      <section class="dashboard-card discover-hero-card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Guided ideas</p>
+            <h3>Recipe options for this family</h3>
+          </div>
+        </div>
+        <p class="panel-subtitle">Browse meal ideas that match the wellness direction of the app: more fiber, stronger protein balance, and calmer dinners.</p>
+        <div class="discover-stat-row">
+          <article class="discover-stat-card">
+            <span>Collections</span>
+            <strong>${recipeCollections.length}</strong>
+            <small>Ready to browse</small>
+          </article>
+          <article class="discover-stat-card">
+            <span>Today’s meals</span>
+            <strong>${todayMeals.length}</strong>
+            <small>Used for personalization</small>
+          </article>
+          <article class="discover-stat-card">
+            <span>Average score</span>
+            <strong>${avgHealth}/100</strong>
+            <small>Current food quality</small>
+          </article>
+        </div>
+      </section>
+
+      ${recipeCollections.map((collection) => `
+        <section class="recipe-collection-section">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">${escapeHtml(collection.title)}</p>
+              <h3>${escapeHtml(collection.subtitle)}</h3>
+            </div>
+          </div>
+          <div class="recipe-rail">
+            ${collection.items.map((item) => `
+              <article class="recipe-card">
+                <img src="${escapeAttr(item.image)}" alt="${escapeAttr(item.title)}">
+                <div class="recipe-card-copy">
+                  <div class="recipe-card-meta">
+                    <span>${item.calories} cal</span>
+                    <span>${escapeHtml(item.badge)}</span>
+                  </div>
+                  <h4>${escapeHtml(item.title)}</h4>
+                  <p>${escapeHtml(collection.subtitle)}</p>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderWorkouts() {
+  const el = document.getElementById('workoutsContent');
+  if (!el) return;
+
+  const activeTab = workoutTabs.find((tab) => tab.id === appState.workoutTab) || workoutTabs[0];
+  const activeCollection = workoutCollections.find((collection) => collection.id === activeTab.collectionId) || workoutCollections[0];
+  const heroRoutine = activeCollection.routines[0];
+
+  el.innerHTML = `
+    <div class="discover-page-shell">
+      <section class="dashboard-card discover-hero-card">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Movement ideas</p>
+            <h3>Workouts that fit this app</h3>
+          </div>
+        </div>
+        <p class="panel-subtitle">Short routines keep the app focused on wellness, especially for post-meal walking, mobility, and family-friendly movement.</p>
+        <div class="workout-tab-row" role="tablist" aria-label="Workout categories">
+          ${workoutTabs.map((tab) => `
+            <button class="workout-tab-button ${tab.id === activeTab.id ? 'active' : ''}" data-workout-tab="${tab.id}" type="button">
+              ${escapeHtml(tab.label)}
+            </button>
+          `).join('')}
+        </div>
+      </section>
+
+      <section class="dashboard-card workout-feature-card">
+        <div class="workout-feature-media">
+          <img src="${escapeAttr(heroRoutine.image)}" alt="${escapeAttr(heroRoutine.title)}">
+        </div>
+        <div class="workout-feature-copy">
+          <p class="eyebrow">${escapeHtml(activeCollection.title)}</p>
+          <h3>${escapeHtml(heroRoutine.title)}</h3>
+          <div class="workout-meta-row">
+            <span>${heroRoutine.minutes} min</span>
+            <span>${escapeHtml(heroRoutine.type)}</span>
+          </div>
+          <p>${escapeHtml(heroRoutine.copy)}</p>
+        </div>
+      </section>
+
+      <section class="workout-routine-grid">
+        ${activeCollection.routines.map((routine) => `
+          <article class="dashboard-card workout-routine-card">
+            <img src="${escapeAttr(routine.image)}" alt="${escapeAttr(routine.title)}">
+            <div class="workout-routine-copy">
+              <div class="workout-meta-row">
+                <span>${routine.minutes} min</span>
+                <span>${escapeHtml(routine.type)}</span>
+              </div>
+              <h4>${escapeHtml(routine.title)}</h4>
+              <p>${escapeHtml(routine.copy)}</p>
+            </div>
+          </article>
+        `).join('')}
+      </section>
     </div>
   `;
 }

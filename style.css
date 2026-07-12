@@ -3829,9 +3829,253 @@ h1 span {
   text-align: left;
 }
 
+.settings-discover-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-discover-card {
+  display: grid;
+  gap: 8px;
+  min-height: 148px;
+  padding: 18px;
+  border: 1px solid rgba(126, 84, 39, 0.1);
+  border-radius: 18px;
+  text-align: left;
+  background:
+    radial-gradient(circle at top right, rgba(255, 192, 117, 0.2), transparent 42%),
+    rgba(255, 252, 246, 0.96);
+  box-shadow: var(--soft-shadow);
+}
+
+.settings-discover-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #fff3de;
+  font-size: 22px;
+}
+
+.settings-discover-card strong {
+  font-size: 20px;
+}
+
+.settings-discover-card small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.discover-page-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.discover-hero-card {
+  padding: 22px;
+}
+
+.discover-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.discover-stat-card {
+  padding: 16px 18px;
+  border: 1px solid rgba(126, 84, 39, 0.09);
+  border-radius: 18px;
+  background: rgba(255, 252, 246, 0.9);
+}
+
+.discover-stat-card span,
+.recipe-card-meta span,
+.workout-meta-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.discover-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.discover-stat-card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.recipe-collection-section {
+  display: grid;
+  gap: 12px;
+}
+
+.recipe-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recipe-card,
+.workout-routine-card {
+  overflow: hidden;
+  border: 1px solid rgba(126, 84, 39, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 12px 28px rgba(83, 50, 18, 0.06);
+}
+
+.recipe-card img,
+.workout-feature-media img,
+.workout-routine-card img {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.recipe-card img {
+  height: 190px;
+}
+
+.recipe-card-copy,
+.workout-routine-copy {
+  padding: 16px;
+}
+
+.recipe-card-meta,
+.workout-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.recipe-card h4,
+.workout-routine-card h4,
+.workout-feature-copy h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.recipe-card p,
+.workout-routine-card p,
+.workout-feature-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.workout-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.workout-tab-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: #685548;
+  background: #f6f0e8;
+  font-weight: 850;
+}
+
+.workout-tab-button.active {
+  color: white;
+  background: linear-gradient(135deg, #ff9f1a, #ff6716);
+  box-shadow: 0 10px 24px rgba(255, 103, 22, 0.22);
+}
+
+.workout-feature-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+}
+
+.workout-feature-media img {
+  height: 280px;
+  border-radius: 20px;
+}
+
+.workout-feature-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.workout-routine-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.workout-routine-card img {
+  height: 220px;
+}
+
 @media (max-width: 760px) {
+  .settings-discover-grid,
   .settings-nav-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .discover-page-shell {
+    gap: 12px;
+  }
+
+  .discover-hero-card {
+    padding: 16px;
+  }
+
+  .discover-stat-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .recipe-rail {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 82vw);
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .recipe-card img {
+    height: 170px;
+  }
+
+  .recipe-card h4,
+  .workout-routine-card h4,
+  .workout-feature-copy h3 {
+    font-size: 20px;
+  }
+
+  .workout-feature-card,
+  .workout-routine-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workout-feature-card {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .workout-feature-media img,
+  .workout-routine-card img {
+    height: 190px;
   }
 }
 
