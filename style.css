@@ -990,7 +990,7 @@ img {
 
 .daily-summary-intro { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 22px; overflow-y: auto; opacity: 0; background: radial-gradient(circle at 15% 12%, rgba(255, 178, 76, .32), transparent 30%), radial-gradient(circle at 90% 88%, rgba(96, 154, 105, .24), transparent 28%), #f8f1e7; transition: opacity .28s ease; }
 .daily-summary-intro.is-visible { opacity: 1; }
-.daily-summary-intro-card { position: relative; width: min(760px, 100%); overflow: hidden; padding: 26px; border: 1px solid rgba(98, 65, 34, .12); border-radius: 30px; background: rgba(255, 253, 248, .96); box-shadow: 0 28px 80px rgba(63, 43, 25, .18); transform: translateY(16px) scale(.98); transition: transform .38s cubic-bezier(.2,.75,.25,1); }
+.daily-summary-intro-card { position: relative; width: min(760px, 100%); max-height: calc(100svh - 44px); overflow: auto; padding: 26px; border: 1px solid rgba(98, 65, 34, .12); border-radius: 30px; background: rgba(255, 253, 248, .96); box-shadow: 0 28px 80px rgba(63, 43, 25, .18); transform: translateY(16px) scale(.98); transition: transform .38s cubic-bezier(.2,.75,.25,1); }
 .daily-summary-intro.is-visible .daily-summary-intro-card { transform: translateY(0) scale(1); }
 .daily-summary-intro-card::before { content: ""; position: absolute; top: -90px; right: -80px; width: 220px; height: 220px; border: 1px solid rgba(224, 126, 47, .12); border-radius: 50%; box-shadow: 0 0 0 30px rgba(224, 126, 47, .04), 0 0 0 62px rgba(224, 126, 47, .025); pointer-events: none; }
 .daily-summary-intro-card > header { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
@@ -1023,19 +1023,36 @@ img {
 
 @keyframes daily-pie-arrive { to { transform: rotate(0) scale(1); } }
 @media (max-width: 620px) {
-  .daily-summary-intro { padding: 12px; }
-  .daily-summary-intro-card { padding: 18px; border-radius: 22px; }
-  .daily-summary-intro-card h1 { font-size: 35px; }
-  .daily-summary-intro-card header p:last-child { max-width: 250px; font-size: 11px; line-height: 1.4; }
+  .daily-summary-intro { place-items: center; padding: 10px; }
+  .daily-summary-intro-card { max-height: calc(100svh - 20px); padding: 15px; border-radius: 20px; }
+  .daily-summary-intro-card h1 { font-size: 30px; }
+  .daily-summary-intro-card header .eyebrow { margin-bottom: 3px; font-size: 8px; }
+  .daily-summary-intro-card header p:last-child { max-width: 270px; margin-top: 5px; font-size: 10px; line-height: 1.35; }
   .daily-summary-skip { width: 32px; height: 32px; font-size: 19px; }
-  .daily-summary-intro-content { grid-template-columns: 1fr; gap: 14px; margin: 16px 0 14px; }
-  .daily-calorie-pie { width: 190px; height: 190px; padding: 18px; }
-  .daily-calorie-pie > div { width: 102px; height: 102px; border-width: 6px; }
-  .daily-calorie-pie strong { font-size: 27px; }
-  .daily-summary-dish-legend { gap: 5px; }
-  .daily-summary-dish-legend article { padding: 8px 10px; border-radius: 11px; }
-  .daily-summary-dish-legend article > i { height: 28px; }
-  .daily-summary-intro-card > footer { align-items: stretch; flex-direction: column; gap: 10px; }
+  .daily-summary-intro-content { grid-template-columns: minmax(128px, .78fr) minmax(0, 1.22fr); gap: 11px; margin: 13px 0 12px; }
+  .daily-calorie-pie-wrap { gap: 7px; }
+  .daily-calorie-pie { width: min(150px, 100%); height: auto; aspect-ratio: 1; padding: 14px; }
+  .daily-calorie-pie > div { width: 78px; height: 78px; border-width: 5px; }
+  .daily-calorie-pie strong { font-size: 21px; }
+  .daily-calorie-pie span { margin-top: 2px; font-size: 7px; }
+  .daily-summary-meal-count { font-size: 9px; text-align: center; }
+  .daily-summary-dish-legend { gap: 4px; }
+  .daily-summary-dish-legend article { grid-template-columns: 8px minmax(0, 1fr) auto; gap: 7px; padding: 7px 8px; border-radius: 10px; }
+  .daily-summary-dish-legend article > i { width: 7px; height: 25px; }
+  .daily-summary-dish-legend article strong { font-size: 10px; }
+  .daily-summary-dish-legend article small { font-size: 7px; }
+  .daily-summary-dish-legend article > b { font-size: 9px; }
+  .daily-summary-dish-legend > p { font-size: 8px; }
+  .daily-summary-intro-card > footer { gap: 10px; padding-top: 10px; }
+  .daily-summary-hide-option { gap: 7px; }
+  .daily-summary-hide-option input { width: 16px; height: 16px; }
+  .daily-summary-hide-option strong { font-size: 9px; }
+  .daily-summary-hide-option small { font-size: 7px; }
+  .daily-summary-continue { padding: 9px 12px; font-size: 9px; }
+}
+
+@media (max-width: 360px) {
+  .daily-summary-intro-card > footer { align-items: stretch; flex-direction: column; }
   .daily-summary-continue { width: 100%; }
 }
 
