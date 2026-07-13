@@ -12,7 +12,6 @@ const appState = {
   meals: [],
   snapScans: [],
   favorites: getDefaultFavoriteRestaurants(),
-  chat: [],
   chefOrders: [],
   cart: [],
   voiceNotes: [],
@@ -32,7 +31,6 @@ const appState = {
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
 const localSnapScansStorageKey = 'familyBites.snapScans.v1';
-const localChatStorageKey = 'familyBites.chat.v2';
 const localMembersStorageKey = 'familyBites.members.v1';
 const chefOrdersStorageKey = 'familyBites.chefOrders';
 const chefCartStorageKey = 'familyBites.chefCart';
@@ -45,7 +43,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.2.0';
+const APP_VERSION = 'v1.3.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -417,7 +415,6 @@ function bindEvents() {
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveSnapScan);
-  document.getElementById('chatForm').addEventListener('submit', sendChat);
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
@@ -505,7 +502,6 @@ function resetFamilyState() {
   appState.meals = [];
   appState.snapScans = [];
   appState.favorites = getDefaultFavoriteRestaurants();
-  appState.chat = [];
   appState.chefOrders = [];
   appState.cart = [];
   appState.voiceNotes = [];
@@ -517,9 +513,9 @@ function resetFamilyState() {
 
 function clearLocalFamilyCache() {
   [
+    'familyBites.chat.v2',
     localMealsStorageKey,
     localSnapScansStorageKey,
-    localChatStorageKey,
     localMembersStorageKey,
     chefOrdersStorageKey,
     chefCartStorageKey,
@@ -842,12 +838,11 @@ async function hydrateFamilyData() {
 
   try {
     appState.familyId = window.familyBitesDb.familyId;
-    const [members, meals, snapScans, favorites, chat] = (await Promise.allSettled([
+    const [members, meals, snapScans, favorites] = (await Promise.allSettled([
       window.familyBitesDb.getMembers(),
       window.familyBitesDb.getMeals(),
       window.familyBitesDb.getSnapScans(),
-      window.familyBitesDb.getFavorites(),
-      window.familyBitesDb.getChat()
+      window.familyBitesDb.getFavorites()
     ])).map((result) => {
       if (result.status === 'rejected') {
         console.warn('One Supabase table failed to load.', result.reason);
@@ -865,7 +860,6 @@ async function hydrateFamilyData() {
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
     if (snapScans.length) appState.snapScans = mergeRecords(snapScans.map(normalizeSnapScan), appState.snapScans);
     if (favorites.length) appState.favorites = favorites;
-    if (chat.length) appState.chat = mergeRecords(chat.map(normalizeChat), appState.chat);
 
     await backfillLocalSnapScansToSupabase();
 
@@ -885,7 +879,6 @@ async function hydrateFamilyData() {
       console.warn('Bio logs unavailable (table may not exist yet).', bioError);
     }
 
-    subscribeToFamilyChat();
   } catch (error) {
     console.warn('Supabase unavailable for family hydrate.', error);
     throw error;
@@ -1004,7 +997,7 @@ function navTemplate(item) {
 }
 
 function resolveNavPage(pageName) {
-  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile', 'recipes', 'workouts', 'future'].includes(pageName)) return 'settings';
+  if (['settings', 'order', 'weekly', 'favorites', 'chef', 'profile', 'recipes', 'workouts', 'future'].includes(pageName)) return 'settings';
   return pageName;
 }
 
@@ -1045,10 +1038,6 @@ function handleAction(action) {
     openDemoPage('order');
   }
 
-  if (action === 'demo-chat') {
-    openDemoPage('chat');
-  }
-
   if (action === 'demo-weekly') {
     openDemoPage('weekly');
   }
@@ -1062,7 +1051,6 @@ function handleAction(action) {
     clearLocalFamilyCache();
     appState.meals = [];
     appState.snapScans = [];
-    appState.chat = [];
     appState.chefOrders = [];
     appState.cart = [];
     appState.voiceNotes = [];
@@ -1676,7 +1664,6 @@ function renderAll() {
   renderCart();
   renderChefInterface();
   renderReport();
-  renderChat();
   renderProfile();
   renderRecipes();
   renderWorkouts();
@@ -3907,21 +3894,6 @@ function buildWeeklySummary(meals, calories, spend, favoriteFood) {
   return parts.join(' ');
 }
 
-function renderChat() {
-  const member = appState.currentMember;
-  document.getElementById('chatList').innerHTML = appState.chat.map((message) => {
-    const isMine = message.member_id === member?.id || message.member_name === member?.name;
-    return `
-      <article class="chat-message ${isMine ? 'mine' : ''}">
-        <strong>${escapeHtml(message.member_name || 'You')}</strong>
-        <span>${escapeHtml(message.message)}</span>
-      </article>
-    `;
-  }).join('');
-  const chatList = document.getElementById('chatList');
-  chatList.scrollTop = chatList.scrollHeight;
-}
-
 function buildFoodAchievementProfile(member = appState.currentMember) {
   const meals = member
     ? appState.meals.filter((meal) => mealBelongsToMember(meal, member, true))
@@ -4540,54 +4512,6 @@ async function handleDeleteSnapScan(scanId) {
   }
 }
 
-function subscribeToFamilyChat() {
-  if (!window.familyBitesDb?.subscribeChat) return;
-  try {
-    window.familyBitesDb.subscribeChat((row) => {
-      // Own messages are already rendered locally when sent.
-      if (row.member_id === appState.currentMember?.id) return;
-      if (appState.chat.some((item) => item.id === row.id)) return;
-      appState.chat.push(normalizeChat(row));
-      saveStoredAppData();
-      renderChat();
-    });
-  } catch (error) {
-    console.warn('Live chat updates unavailable.', error);
-  }
-}
-
-async function sendChat(event) {
-  event.preventDefault();
-  const input = document.getElementById('chatText');
-  const messageText = input.value.trim();
-  if (!messageText) return;
-
-  const message = {
-    id: crypto.randomUUID ? crypto.randomUUID() : `chat-${Date.now()}`,
-    family_id: appState.familyId,
-    member_id: appState.currentMember.id,
-    member_name: appState.currentMember.name,
-    message: messageText,
-    created_at: new Date().toISOString()
-  };
-
-  appState.chat.push(message);
-  saveStoredAppData();
-  input.value = '';
-  renderChat();
-
-  if (window.familyBitesDb?.isConfigured) {
-    try {
-      const savedMessage = await window.familyBitesDb.sendChat({ ...message, member_name: message.member_name });
-      appState.chat = appState.chat.map((item) => item.id === message.id ? normalizeChat(savedMessage) : item);
-      saveStoredAppData();
-      renderChat();
-    } catch (error) {
-      console.warn('Chat saved locally but Supabase write failed.', error);
-    }
-  }
-}
-
 function updateMealPreview() {
   const food = document.getElementById('foodName').value.trim();
   const calories = document.getElementById('calories').value.trim();
@@ -5066,10 +4990,14 @@ function savedOrDefaultProfilePhoto(member, savedPhoto) {
 }
 
 function applyStoredAppData() {
+  try {
+    localStorage.removeItem('familyBites.chat.v2');
+  } catch (error) {
+    console.warn('Could not remove the retired chat cache.', error);
+  }
   const storedMembers = getStoredJson(localMembersStorageKey, []).map(normalizeMember);
   const storedMeals = getStoredJson(localMealsStorageKey, []).map(normalizeMeal);
   const storedSnapScans = getStoredJson(localSnapScansStorageKey, []).map(normalizeSnapScan);
-  const storedChat = getStoredJson(localChatStorageKey, []).map(normalizeChat);
   const storedOrders = getStoredJson(chefOrdersStorageKey, []);
   const storedCart = getStoredJson(chefCartStorageKey, []);
   const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
@@ -5084,7 +5012,6 @@ function applyStoredAppData() {
   if (Object.keys(storedSavedWorkouts).length) appState.savedWorkouts = storedSavedWorkouts;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedSnapScans.length) appState.snapScans = mergeRecords(storedSnapScans, appState.snapScans);
-  if (storedChat.length) appState.chat = mergeRecords(storedChat, appState.chat);
   if (storedOrders.length) appState.chefOrders = storedOrders;
   if (storedCart.length) appState.cart = storedCart;
   if (storedVoiceNotes.length) appState.voiceNotes = storedVoiceNotes;
@@ -5094,7 +5021,6 @@ function saveStoredAppData() {
   setStoredJson(localMembersStorageKey, appState.members);
   setStoredJson(localMealsStorageKey, appState.meals);
   setStoredJson(localSnapScansStorageKey, appState.snapScans);
-  setStoredJson(localChatStorageKey, appState.chat);
   setStoredJson(chefOrdersStorageKey, appState.chefOrders);
   setStoredJson(chefCartStorageKey, appState.cart);
   setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
@@ -5293,15 +5219,6 @@ function normalizeSnapScan(scan) {
     foods: Array.isArray(scan.foods) ? scan.foods : [],
     created_at: scan.created_at || new Date().toISOString(),
     linked_meal_id: scan.linked_meal_id || ''
-  };
-}
-
-function normalizeChat(message) {
-  const member = appState.members.find((item) => item.id === message.member_id);
-  return {
-    ...message,
-    member_name: message.member_name || member?.name || 'Family',
-    created_at: message.created_at || new Date().toISOString()
   };
 }
 
@@ -5768,7 +5685,7 @@ function renderSettings() {
     <div class="settings-section danger-zone">
       <p class="eyebrow">Data</p>
       <h3>Clear all local data</h3>
-      <p>Removes all meals, chat messages, orders, and cart saved in this browser. This cannot be undone.</p>
+      <p>Removes all meals, orders, and cart saved in this browser. This cannot be undone.</p>
       <button class="danger-button" data-action="clear-all-data">🗑️ Clear All Data</button>
     </div>
 

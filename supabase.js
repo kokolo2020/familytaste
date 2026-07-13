@@ -257,31 +257,6 @@
       if (error) throw error;
       return data || [];
     },
-    async getChat() {
-      if (!client || !this.familyId) return [];
-      const { data, error } = await client
-        .from('family_chat')
-        .select('*')
-        .eq('family_id', this.familyId)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    async sendChat(message) {
-      if (!client || !this.familyId) return message;
-      const { data, error } = await client
-        .from('family_chat')
-        .insert({
-          family_id: this.familyId,
-          member_id: message.member_id,
-          member_name: message.member_name || null,
-          message: message.message
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
     async uploadImage(dataUrl, folder) {
       if (!client) return null;
       const blob = await (await fetch(dataUrl)).blob();
@@ -331,18 +306,6 @@
         .single();
       if (error) throw error;
       return data;
-    },
-    subscribeChat(onMessage) {
-      if (!client || !this.familyId) return null;
-      return client
-        .channel('family-chat')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'family_chat',
-          filter: `family_id=eq.${this.familyId}`
-        }, (payload) => onMessage(payload.new))
-        .subscribe();
     }
   };
 

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713e" />
+  <link rel="stylesheet" href="style.css?v=20260713f" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -97,7 +97,6 @@
           </div>
           <div class="header-actions">
             <button class="icon-button future-header-button" data-page="future" aria-label="Open Future You">🔮</button>
-            <button class="icon-button" data-page="chat" aria-label="Open meal notes">💬</button>
             <button id="activeAvatar" class="profile-chip" data-page="profile">👨 Dad</button>
           </div>
         </header>
@@ -361,7 +360,7 @@
           </div>
           <div class="voice-order-panel">
             <div>
-              <p class="eyebrow">Voice Chat</p>
+              <p class="eyebrow">Voice Note</p>
               <h3>Send a voice note to Chef</h3>
               <p>Record allergies, timing, or special requests.</p>
             </div>
@@ -463,15 +462,6 @@
               <span class="weekly-fruit-art" aria-hidden="true">🍎🍇🍌</span>
             </div>
           </div>
-        </section>
-
-        <section id="page-chat" class="page" data-title="Meal Notes" data-kicker="Private notes">
-          <div id="chatList" class="chat-list"></div>
-          <form id="chatForm" class="chat-composer">
-            <input id="chatText" placeholder="Write a quick meal or wellness note..." autocomplete="off">
-            <button type="submit">Send</button>
-          </form>
-          <p class="muted">Future-ready for photos and voice.</p>
         </section>
 
         <section id="page-body" class="page" data-title="Body" data-kicker="AI wellness map">
@@ -761,7 +751,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260713b"></script>
-  <script src="app.js?v=20260713g"></script>
+  <script src="supabase.js?v=20260713c"></script>
+  <script src="app.js?v=20260713h"></script>
 </body>
 </html>

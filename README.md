@@ -10,7 +10,6 @@ FamilyBites is a private family food hub.
 - Snap Food form
 - Favorite restaurants
 - Weekly AI recap mockup
-- Family chat demo
 - Mobile responsive layout
 
 ## Upload to GitHub
@@ -38,7 +37,6 @@ After the files are in GitHub:
 - Supabase login
 - Family/member table
 - Photo upload storage
-- Real family chat
 - AI food calorie detection
 - Chef ordering workflow
 - Weekly nutrition reports

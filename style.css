@@ -1113,8 +1113,7 @@ img {
 .secondary-button,
 .text-button,
 .icon-button,
-.profile-chip,
-.chat-composer button {
+.profile-chip {
   min-height: 42px;
   border-radius: 999px;
   padding: 0 17px;
@@ -1684,7 +1683,6 @@ h1 span {
 .meal-card,
 .timeline-item,
 .glass-form,
-.chat-list,
 .profile-detail,
 .report-grid article {
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -1724,8 +1722,7 @@ h1 span {
   line-height: 1.6;
 }
 
-.primary-button,
-.chat-composer button {
+.primary-button {
   color: white;
   background: linear-gradient(135deg, #e58a12, #d95e31);
   box-shadow: 0 16px 34px rgba(217, 94, 49, 0.22);
@@ -2567,8 +2564,7 @@ h1 span {
 
 .glass-form input,
 .glass-form select,
-.glass-form textarea,
-.chat-composer input {
+.glass-form textarea {
   width: 100%;
   min-height: 48px;
   border: 1px solid #e6d6c5;
@@ -2925,50 +2921,6 @@ h1 span {
   .weekly-ai-card { grid-template-columns: auto 1fr; }
   .weekly-fruit-art { display: none; }
   .family-member-metrics { grid-template-columns: 1fr; }
-}
-
-.chat-list {
-  display: grid;
-  gap: 12px;
-  min-height: 410px;
-  max-height: 56vh;
-  overflow: auto;
-  padding: 18px;
-}
-
-.chat-message {
-  width: fit-content;
-  max-width: min(620px, 88%);
-  padding: 13px 15px;
-  border-radius: 8px;
-  background: #fff0d3;
-}
-
-.chat-message.mine {
-  justify-self: end;
-  color: white;
-  background: linear-gradient(135deg, var(--berry), #5f7b41);
-}
-
-.chat-message strong,
-.chat-message span {
-  display: block;
-}
-
-.chat-message span {
-  margin-top: 5px;
-  line-height: 1.5;
-}
-
-.chat-composer {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.chat-composer button {
-  padding: 0 24px;
 }
 
 .timeline-item {
