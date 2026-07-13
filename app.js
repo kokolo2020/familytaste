@@ -20,7 +20,12 @@ const appState = {
   profileMeasurements: {},
   workoutHistory: {},
   savedWorkouts: {},
-  workoutTab: 'explore'
+  workoutTab: 'explore',
+  futureYou: {
+    months: 6,
+    path: 'steady',
+    changes: []
+  }
 };
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
@@ -39,7 +44,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v0.9.0';
+const APP_VERSION = 'v1.0.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -255,6 +260,9 @@ function bindEvents() {
     const startWorkoutTarget = event.target.closest('[data-start-workout]');
     const completeWorkoutTarget = event.target.closest('[data-complete-workout]');
     const saveWorkoutTarget = event.target.closest('[data-toggle-save-workout]');
+    const futureHorizonTarget = event.target.closest('[data-future-months]');
+    const futurePathTarget = event.target.closest('[data-future-path]');
+    const futureChangeTarget = event.target.closest('[data-future-change]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -279,6 +287,20 @@ function bindEvents() {
 
     if (saveWorkoutTarget) {
       handleToggleSaveWorkout(saveWorkoutTarget.dataset.toggleSaveWorkout);
+    }
+
+    if (futureHorizonTarget) {
+      appState.futureYou.months = Number(futureHorizonTarget.dataset.futureMonths) || 6;
+      renderFutureYou();
+    }
+
+    if (futurePathTarget) {
+      appState.futureYou.path = futurePathTarget.dataset.futurePath;
+      renderFutureYou();
+    }
+
+    if (futureChangeTarget) {
+      toggleFutureChange(futureChangeTarget.dataset.futureChange);
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -963,7 +985,7 @@ function navTemplate(item) {
 }
 
 function resolveNavPage(pageName) {
-  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile', 'recipes', 'workouts'].includes(pageName)) return 'settings';
+  if (['settings', 'order', 'weekly', 'favorites', 'chat', 'chef', 'profile', 'recipes', 'workouts', 'future'].includes(pageName)) return 'settings';
   return pageName;
 }
 
@@ -1639,6 +1661,7 @@ function renderAll() {
   renderProfile();
   renderRecipes();
   renderWorkouts();
+  renderFutureYou();
   renderSettings();
   renderSnapAnalysis();
   updateMealPreview();
@@ -5251,6 +5274,166 @@ function removeMember(memberId) {
   renderSettings();
 }
 
+const futureChangeOptions = [
+  { id: 'protein-breakfast', icon: '🍳', label: 'Protein breakfast', copy: 'Start three mornings with a protein anchor.' },
+  { id: 'colorful-side', icon: '🥦', label: 'Colorful side', copy: 'Add fruit or vegetables three times each week.' },
+  { id: 'sweet-swap', icon: '🧊', label: 'Two drink swaps', copy: 'Trade two sweet drinks for an unsweetened favorite.' },
+  { id: 'earlier-dinner', icon: '🌙', label: 'Earlier dinner', copy: 'Move three late meals into an earlier rhythm.' },
+  { id: 'home-meal', icon: '🍳', label: 'One home meal', copy: 'Make one simple meal at home each week.' }
+];
+
+function toggleFutureChange(changeId) {
+  if (!futureChangeOptions.some((item) => item.id === changeId)) return;
+  const selected = appState.futureYou.changes;
+  appState.futureYou.changes = selected.includes(changeId)
+    ? selected.filter((id) => id !== changeId)
+    : [...selected, changeId].slice(-3);
+  renderFutureYou();
+}
+
+function getFutureMealHistory() {
+  const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  return getMemberMeals().filter((meal) => {
+    const timestamp = new Date(meal.eaten_at || meal.created_at).getTime();
+    return Number.isFinite(timestamp) && timestamp >= cutoff;
+  });
+}
+
+function buildFutureYouSimulation() {
+  const meals = getFutureMealHistory();
+  const signals = analyzeMealPatternSignals(meals);
+  const uniqueFoods = new Set(meals.map((meal) => normalizeScanLabel(meal.food_name).toLowerCase()).filter(Boolean));
+  const activeDays = new Set(meals.map(mealDayKey).filter(Boolean));
+  const timestamps = meals.map((meal) => new Date(meal.eaten_at || meal.created_at).getTime()).filter(Number.isFinite);
+  const oldestTimestamp = timestamps.length ? Math.min(...timestamps) : Date.now();
+  const observedDays = Math.max(7, Math.min(30, Math.ceil((Date.now() - oldestTimestamp) / 86400000) + 1));
+  const mealCount = Math.max(signals.mealCount, 1);
+  const months = appState.futureYou.months;
+  const path = appState.futureYou.path;
+  const selectedChanges = appState.futureYou.changes;
+  const horizonBoost = months === 12 ? 1.3 : 1;
+  const pathBoost = path === 'adventure' ? 16 : path === 'gentle' ? 8 : 0;
+
+  const scores = {
+    variety: meals.length ? Math.min(100, Math.round((uniqueFoods.size / 12) * 100)) : 8,
+    balance: meals.length ? Math.round(((signals.proteinMeals + signals.fiberMeals) / (mealCount * 2)) * 100) : 8,
+    rhythm: meals.length ? Math.round(100 - ((signals.lateMeals / mealCount) * 100)) : 20,
+    consistency: meals.length ? Math.min(100, Math.round((activeDays.size / Math.min(observedDays, 14)) * 100)) : 6
+  };
+
+  if (path !== 'steady') {
+    scores.variety += pathBoost * horizonBoost;
+    scores.balance += pathBoost * .9 * horizonBoost;
+    scores.rhythm += pathBoost * .7 * horizonBoost;
+    scores.consistency += pathBoost * .6 * horizonBoost;
+  }
+  selectedChanges.forEach((change) => {
+    if (change === 'protein-breakfast') scores.balance += 11 * horizonBoost;
+    if (change === 'colorful-side') { scores.variety += 12 * horizonBoost; scores.balance += 8 * horizonBoost; }
+    if (change === 'sweet-swap') scores.balance += 7 * horizonBoost;
+    if (change === 'earlier-dinner') scores.rhythm += 15 * horizonBoost;
+    if (change === 'home-meal') { scores.variety += 8 * horizonBoost; scores.consistency += 5 * horizonBoost; }
+  });
+  Object.keys(scores).forEach((key) => { scores[key] = clampScore(Math.round(scores[key])); });
+
+  const weeklyLogs = meals.length ? (meals.length / observedDays) * 7 : 0;
+  const projectedMemories = Math.round(weeklyLogs * months * 4.345);
+  const confidence = meals.length >= 20 ? 'Trend-powered' : meals.length >= 8 ? 'Taking shape' : 'Early sketch';
+  const strongestScore = Object.entries(scores).sort((left, right) => right[1] - left[1])[0]?.[0] || 'variety';
+  const persona = buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges });
+
+  return { meals, signals, scores, months, path, selectedChanges, uniqueFoodCount: uniqueFoods.size, activeDayCount: activeDays.size, projectedMemories, confidence, persona };
+}
+
+function buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges }) {
+  if (path === 'adventure' || scores.variety >= 80) return { icon: '🌍', title: 'The Flavor Explorer', badge: 'Curious eater', color: 'sunset' };
+  if (selectedChanges.includes('home-meal')) return { icon: '🍳', title: 'The Kitchen Regular', badge: 'Home-base energy', color: 'gold' };
+  if (strongestScore === 'rhythm' && scores.rhythm >= 70) return { icon: '☀️', title: 'The Rhythm Keeper', badge: 'Steady days', color: 'sky' };
+  if (signals.proteinMeals >= Math.max(2, signals.mealCount * .45) || strongestScore === 'balance') return { icon: '⚡', title: 'The Balanced Builder', badge: 'Plate architect', color: 'lime' };
+  return { icon: '🌱', title: 'The Habit Starter', badge: 'Growing momentum', color: 'leaf' };
+}
+
+function buildFutureStory(simulation) {
+  const name = String(appState.currentMember?.name || 'You').split(' ')[0];
+  if (!simulation.meals.length) return `${name}, Future You is still a blank page. Log a few real meals and this story will begin learning your favorite flavors and routines.`;
+  const horizon = simulation.months === 12 ? 'one year' : 'six months';
+  const pathCopy = {
+    steady: 'keeps your familiar food rhythm and becomes much better at remembering what actually works',
+    gentle: 'builds a few easy rituals without giving up favorite foods',
+    adventure: 'turns food logging into a year of new flavors, colorful plates, and small weekly experiments'
+  };
+  const changeCopy = simulation.selectedChanges.length
+    ? ` Your ${simulation.selectedChanges.length} selected mini-quest${simulation.selectedChanges.length === 1 ? '' : 's'} add a little extra momentum.`
+    : '';
+  return `${name}, ${horizon} from now, Future You ${pathCopy[simulation.path]}.${changeCopy}`;
+}
+
+function buildFutureMilestones(simulation) {
+  const midpoint = simulation.months === 12 ? 'Month 6' : 'Month 3';
+  const finalPoint = simulation.months === 12 ? 'Year 1' : 'Month 6';
+  const selectedLabels = simulation.selectedChanges.map((id) => futureChangeOptions.find((item) => item.id === id)?.label).filter(Boolean);
+  return [
+    { label: 'Today', title: `${simulation.meals.length} meals in the trend`, copy: simulation.meals.length ? `${simulation.uniqueFoodCount} different foods are shaping this story.` : 'Your first meal starts the story.' },
+    { label: midpoint, title: selectedLabels[0] || 'Your rhythm gets easier to see', copy: selectedLabels.length ? `${selectedLabels[0]} starts feeling like part of the routine.` : 'Future You notices which meals are worth repeating.' },
+    { label: finalPoint, title: simulation.persona.title, copy: simulation.projectedMemories ? `Around ${simulation.projectedMemories} food memories could be waiting in your diary.` : 'A personal food story is ready to unfold.' }
+  ];
+}
+
+function renderFutureYou() {
+  const container = document.getElementById('futureYouContent');
+  if (!container || !appState.currentMember) return;
+  const simulation = buildFutureYouSimulation();
+  const milestones = buildFutureMilestones(simulation);
+  const pathOptions = [
+    { id: 'steady', icon: '🛤️', title: 'Keep my rhythm', copy: 'See where today’s habits could lead.' },
+    { id: 'gentle', icon: '✨', title: 'One small shift', copy: 'Add a little structure, keep favorite foods.' },
+    { id: 'adventure', icon: '🚀', title: 'Food adventure', copy: 'Try more variety and playful weekly quests.' }
+  ];
+  const scoreCards = [
+    { key: 'variety', icon: '🌈', label: 'Flavor variety' },
+    { key: 'balance', icon: '🥗', label: 'Plate balance' },
+    { key: 'rhythm', icon: '🕰️', label: 'Meal rhythm' },
+    { key: 'consistency', icon: '🔥', label: 'Diary momentum' }
+  ];
+
+  container.innerHTML = `
+    <div class="future-you-screen future-theme-${simulation.persona.color}">
+      <section class="future-hero">
+        <div class="future-hero-copy">
+          <p class="eyebrow">A playful look ahead</p><h3>Meet your Future You</h3>
+          <p>Remix your current food habits and see the character your diary could unlock.</p>
+          <div class="future-horizon-switch" aria-label="Choose simulation horizon">
+            <button class="${simulation.months === 6 ? 'active' : ''}" data-future-months="6" type="button">6 months</button>
+            <button class="${simulation.months === 12 ? 'active' : ''}" data-future-months="12" type="button">1 year</button>
+          </div>
+        </div>
+        <div class="future-avatar-stage">
+          <span class="future-orbit orbit-one">🥑</span><span class="future-orbit orbit-two">🍜</span><span class="future-orbit orbit-three">🍓</span>
+          <div class="future-avatar">${avatarMarkup(appState.currentMember)}</div><div class="future-persona-icon">${simulation.persona.icon}</div>
+          <strong>${escapeHtml(simulation.persona.title)}</strong><small>${escapeHtml(simulation.persona.badge)}</small>
+        </div>
+      </section>
+      <section class="future-control-section">
+        <div class="future-section-heading"><div><p class="eyebrow">Choose a storyline</p><h3>How does Future You get there?</h3></div><span>${simulation.confidence}</span></div>
+        <div class="future-path-grid">${pathOptions.map((option) => `<button class="future-path-card${simulation.path === option.id ? ' active' : ''}" data-future-path="${option.id}" type="button"><span>${option.icon}</span><strong>${option.title}</strong><small>${option.copy}</small></button>`).join('')}</div>
+      </section>
+      <section class="future-story-card"><div><span>Message from ${simulation.months === 12 ? 'next year' : 'six months ahead'}</span><h3>${escapeHtml(simulation.persona.title)}</h3></div><p>“${escapeHtml(buildFutureStory(simulation))}”</p></section>
+      <section class="future-score-section">
+        <div class="future-section-heading"><div><p class="eyebrow">Your simulated vibe</p><h3>Habit energy</h3></div><small>Not a health score</small></div>
+        <div class="future-score-grid">${scoreCards.map((card) => `<article class="future-score-card"><span>${card.icon}</span><small>${card.label}</small><strong>${simulation.scores[card.key]}</strong><i><em style="width:${simulation.scores[card.key]}%"></em></i></article>`).join('')}</div>
+      </section>
+      <section class="future-quest-section">
+        <div class="future-section-heading"><div><p class="eyebrow">Tap to remix the future</p><h3>Pick up to three mini-quests</h3></div><span>${simulation.selectedChanges.length}/3 selected</span></div>
+        <div class="future-quest-grid">${futureChangeOptions.map((quest) => `<button class="future-quest${simulation.selectedChanges.includes(quest.id) ? ' active' : ''}" data-future-change="${quest.id}" type="button"><span>${quest.icon}</span><strong>${quest.label}</strong><small>${quest.copy}</small><b>${simulation.selectedChanges.includes(quest.id) ? '✓ Added' : '+ Try it'}</b></button>`).join('')}</div>
+      </section>
+      <section class="future-timeline-section">
+        <div class="future-section-heading"><div><p class="eyebrow">Your story arc</p><h3>Future food memories</h3></div></div>
+        <div class="future-timeline">${milestones.map((milestone, index) => `<article><span>${index + 1}</span><div><small>${milestone.label}</small><strong>${escapeHtml(milestone.title)}</strong><p>${escapeHtml(milestone.copy)}</p></div></article>`).join('')}</div>
+      </section>
+      <p class="future-disclaimer">For fun and motivation, based on your logged food habits. This is not medical advice or a prediction of health outcomes.</p>
+    </div>`;
+}
+
 function renderSettings() {
   const el = document.getElementById('settingsContent');
   if (!el) return;
@@ -5260,9 +5443,14 @@ function renderSettings() {
   el.innerHTML = `
     <div class="settings-section">
       <p class="eyebrow">Discover</p>
-      <h3>Recipes and workouts</h3>
-      <p>Open guided meal ideas and simple routines without leaving your wellness dashboard.</p>
+      <h3>Explore what’s next</h3>
+      <p>Meet Future You, find meal ideas, or open a simple movement routine.</p>
       <div class="settings-discover-grid">
+        <button class="settings-discover-card future-discover-card" data-page="future" type="button">
+          <span class="settings-discover-icon">🔮</span>
+          <strong>Future You</strong>
+          <small>Turn your real food trends into a playful 6-month or 1-year story.</small>
+        </button>
         <button class="settings-discover-card" data-page="recipes" type="button">
           <span class="settings-discover-icon">🥗</span>
           <strong>Recipes</strong>
@@ -5290,6 +5478,7 @@ function renderSettings() {
       <p class="eyebrow">Navigation</p>
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
+        <button class="settings-nav-btn" data-page="future">🔮 Future You</button>
         <button class="settings-nav-btn" data-page="recipes">🥗 Recipes</button>
         <button class="settings-nav-btn" data-page="workouts">🏃 Workouts</button>
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>

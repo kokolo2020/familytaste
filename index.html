@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713b" />
+  <link rel="stylesheet" href="style.css?v=20260713c" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -96,6 +96,7 @@
             <h2 id="pageTitle">Welcome back</h2>
           </div>
           <div class="header-actions">
+            <button class="icon-button future-header-button" data-page="future" aria-label="Open Future You">🔮</button>
             <button class="icon-button" data-page="chat" aria-label="Open meal notes">💬</button>
             <button id="activeAvatar" class="profile-chip" data-page="profile">👨 Dad</button>
           </div>
@@ -638,6 +639,10 @@
           <div id="workoutsContent"></div>
         </section>
 
+        <section id="page-future" class="page" data-title="Future You" data-kicker="Food habit simulator">
+          <div id="futureYouContent"></div>
+        </section>
+
         <section id="page-settings" class="page" data-title="More" data-kicker="Personal tools">
           <div id="settingsContent"></div>
         </section>
@@ -755,6 +760,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713b"></script>
-  <script src="app.js?v=20260713d"></script>
+  <script src="app.js?v=20260713e"></script>
 </body>
 </html>
