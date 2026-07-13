@@ -37,7 +37,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.7.1';
+const APP_VERSION = 'v1.8.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -1647,11 +1647,104 @@ function renderDashboard() {
   document.getElementById('dashboardCalorieCount').textContent = `${calories.toLocaleString()} cal`;
   setText('bioCalories', calories.toLocaleString());
 
+  renderDashboardFoodStory(memberMeals);
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
   renderDashboardHistory(memberMeals, yesterdayMeals);
   renderFavoriteFoods(memberMeals);
   renderBioInputs();
   renderHealthInsights(memberMeals, todayMeals, calories, goal);
+}
+
+function renderDashboardFoodStory(memberMeals) {
+  const chart = document.getElementById('foodStoryChart');
+  if (!chart) return;
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (6 - index));
+    return { date, key: dateKey(date), meals: [], calories: 0, balance: null };
+  });
+  const dayMap = new Map(days.map((day) => [day.key, day]));
+  memberMeals.forEach((meal) => {
+    const mealDate = new Date(meal.eaten_at || meal.created_at);
+    const day = dayMap.get(dateKey(mealDate));
+    if (!day) return;
+    day.meals.push(meal);
+    day.calories += Number(meal.calories) || 0;
+  });
+  days.forEach((day) => {
+    day.balance = day.meals.length
+      ? Math.round(day.meals.reduce((total, meal) => total + analyzeMealQuality(meal).score, 0) / day.meals.length)
+      : null;
+  });
+
+  const weekMeals = days.flatMap((day) => day.meals);
+  const activeDays = days.filter((day) => day.meals.length);
+  const averageCalories = activeDays.length ? Math.round(activeDays.reduce((total, day) => total + day.calories, 0) / activeDays.length) : 0;
+  const averageBalance = weekMeals.length
+    ? Math.round(weekMeals.reduce((total, meal) => total + analyzeMealQuality(meal).score, 0) / weekMeals.length)
+    : null;
+  const variety = new Set(weekMeals.map((meal) => String(meal.food_name || '').trim().toLowerCase()).filter(Boolean)).size;
+  const maxCalories = Math.max(...days.map((day) => day.calories), 1);
+  const baseline = 126;
+  const chartHeight = 88;
+  const startX = 41;
+  const stepX = 92;
+  const barWidth = 38;
+  const balancePoints = [];
+
+  const bars = days.map((day, index) => {
+    const barHeight = day.calories ? Math.max(7, Math.round(day.calories / maxCalories * chartHeight)) : 2;
+    const x = startX + index * stepX;
+    const y = baseline - barHeight;
+    if (day.balance !== null) balancePoints.push(`${x + barWidth / 2},${baseline - (day.balance / 100 * chartHeight)}`);
+    const label = day.date.toLocaleDateString('en-US', { weekday: 'short' });
+    return `<g class="food-story-day"><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="9"></rect><text x="${x + barWidth / 2}" y="154" text-anchor="middle">${label}</text></g>`;
+  }).join('');
+  const line = balancePoints.length > 1
+    ? `<polyline class="food-story-balance-line" points="${balancePoints.join(' ')}"></polyline>`
+    : '';
+  const points = days.map((day, index) => day.balance === null ? '' : `<circle class="food-story-balance-point" cx="${startX + index * stepX + barWidth / 2}" cy="${baseline - (day.balance / 100 * chartHeight)}" r="5"></circle>`).join('');
+  chart.innerHTML = `
+    <svg viewBox="0 0 700 166" role="presentation" focusable="false">
+      <defs>
+        <linearGradient id="foodStoryBar" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffc15b"></stop>
+          <stop offset="1" stop-color="#f07a24"></stop>
+        </linearGradient>
+      </defs>
+      <line class="food-story-grid" x1="25" y1="38" x2="675" y2="38"></line>
+      <line class="food-story-grid" x1="25" y1="82" x2="675" y2="82"></line>
+      <line class="food-story-grid" x1="25" y1="126" x2="675" y2="126"></line>
+      ${bars}${line}${points}
+    </svg>`;
+  chart.setAttribute('aria-label', weekMeals.length
+    ? `Seven-day chart with ${weekMeals.length} meals, ${averageCalories} average daily calories, and ${averageBalance} average food balance`
+    : 'No seven-day food data yet');
+
+  setText('foodStoryCalories', averageCalories ? averageCalories.toLocaleString() : '0');
+  setText('foodStoryBalance', averageBalance === null ? '--' : `${averageBalance}/100`);
+  setText('foodStoryVariety', variety.toString());
+  setText('foodStoryTitle', !weekMeals.length
+    ? 'Your story starts with one meal'
+    : averageBalance >= 80
+      ? 'A strong week is taking shape'
+      : averageBalance >= 65
+        ? 'Your rhythm is getting clearer'
+        : 'Your week has room to remix');
+  setText('foodStoryTakeaway', buildDashboardFoodStoryTakeaway({ days, weekMeals, activeDays, averageBalance, variety }));
+}
+
+function buildDashboardFoodStoryTakeaway({ days, weekMeals, activeDays, averageBalance, variety }) {
+  if (!weekMeals.length) return 'Scan your next meal and this graph will begin mapping your week.';
+  const recent = days.slice(4).filter((day) => day.meals.length);
+  const earlier = days.slice(0, 3).filter((day) => day.meals.length);
+  const recentBalance = recent.length ? Math.round(recent.reduce((total, day) => total + day.balance, 0) / recent.length) : null;
+  const earlierBalance = earlier.length ? Math.round(earlier.reduce((total, day) => total + day.balance, 0) / earlier.length) : null;
+  const direction = recentBalance !== null && earlierBalance !== null
+    ? recentBalance >= earlierBalance + 4 ? 'Balance is trending up.' : recentBalance <= earlierBalance - 4 ? 'Recent meals have been a little heavier.' : 'Your balance is holding steady.'
+    : averageBalance >= 70 ? 'Your logged meals show a balanced rhythm.' : 'A little more variety could lift the week.';
+  return `${activeDays.length} active day${activeDays.length === 1 ? '' : 's'} · ${variety} unique dish${variety === 1 ? '' : 'es'}. ${direction}`;
 }
 
 function renderDashboardHistory(memberMeals, yesterdayMeals) {
