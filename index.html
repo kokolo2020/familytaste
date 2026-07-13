@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713n" />
+  <link rel="stylesheet" href="style.css?v=20260713o" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -86,7 +86,7 @@
             <h1 id="dailySummaryIntroTitle">Your day, plated.</h1>
             <p id="dailySummaryIntroSubtitle">A quick look at where today’s calories came from.</p>
           </div>
-          <button class="daily-summary-skip" data-action="close-daily-summary" type="button">Skip</button>
+          <button class="daily-summary-skip" data-action="close-daily-summary" type="button" aria-label="Close daily summary">×</button>
         </header>
         <div class="daily-summary-intro-content">
           <div class="daily-calorie-pie-wrap">
@@ -98,8 +98,11 @@
           <div id="dailySummaryDishLegend" class="daily-summary-dish-legend"></div>
         </div>
         <footer>
-          <span>Opening your food diary…</span>
-          <i><b></b></i>
+          <label class="daily-summary-hide-option">
+            <input id="dailySummaryHideToday" type="checkbox" />
+            <span><strong>Don’t show again today</strong><small>The daily pie returns tomorrow.</small></span>
+          </label>
+          <button class="daily-summary-continue" data-action="close-daily-summary" type="button">Open food diary</button>
         </footer>
       </div>
     </section>
@@ -745,6 +748,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260713p"></script>
+  <script src="app.js?v=20260713q"></script>
 </body>
 </html>

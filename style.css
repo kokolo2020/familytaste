@@ -997,7 +997,7 @@ img {
 .daily-summary-intro-card header .eyebrow { margin: 0 0 6px; color: #dc641d; font-size: 10px; letter-spacing: .12em; }
 .daily-summary-intro-card h1 { margin: 0; color: #2c2118; font: 750 clamp(34px, 5vw, 54px)/.98 "Playfair Display", Georgia, serif; letter-spacing: -.025em; }
 .daily-summary-intro-card header p:last-child { margin: 9px 0 0; color: #87776a; font-size: 13px; }
-.daily-summary-skip { position: relative; flex: 0 0 auto; padding: 9px 14px; border: 1px solid #e9ddd0; border-radius: 999px; color: #6f6257; background: #fff; font-size: 11px; font-weight: 850; }
+.daily-summary-skip { position: relative; display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border: 1px solid #e9ddd0; border-radius: 50%; color: #6f6257; background: #fff; font-size: 22px; line-height: 1; }
 .daily-summary-intro-content { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; align-items: center; margin: 24px 0 20px; }
 .daily-calorie-pie-wrap { display: grid; justify-items: center; gap: 10px; }
 .daily-calorie-pie { display: grid; place-items: center; width: 250px; height: 250px; padding: 24px; border-radius: 50%; box-shadow: 0 18px 34px rgba(79, 55, 31, .16); transform: rotate(-50deg) scale(.82); animation: daily-pie-arrive .7s cubic-bezier(.16,.82,.25,1) .16s forwards; }
@@ -1013,19 +1013,21 @@ img {
 .daily-summary-dish-legend article small { color: #9a8b7e; font-size: 9px; }
 .daily-summary-dish-legend article > b { color: #4a7742; font-size: 11px; white-space: nowrap; }
 .daily-summary-dish-legend > p { margin: 1px 0 0; color: #89796b; font-size: 10px; text-align: right; }
-.daily-summary-intro-card > footer { display: grid; gap: 7px; color: #8d7e70; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
-.daily-summary-intro-card footer > i { height: 5px; overflow: hidden; border-radius: 99px; background: #eee4d9; }
-.daily-summary-intro-card footer b { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f29735, #ef6d28); transform-origin: left; animation: daily-summary-progress 5s linear forwards; }
+.daily-summary-intro-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid #eee4d9; }
+.daily-summary-hide-option { display: flex; align-items: center; gap: 10px; color: #5d5045; cursor: pointer; }
+.daily-summary-hide-option input { width: 18px; height: 18px; margin: 0; accent-color: #e87527; }
+.daily-summary-hide-option span { display: grid; gap: 2px; }
+.daily-summary-hide-option strong { font-size: 11px; }
+.daily-summary-hide-option small { color: #988a7d; font-size: 9px; }
+.daily-summary-continue { padding: 10px 15px; border-radius: 999px; color: #fff; background: #e87527; font-size: 10px; font-weight: 850; box-shadow: 0 7px 16px rgba(216, 99, 29, .2); }
 
 @keyframes daily-pie-arrive { to { transform: rotate(0) scale(1); } }
-@keyframes daily-summary-progress { to { transform: scaleX(0); } }
-
 @media (max-width: 620px) {
   .daily-summary-intro { padding: 12px; }
   .daily-summary-intro-card { padding: 18px; border-radius: 22px; }
   .daily-summary-intro-card h1 { font-size: 35px; }
   .daily-summary-intro-card header p:last-child { max-width: 250px; font-size: 11px; line-height: 1.4; }
-  .daily-summary-skip { padding: 8px 11px; font-size: 10px; }
+  .daily-summary-skip { width: 32px; height: 32px; font-size: 19px; }
   .daily-summary-intro-content { grid-template-columns: 1fr; gap: 14px; margin: 16px 0 14px; }
   .daily-calorie-pie { width: 190px; height: 190px; padding: 18px; }
   .daily-calorie-pie > div { width: 102px; height: 102px; border-width: 6px; }
@@ -1033,13 +1035,14 @@ img {
   .daily-summary-dish-legend { gap: 5px; }
   .daily-summary-dish-legend article { padding: 8px 10px; border-radius: 11px; }
   .daily-summary-dish-legend article > i { height: 28px; }
+  .daily-summary-intro-card > footer { align-items: stretch; flex-direction: column; gap: 10px; }
+  .daily-summary-continue { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .daily-summary-intro,
   .daily-summary-intro-card,
   .daily-calorie-pie { animation: none; transition: none; transform: none; }
-  .daily-summary-intro-card footer b { animation-duration: 1.8s; }
 }
 
 .landing-view {

@@ -38,7 +38,7 @@ const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.9.1';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -134,7 +134,6 @@ let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
 let authSessionRecoveryPromise = null;
 let profileOnboardingTimer = null;
-let dailySummaryIntroTimer = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -1112,7 +1111,7 @@ function showDailySummaryIntro() {
   const userId = appState.auth.user?.id || 'local';
   const seenKey = `${dailySummaryIntroStorageKey}:${userId}:${todayKey()}`;
   const todayMeals = getMemberMeals().filter(isToday);
-  if (!overlay || !todayMeals.length || sessionStorage.getItem(seenKey)) return false;
+  if (!overlay || !todayMeals.length || localStorage.getItem(seenKey)) return false;
 
   const colors = ['#ff9b36', '#f5c451', '#9fd36b', '#47a77d', '#e66d53', '#e49aaf', '#7f9bd7', '#c58dd8'];
   const grouped = new Map();
@@ -1153,19 +1152,21 @@ function showDailySummaryIntro() {
     `).join('') + (dishes.length > visibleDishes.length ? `<p>+${dishes.length - visibleDishes.length} more dish${dishes.length - visibleDishes.length === 1 ? '' : 'es'}</p>` : '');
   }
 
-  sessionStorage.setItem(seenKey, '1');
+  const hideToday = document.getElementById('dailySummaryHideToday');
+  if (hideToday) hideToday.checked = false;
   overlay.classList.remove('hidden');
   requestAnimationFrame(() => overlay.classList.add('is-visible'));
-  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1800 : 5000;
-  dailySummaryIntroTimer = setTimeout(closeDailySummaryIntro, duration);
   return true;
 }
 
 function closeDailySummaryIntro() {
   const overlay = document.getElementById('dailySummaryIntro');
-  if (dailySummaryIntroTimer) clearTimeout(dailySummaryIntroTimer);
-  dailySummaryIntroTimer = null;
   if (!overlay || overlay.classList.contains('hidden')) return;
+  const hideToday = document.getElementById('dailySummaryHideToday');
+  if (hideToday?.checked) {
+    const userId = appState.auth.user?.id || 'local';
+    localStorage.setItem(`${dailySummaryIntroStorageKey}:${userId}:${todayKey()}`, '1');
+  }
   overlay.classList.remove('is-visible');
   setTimeout(() => overlay.classList.add('hidden'), 280);
   queueProfileOnboardingCheck();
