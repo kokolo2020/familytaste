@@ -60,11 +60,15 @@
   color: #7d5f43;
 }
 .dashboard-meal-group-header strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #2d2118;
   font-size: 18px;
   font-weight: 900;
   letter-spacing: -.01em;
 }
+.meal-type-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: #f7eee3; font-size: 14px; font-style: normal; }
 .dashboard-meal-group-header span {
   color: #7d6d60;
   font-size: 12px;
@@ -4644,12 +4648,12 @@ h1 span {
 #page-dashboard .nutrition-panel .section-title { justify-content: flex-start; }
 #page-dashboard .dashboard-meal-list .meal-card > div { min-width: 0; }
 #page-dashboard .dashboard-meal-list .dashboard-food-card { min-height: auto; padding: 12px 0; display: block; }
-#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-summary { min-width: 0; }
+#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-summary { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; min-width: 0; }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-media {
-  float: left;
   width: 92px;
-  margin: 2px 12px 8px 0;
+  margin: 0;
 }
+#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-copy { min-width: 0; }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-photo,
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-emoji {
   display: grid;
@@ -4663,30 +4667,32 @@ h1 span {
   background: #f7f2ea;
   font-size: 34px;
 }
-#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-title-line {
+#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-signal-line {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-#page-dashboard .dashboard-meal-list .dashboard-food-card h4 {
-  flex: 1;
-  margin: 0;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
 }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-calorie-pill {
-  float: right;
   flex: 0 0 auto;
-  align-self: flex-start;
-  margin: 0 0 0 8px;
-  padding: 5px 10px;
+  margin: 0;
+  padding: 7px 10px;
   border-radius: 999px;
   color: #47852e;
   background: #edf8df;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
   white-space: nowrap;
 }
+.meal-score-pill { display: flex; align-items: baseline; gap: 2px; min-width: 0; padding: 6px 9px; border-radius: 999px; color: #705b40; background: #f7f1e8; font-size: 11px; line-height: 1; white-space: nowrap; }
+.meal-score-pill small { overflow: hidden; max-width: 72px; font-size: 8px; font-weight: 850; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: .03em; }
+.meal-score-pill b { font-size: 12px; }
+.meal-score-pill i { color: #9a8975; font-size: 8px; font-style: normal; }
+.meal-score-pill-excellent { color: #286747; background: #e5f5ea; }
+.meal-score-pill-good { color: #3f732d; background: #edf7e7; }
+.meal-score-pill-fair { color: #936218; background: #fff3d9; }
+.meal-score-pill-low { color: #a34b35; background: #fff0eb; }
+#page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-name { margin: 0; color: #251d18; font-size: 15px; line-height: 1.25; }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-health-pill,
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-health-reasons,
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-micronutrient-row,
@@ -4698,7 +4704,6 @@ h1 span {
   margin-bottom: 0;
 }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-details {
-  clear: both;
   margin-top: 8px;
 }
 #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-panel {
@@ -4741,25 +4746,31 @@ h1 span {
   #page-dashboard .dashboard-add-button { min-width: 78px; min-height: 38px; padding: 0 12px; font-size: 12px; }
   #page-dashboard .dashboard-add-button span { margin-right: 3px; font-size: 18px; }
   #page-dashboard .today-food-panel { padding: 0 14px; border-radius: 16px; }
-  #page-dashboard .dashboard-meal-group { margin-bottom: 12px; padding: 0 12px 4px; border-radius: 16px; }
-  #page-dashboard .dashboard-meal-group-header { padding: 15px 0 10px; }
-  #page-dashboard .dashboard-meal-group-header strong { font-size: 17px; }
-  #page-dashboard .dashboard-meal-group-header span { font-size: 12px; }
-  #page-dashboard .dashboard-meal-list .meal-card { min-height: 0; padding: 14px 0; gap: 0; align-items: start; }
-  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-media { width: 88px; margin: 0 10px 8px 0; }
+  #page-dashboard .dashboard-meal-group { margin-bottom: 8px; padding: 0 10px 2px; border-radius: 14px; }
+  #page-dashboard .dashboard-meal-group-header { padding: 9px 0 6px; }
+  #page-dashboard .dashboard-meal-group-header strong { gap: 6px; font-size: 15px; }
+  #page-dashboard .dashboard-meal-group-header span { font-size: 10px; }
+  #page-dashboard .dashboard-meal-group-header .meal-type-icon { width: 24px; height: 24px; border-radius: 8px; font-size: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-card { min-height: 0; padding: 8px 0; gap: 0; align-items: start; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-summary { grid-template-columns: 68px minmax(0, 1fr); gap: 10px; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-card-media { width: 68px; margin: 0; }
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-photo,
-  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-emoji { width: 88px; height: 88px; border-radius: 14px; }
-  #page-dashboard .dashboard-meal-list h4 { margin-bottom: 0; font-size: 17px; line-height: 1.22; }
-  #page-dashboard .dashboard-meal-list p { font-size: 12px; line-height: 1.45; }
-  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-calorie-pill { padding: 5px 9px; font-size: 11px; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-emoji { width: 68px; height: 68px; border-radius: 12px; }
+  #page-dashboard .dashboard-meal-list p { font-size: 10px; line-height: 1.35; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-signal-line { gap: 5px; margin-bottom: 4px; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-calorie-pill { padding: 6px 8px; font-size: 11px; }
+  #page-dashboard .dashboard-meal-list .meal-score-pill { padding: 5px 7px; }
+  #page-dashboard .dashboard-meal-list .meal-score-pill small { max-width: 58px; font-size: 7px; }
+  #page-dashboard .dashboard-meal-list .meal-score-pill b { font-size: 11px; }
+  #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-name { font-size: 14px; }
   #page-dashboard .dashboard-meal-list .meal-health-pill { margin-bottom: 6px; padding: 6px 11px; font-size: 12px; }
   #page-dashboard .dashboard-meal-list .meal-health-reasons { gap: 6px; margin-bottom: 6px; }
   #page-dashboard .dashboard-meal-list .meal-reason-chip { padding: 4px 8px; font-size: 10px; }
   #page-dashboard .dashboard-meal-list .meal-micronutrient-row { gap: 6px; margin-bottom: 6px; }
   #page-dashboard .dashboard-meal-list .meal-micronutrient-chip { padding: 4px 8px; font-size: 10px; }
-  #page-dashboard .dashboard-meal-list .meal-extra-details { margin-top: 6px; }
+  #page-dashboard .dashboard-meal-list .meal-extra-details { margin-top: 4px; }
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-panel { gap: 6px; }
-  #page-dashboard .dashboard-meal-list .meal-extra-details summary { font-size: 12px; }
+  #page-dashboard .dashboard-meal-list .meal-extra-details summary { font-size: 10px; }
   #page-dashboard .dashboard-meal-list .meal-health-swap,
   #page-dashboard .dashboard-meal-list .meal-extra-copy { font-size: 11px; line-height: 1.35; }
   #page-dashboard .dashboard-meal-list .meal-actions { gap: 10px; margin-top: 8px; }

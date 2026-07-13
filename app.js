@@ -37,7 +37,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.6.1';
+const APP_VERSION = 'v1.7.1';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -3027,6 +3027,7 @@ function buildDashboardMealExtra(meal, analysis, actions = '') {
       <div class="meal-health-reasons meal-extra-reasons" aria-label="Meal breakdown">
         ${analysis.reasons.map((reason) => `<span class="meal-reason-chip">${escapeHtml(reason)}</span>`).join('')}
       </div>` : '';
+  sections.push(`<h4 class="meal-extra-name">${escapeHtml(meal.food_name)}</h4>`);
   sections.push(`<span class="meal-health-pill meal-health-pill-${healthTone(health)}">${escapeHtml(analysis.label)} · ${health}/100</span>`);
   if (reasons) sections.push(reasons);
   if (note) {
@@ -3048,7 +3049,7 @@ function buildDashboardMealExtra(meal, analysis, actions = '') {
   if (!sections.length && !actions) return '';
   return `
         <details class="meal-extra-details">
-          <summary>More info</summary>
+          <summary>Dish details</summary>
           <div class="meal-extra-panel">
             ${sections.join('')}
             ${actions}
@@ -3082,12 +3083,16 @@ function mealTemplate(meal, withActions = false) {
             ? `<img class="meal-photo" src="${escapeAttr(meal.photo_url)}" alt="${escapeAttr(meal.food_name)}">`
             : `<span class="meal-emoji">${mealEmoji(meal.food_name)}</span>`}
         </div>
-        <div class="meal-title-line">
-          <h4>${escapeHtml(meal.food_name)}</h4>
-          <strong class="meal-calorie-pill">${Number(meal.calories || 0).toLocaleString()} cal</strong>
+        <div class="meal-card-copy">
+          <div class="meal-signal-line">
+            <strong class="meal-calorie-pill">${Number(meal.calories || 0).toLocaleString()} cal</strong>
+            <span class="meal-score-pill meal-score-pill-${healthTone(analysis.score)}" aria-label="Food balance score ${analysis.score} out of 100">
+              <small>Food balance</small><b>${analysis.score}</b><i>/100</i>
+            </span>
+          </div>
+          <p class="meal-compact-meta">${escapeHtml(mealDisplayMeta(meal))}</p>
+          ${extraDetails}
         </div>
-        <p class="meal-compact-meta">${escapeHtml(mealDisplayMeta(meal))}</p>
-        ${extraDetails}
       </div>
     </article>
   `;
@@ -3132,7 +3137,7 @@ function buildDashboardMealGroups(meals) {
   return Array.from(groups.entries()).map(([type, items]) => `
     <section class="dashboard-meal-group">
       <header class="dashboard-meal-group-header">
-        <strong>${dashboardMealTypeLabel(type)}</strong>
+        <strong><i class="meal-type-icon" aria-hidden="true">${dashboardMealTypeIcon(type)}</i>${dashboardMealTypeLabel(type)}</strong>
         <span>${items.length} item${items.length === 1 ? '' : 's'} · ${sum(items, 'calories').toLocaleString()} cal</span>
       </header>
       ${items.map((meal) => mealTemplate(meal, true)).join('')}
@@ -3170,6 +3175,18 @@ function dashboardMealTypeLabel(type) {
     other: 'Other'
   };
   return labels[type] || 'Other';
+}
+
+function dashboardMealTypeIcon(type) {
+  return {
+    breakfast: '☀️',
+    brunch: '🥐',
+    lunch: '🥗',
+    dinner: '🌙',
+    snack: '🍎',
+    dessert: '🍰',
+    other: '🍽️'
+  }[type] || '🍽️';
 }
 
 function notesWithoutMealType(notes) {
