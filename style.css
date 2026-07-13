@@ -780,6 +780,56 @@ img {
 .auth-wordmark strong { color: #253b30; font: 800 25px/1 "Playfair Display", serif; letter-spacing: -.02em; }
 .auth-wordmark span { color: #90775e; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 
+.auth-dinner-scene {
+  position: relative;
+  display: none;
+  width: min(330px, 88vw);
+  height: 190px;
+  margin: 0 auto 18px;
+}
+
+.auth-view.is-loading .auth-dinner-scene { display: block; }
+.diner-chair { position: absolute; left: 42px; bottom: 37px; z-index: 1; width: 74px; height: 96px; border: 7px solid #9f6845; border-bottom: 0; border-radius: 28px 28px 0 0; }
+.diner-chair::after { content: ""; position: absolute; right: 5px; bottom: -35px; left: 5px; height: 42px; border-radius: 12px 12px 4px 4px; background: #b87b51; }
+
+.loading-diner { position: absolute; left: 27px; bottom: 49px; z-index: 3; width: 116px; height: 133px; animation: diner-happy-bob 2.4s ease-in-out infinite; }
+.diner-head { position: absolute; top: 0; left: 32px; z-index: 4; width: 57px; height: 61px; overflow: hidden; border: 3px solid #fff1dd; border-radius: 48% 48% 45% 45%; background: #d99b70; box-shadow: 0 8px 16px rgba(84, 49, 24, .16); }
+.diner-hair { position: absolute; top: -7px; left: -4px; width: 66px; height: 29px; border-radius: 50% 55% 36% 34%; background: #3c2a21; transform: rotate(-5deg); }
+.diner-face::before { content: "••"; position: absolute; top: 25px; left: 17px; color: #3d281e; font: 900 12px/1 monospace; letter-spacing: 10px; }
+.diner-face::after { content: ""; position: absolute; top: 43px; left: 22px; width: 15px; height: 7px; border-bottom: 3px solid #7c3e2e; border-radius: 50%; }
+.diner-body { position: absolute; left: 21px; bottom: 0; width: 78px; height: 78px; border-radius: 34px 34px 12px 12px; background: linear-gradient(145deg, #f47b32, #cf5425); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .18); }
+.diner-body::after { content: ""; position: absolute; top: 13px; left: 30px; width: 18px; height: 23px; border-radius: 50%; background: rgba(255, 225, 164, .9); clip-path: polygon(50% 0, 65% 32%, 100% 38%, 72% 60%, 78% 100%, 50% 74%, 22% 100%, 28% 60%, 0 38%, 35% 32%); }
+
+.diner-arm { position: absolute; top: 71px; z-index: 5; width: 58px; height: 15px; border: 3px solid #fff0dd; border-radius: 999px; background: #d99b70; transform-origin: 10px 50%; }
+.arm-fork { left: 2px; transform: rotate(-14deg); animation: fork-cheer 2.4s ease-in-out infinite; }
+.arm-knife { right: -1px; transform: rotate(194deg); animation: knife-cheer 2.4s ease-in-out infinite; }
+.utensil { position: absolute; top: 4px; right: -27px; display: block; width: 35px; height: 4px; border-radius: 99px; background: #788382; box-shadow: 0 1px 0 #fff; }
+.utensil::before { content: ""; position: absolute; right: -5px; top: -4px; width: 10px; height: 12px; border: 3px solid #788382; border-left: 0; border-radius: 1px 7px 7px 1px; }
+.utensil.fork::after { content: ""; position: absolute; right: -7px; top: -6px; width: 2px; height: 15px; border-right: 2px solid #788382; border-left: 2px solid #788382; }
+.utensil.knife::before { right: -7px; top: -4px; width: 13px; height: 9px; border: 0; border-radius: 1px 8px 8px 1px; background: #788382; }
+
+.dinner-table { position: absolute; right: 5px; bottom: 35px; left: 2px; z-index: 6; height: 17px; border: 3px solid #fff0d7; border-radius: 16px; background: linear-gradient(180deg, #b56f3c, #884b29); box-shadow: 0 12px 20px rgba(94, 53, 25, .18); }
+.dinner-table::before, .dinner-table::after { content: ""; position: absolute; top: 13px; width: 12px; height: 37px; border-radius: 0 0 8px 8px; background: #794126; }
+.dinner-table::before { left: 28px; }
+.dinner-table::after { right: 28px; }
+.dinner-table span { position: absolute; top: -9px; left: 125px; width: 48px; height: 8px; border-radius: 50%; background: rgba(72, 42, 24, .16); }
+.dinner-table i { position: absolute; top: 2px; left: 9px; width: 36px; height: 4px; border-radius: 99px; background: rgba(255, 215, 157, .28); }
+
+.flying-meal { position: absolute; left: 152px; bottom: 52px; z-index: 8; width: 62px; height: 54px; transform-origin: 50% 100%; animation: meal-fly-land 2.4s cubic-bezier(.2, .75, .28, 1) infinite; }
+.meal-bowl { position: absolute; right: 4px; bottom: 0; left: 4px; height: 27px; overflow: hidden; border: 3px solid #fff4df; border-radius: 6px 6px 28px 28px; background: linear-gradient(135deg, #2f7258, #1c4b39); box-shadow: 0 9px 14px rgba(45, 73, 58, .22); }
+.meal-bowl i { position: absolute; right: 18px; bottom: 4px; width: 14px; height: 14px; border: 3px solid rgba(255, 255, 255, .82); border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); }
+.meal-food { position: absolute; bottom: 22px; left: 9px; width: 45px; height: 22px; border-radius: 50% 50% 35% 35%; background: #f6d67b; box-shadow: inset 0 -6px 0 rgba(225, 127, 42, .32); }
+.meal-food i { position: absolute; width: 12px; height: 8px; border-radius: 50%; }
+.meal-food i:nth-child(1) { top: 2px; left: 5px; background: #76a94f; transform: rotate(22deg); }
+.meal-food i:nth-child(2) { top: -2px; left: 19px; background: #ed6a2d; }
+.meal-food i:nth-child(3) { top: 4px; right: 3px; background: #559267; transform: rotate(-28deg); }
+.meal-steam { position: absolute; bottom: 45px; width: 8px; height: 18px; border-left: 3px solid rgba(255, 255, 255, .88); border-radius: 50%; opacity: 0; animation: meal-steam-rise 2.4s ease-out infinite; }
+.meal-steam.steam-one { left: 22px; }
+.meal-steam.steam-two { left: 39px; animation-delay: .12s; }
+.meal-spark { position: absolute; width: 7px; height: 7px; border-radius: 2px; background: #f6ad2f; opacity: 0; animation: meal-spark-pop 2.4s ease-out infinite; }
+.meal-spark.spark-one { top: 3px; left: -4px; }
+.meal-spark.spark-two { top: -4px; right: -5px; background: #77a552; animation-delay: .08s; }
+
 .auth-view.is-loading .auth-shell {
   width: min(100%, 470px);
   padding: 20px;
@@ -792,11 +842,11 @@ img {
 
 .auth-view.is-loading .auth-brand {
   flex-direction: column;
-  gap: 22px;
-  margin-bottom: 30px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.auth-view.is-loading .plate-pin-logo { transform: scale(1.55); }
+.auth-view.is-loading .plate-pin-logo { display: none; }
 .auth-view.is-loading .logo-orbit { display: block; animation: auth-orbit-pulse 1.35s ease-in-out infinite; }
 .auth-view.is-loading .logo-orbit.orbit-two { animation-delay: -.45s; }
 .auth-view.is-loading .logo-orbit.orbit-three { animation-delay: -.9s; }
@@ -816,9 +866,49 @@ img {
   50% { opacity: 1; transform: scale(1.25); }
 }
 
+@keyframes meal-fly-land {
+  0%, 7% { opacity: 0; transform: translate(145px, -105px) rotate(18deg) scale(.72); }
+  13% { opacity: 1; }
+  56% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+  64% { transform: translate(0, -12px) scale(1.04, .96); }
+  72%, 100% { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+@keyframes fork-cheer {
+  0%, 12%, 78%, 100% { transform: rotate(-14deg); }
+  28%, 60% { transform: rotate(-43deg); }
+}
+
+@keyframes knife-cheer {
+  0%, 12%, 78%, 100% { transform: rotate(194deg); }
+  28%, 60% { transform: rotate(224deg); }
+}
+
+@keyframes diner-happy-bob {
+  0%, 18%, 72%, 100% { transform: translateY(0); }
+  35%, 55% { transform: translateY(-5px); }
+}
+
+@keyframes meal-steam-rise {
+  0%, 58% { opacity: 0; transform: translateY(5px) scale(.8); }
+  72% { opacity: .8; }
+  100% { opacity: 0; transform: translateY(-15px) scale(1.15); }
+}
+
+@keyframes meal-spark-pop {
+  0%, 52% { opacity: 0; transform: translate(0, 8px) rotate(0); }
+  62% { opacity: 1; }
+  78%, 100% { opacity: 0; transform: translate(-8px, -13px) rotate(65deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-view.is-loading .auth-shell,
-  .auth-view.is-loading .logo-orbit { animation: none; }
+  .auth-view.is-loading .logo-orbit,
+  .loading-diner,
+  .diner-arm,
+  .flying-meal,
+  .meal-steam,
+  .meal-spark { animation: none; }
 }
 
 .auth-shell h1 {
