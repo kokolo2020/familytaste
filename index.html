@@ -19,15 +19,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713g" />
+  <link rel="stylesheet" href="style.css?v=20260713h" />
 </head>
 <body>
   <main id="app" class="site-shell">
-    <section id="authGate" class="auth-view">
+    <section id="authGate" class="auth-view is-loading">
       <div class="auth-shell">
+        <div class="auth-brand" aria-label="MyMealMap">
+          <div class="plate-pin-logo" aria-hidden="true">
+            <div class="plate-pin-shape"><span class="plate-pin-plate"><i></i></span></div>
+            <span class="logo-orbit orbit-one"></span>
+            <span class="logo-orbit orbit-two"></span>
+            <span class="logo-orbit orbit-three"></span>
+          </div>
+          <div class="auth-wordmark"><strong>MyMealMap</strong><span>Your food story, mapped.</span></div>
+        </div>
         <p class="eyebrow">Personal meal space</p>
-        <h1 id="authTitle">Checking your session</h1>
-        <p id="authSubtitle" class="auth-subtitle">Loading your personal meal space.</p>
+        <h1 id="authTitle">Preparing your meal map</h1>
+        <p id="authSubtitle" class="auth-subtitle">Bringing your food story into focus.</p>
         <form id="authEmailForm" class="auth-card hidden">
           <label>Email
             <input id="authEmailInput" type="email" autocomplete="email" placeholder="you@example.com" required>
@@ -699,6 +708,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260713i"></script>
+  <script src="app.js?v=20260713j"></script>
 </body>
 </html>

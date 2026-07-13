@@ -679,22 +679,146 @@ img {
 .site-shell { min-height: 100vh; }
 
 .auth-view {
+  position: relative;
   display: grid;
   min-height: 100vh;
   place-items: center;
   padding: 24px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at top center, rgba(255, 185, 110, 0.32), rgba(255, 185, 110, 0) 28%),
-    linear-gradient(180deg, #fffaf2 0%, #f8efe3 100%);
+    radial-gradient(circle at 50% 10%, rgba(255, 180, 89, .32), transparent 32%),
+    radial-gradient(circle at 12% 80%, rgba(69, 111, 81, .12), transparent 25%),
+    linear-gradient(160deg, #fffaf2 0%, #f8ecdc 100%);
+}
+
+.auth-view::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  opacity: .38;
+  background-image: radial-gradient(rgba(105, 77, 46, .16) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, #000, transparent 64%);
+  pointer-events: none;
 }
 
 .auth-shell {
+  position: relative;
+  z-index: 1;
   width: min(100%, 430px);
   padding: 28px;
   border: 1px solid rgba(88, 68, 44, .08);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 22px 60px rgba(68, 45, 20, .12);
+}
+
+.auth-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.plate-pin-logo {
+  position: relative;
+  flex: 0 0 72px;
+  width: 72px;
+  height: 82px;
+}
+
+.plate-pin-shape {
+  position: absolute;
+  top: 5px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50% 50% 50% 14px;
+  background: linear-gradient(135deg, #2f7258, #184837);
+  box-shadow: 0 12px 24px rgba(33, 82, 61, .24);
+  transform: rotate(-45deg);
+}
+
+.plate-pin-plate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 4px solid rgba(255, 255, 255, .88);
+  border-radius: 50%;
+  background: #fff8e9;
+  box-shadow: inset 0 0 0 3px #f3dfbf;
+  transform: rotate(45deg);
+}
+
+.plate-pin-plate i {
+  width: 19px;
+  height: 10px;
+  border-radius: 100% 12% 100% 12%;
+  background: linear-gradient(135deg, #ffb12f, #f16422);
+  transform: rotate(-28deg);
+}
+
+.logo-orbit {
+  position: absolute;
+  display: none;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fff8ea;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(77, 49, 22, .16);
+}
+
+.logo-orbit.orbit-one { top: 5px; right: 2px; background: #ef6b2f; }
+.logo-orbit.orbit-two { right: 5px; bottom: 13px; background: #f2b132; }
+.logo-orbit.orbit-three { bottom: 5px; left: 1px; background: #7faa55; }
+
+.auth-wordmark { display: grid; gap: 2px; }
+.auth-wordmark strong { color: #253b30; font: 800 25px/1 "Playfair Display", serif; letter-spacing: -.02em; }
+.auth-wordmark span { color: #90775e; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+
+.auth-view.is-loading .auth-shell {
+  width: min(100%, 470px);
+  padding: 20px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+  animation: auth-brand-reveal .45s ease .18s both;
+}
+
+.auth-view.is-loading .auth-brand {
+  flex-direction: column;
+  gap: 22px;
+  margin-bottom: 30px;
+}
+
+.auth-view.is-loading .plate-pin-logo { transform: scale(1.55); }
+.auth-view.is-loading .logo-orbit { display: block; animation: auth-orbit-pulse 1.35s ease-in-out infinite; }
+.auth-view.is-loading .logo-orbit.orbit-two { animation-delay: -.45s; }
+.auth-view.is-loading .logo-orbit.orbit-three { animation-delay: -.9s; }
+.auth-view.is-loading .auth-wordmark strong { font-size: 34px; }
+.auth-view.is-loading .auth-wordmark span { font-size: 10px; }
+.auth-view.is-loading .eyebrow { display: none; }
+.auth-view.is-loading .auth-shell h1 { margin-top: 0; font-size: clamp(27px, 6vw, 34px); }
+.auth-view.is-loading .auth-subtitle { margin-bottom: 0; }
+
+@keyframes auth-brand-reveal {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auth-orbit-pulse {
+  0%, 100% { opacity: .35; transform: scale(.7); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-view.is-loading .auth-shell,
+  .auth-view.is-loading .logo-orbit { animation: none; }
 }
 
 .auth-shell h1 {

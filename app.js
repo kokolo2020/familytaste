@@ -37,7 +37,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.5.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -583,6 +583,7 @@ function renderAuthState() {
 
   const state = appState.auth.status;
   const isReady = state === 'ready';
+  authGate.classList.toggle('is-loading', state === 'loading');
   authGate.classList.toggle('hidden', isReady);
   if (isReady) {
     if (!appState.currentMember) {
@@ -609,8 +610,8 @@ function renderAuthState() {
   if (pendingEmail) pendingEmail.textContent = appState.auth.pendingEmail || '';
 
   if (state === 'loading') {
-    title.textContent = 'Checking your session';
-    subtitle.textContent = 'Loading your personal meal space.';
+    title.textContent = 'Preparing your meal map';
+    subtitle.textContent = 'Bringing your food story into focus.';
   } else if (state === 'signed_out') {
     title.textContent = 'Sign in with email';
     subtitle.textContent = 'Enter any email and we will send a one-time code.';
