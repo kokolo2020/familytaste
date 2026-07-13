@@ -39,8 +39,8 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v0.8.0';
-const APP_BUILD_DATE = '2026-07-11';
+const APP_VERSION = 'v0.9.0';
+const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
 const snapTagCatalog = [
@@ -370,6 +370,11 @@ function bindEvents() {
     if (toggleTagTarget) {
       toggleSnapTag(toggleTagTarget.dataset.toggleScanTag);
     }
+
+    const usdaFoodTarget = event.target.closest('[data-usda-food-id]');
+    if (usdaFoodTarget) {
+      selectUsdaFood(Number(usdaFoodTarget.dataset.usdaFoodId));
+    }
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveSnapScan);
@@ -378,6 +383,14 @@ function bindEvents() {
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
   document.getElementById('addScanIngredient').addEventListener('click', handleAddSnapIngredient);
+  document.getElementById('searchUsdaFoods').addEventListener('click', searchUsdaFoods);
+  document.getElementById('usdaFoodQuery').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      searchUsdaFoods();
+    }
+  });
+  document.getElementById('usdaServingGrams').addEventListener('input', applyUsdaServing);
   document.getElementById('clearSnapForm').addEventListener('click', resetSnapWorkspace);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
@@ -1285,7 +1298,14 @@ function createEmptySnapScanDraft() {
     tags: [],
     confidence: '',
     note: '',
-    foods: []
+    foods: [],
+    usda: {
+      results: [],
+      selected: null,
+      grams: 100,
+      status: '',
+      requestId: 0
+    }
   };
 }
 
@@ -1309,6 +1329,7 @@ function clearSnapScanDraft() {
   lastSnapEstimateSignature = '';
   renderSnapInsights();
   renderSnapAnalysis();
+  renderUsdaNutrition();
   updateSnapEstimateStatus();
 }
 
@@ -1388,12 +1409,163 @@ function setSnapInsightsFromEstimate(estimate = {}) {
       .filter((tag) => snapTagCatalog.includes(tag)),
     confidence: String(estimate.confidence || ''),
     note: String(estimate.note || '').trim(),
-    foods: Array.isArray(estimate.foods) ? estimate.foods : []
+    foods: Array.isArray(estimate.foods) ? estimate.foods : [],
+    usda: createEmptySnapScanDraft().usda
   };
   lastSnapEstimateSignature = getSnapEstimateSignature();
   renderSnapInsights();
   renderSnapAnalysis();
   updateSnapEstimateStatus();
+}
+
+function getUsdaSearchQuery() {
+  const explicitQuery = document.getElementById('usdaFoodQuery')?.value.trim();
+  if (explicitQuery) return explicitQuery;
+  const firstAiFood = normalizeScanLabel(snapScanDraft.foods?.[0]?.name || '');
+  return firstAiFood || document.getElementById('foodName')?.value.trim() || '';
+}
+
+async function searchUsdaFoods(options = {}) {
+  const query = getUsdaSearchQuery();
+  const status = document.getElementById('usdaSearchStatus');
+  const button = document.getElementById('searchUsdaFoods');
+  if (query.length < 2) {
+    snapScanDraft.usda.status = 'Enter a food name before searching USDA.';
+    renderUsdaNutrition();
+    return;
+  }
+
+  const requestId = snapScanDraft.usda.requestId + 1;
+  snapScanDraft.usda.requestId = requestId;
+  snapScanDraft.usda.status = `Searching USDA for “${query}”…`;
+  button.disabled = true;
+  status.classList.remove('estimate-error');
+  renderUsdaNutrition();
+
+  try {
+    const response = await fetch(`/.netlify/functions/usda-foods?query=${encodeURIComponent(query)}`);
+    const result = await response.json();
+    if (requestId !== snapScanDraft.usda.requestId) return;
+    if (!response.ok) throw new Error(result?.error || 'USDA search is unavailable.');
+    snapScanDraft.usda.results = Array.isArray(result.foods) ? result.foods : [];
+    snapScanDraft.usda.status = snapScanDraft.usda.results.length
+      ? 'Choose the closest match. Nutrients shown are per 100 g.'
+      : `No USDA matches found for “${query}”. Try a simpler food name.`;
+    if (options.automatic && snapScanDraft.usda.results.length === 1) {
+      selectUsdaFood(snapScanDraft.usda.results[0].fdc_id);
+      return;
+    }
+  } catch (error) {
+    if (requestId !== snapScanDraft.usda.requestId) return;
+    snapScanDraft.usda.results = [];
+    snapScanDraft.usda.status = error.message || 'USDA search is unavailable.';
+    status.classList.add('estimate-error');
+  } finally {
+    if (requestId === snapScanDraft.usda.requestId) button.disabled = false;
+    renderUsdaNutrition();
+  }
+}
+
+function renderUsdaNutrition() {
+  const usda = snapScanDraft.usda || createEmptySnapScanDraft().usda;
+  const queryInput = document.getElementById('usdaFoodQuery');
+  const status = document.getElementById('usdaSearchStatus');
+  const results = document.getElementById('usdaFoodResults');
+  const selectedPanel = document.getElementById('usdaSelectedFood');
+  if (!queryInput || !status || !results || !selectedPanel) return;
+
+  if (!queryInput.value && snapScanDraft.foods?.[0]?.name) {
+    queryInput.value = normalizeScanLabel(snapScanDraft.foods[0].name);
+  }
+  status.textContent = usda.status || 'Scan a photo or enter a food name, then search USDA.';
+  results.innerHTML = (usda.results || []).map((food) => {
+    const isSelected = food.fdc_id === usda.selected?.fdc_id;
+    const brand = food.brand ? `<small>${escapeHtml(food.brand)}</small>` : '';
+    return `
+      <button class="usda-food-option${isSelected ? ' selected' : ''}" type="button" data-usda-food-id="${food.fdc_id}">
+        <span><strong>${escapeHtml(food.description)}</strong>${brand}</span>
+        <span><b>${formatUsdaNumber(food.calories, 0)} kcal</b><small>${escapeHtml(food.data_type || 'USDA')} · per 100 g</small></span>
+      </button>
+    `;
+  }).join('');
+
+  const food = usda.selected;
+  selectedPanel.classList.toggle('hidden', !food);
+  if (!food) return;
+  document.getElementById('usdaSelectedName').textContent = food.description;
+  document.getElementById('usdaSelectedMeta').textContent = [food.brand, food.data_type, `FDC ${food.fdc_id}`].filter(Boolean).join(' · ');
+  document.getElementById('usdaServingGrams').value = String(usda.grams || 100);
+  renderUsdaMacroSummary(food, usda.grams || 100);
+}
+
+function selectUsdaFood(fdcId) {
+  const food = snapScanDraft.usda.results.find((item) => item.fdc_id === fdcId);
+  if (!food) return;
+  snapScanDraft.usda.selected = food;
+  snapScanDraft.usda.grams = Number(food.serving_grams) || 100;
+  snapScanDraft.usda.status = 'USDA match selected. Adjust the serving weight if needed.';
+  document.getElementById('usdaServingGrams').value = String(snapScanDraft.usda.grams);
+  applyUsdaServing();
+}
+
+function applyUsdaServing() {
+  const food = snapScanDraft.usda?.selected;
+  if (!food) return;
+  const input = document.getElementById('usdaServingGrams');
+  const grams = Math.min(3000, Math.max(1, Number(input?.value) || snapScanDraft.usda.grams || 100));
+  snapScanDraft.usda.grams = grams;
+  const nutrition = calculateUsdaNutrition(food, grams);
+  document.getElementById('calories').value = String(Math.round(nutrition.calories || 0));
+  renderUsdaMacroSummary(food, grams);
+  renderSnapAnalysis();
+  renderUsdaNutrition();
+  updateMealPreview();
+}
+
+function calculateUsdaNutrition(food, grams) {
+  const scale = (Number(grams) || 100) / 100;
+  return {
+    calories: scaleUsdaValue(food.calories, scale),
+    protein_g: scaleUsdaValue(food.protein_g, scale),
+    carbs_g: scaleUsdaValue(food.carbs_g, scale),
+    fat_g: scaleUsdaValue(food.fat_g, scale),
+    fiber_g: scaleUsdaValue(food.fiber_g, scale),
+    sodium_mg: scaleUsdaValue(food.sodium_mg, scale)
+  };
+}
+
+function scaleUsdaValue(value, scale) {
+  return value === null || value === undefined ? null : Number(value) * scale;
+}
+
+function getSelectedUsdaNutrition() {
+  const food = snapScanDraft.usda?.selected;
+  if (!food) return null;
+  return {
+    ...calculateUsdaNutrition(food, snapScanDraft.usda.grams),
+    fdc_id: food.fdc_id,
+    description: food.description,
+    grams: snapScanDraft.usda.grams
+  };
+}
+
+function renderUsdaMacroSummary(food, grams) {
+  const summary = document.getElementById('usdaMacroSummary');
+  if (!summary) return;
+  const nutrition = calculateUsdaNutrition(food, grams);
+  summary.innerHTML = [
+    ['Calories', formatUsdaNumber(nutrition.calories, 0), 'kcal'],
+    ['Protein', formatUsdaNumber(nutrition.protein_g), 'g'],
+    ['Carbs', formatUsdaNumber(nutrition.carbs_g), 'g'],
+    ['Fat', formatUsdaNumber(nutrition.fat_g), 'g'],
+    ['Fiber', formatUsdaNumber(nutrition.fiber_g), 'g'],
+    ['Sodium', formatUsdaNumber(nutrition.sodium_mg, 0), 'mg']
+  ].map(([label, value, unit]) => `<span><small>${label}</small><strong>${value}</strong><b>${unit}</b></span>`).join('');
+}
+
+function formatUsdaNumber(value, digits = 1) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
 function removeSnapIngredient(value) {
@@ -3048,12 +3220,14 @@ function getMealScanTags(meal) {
   return decodeNotesMetadataList(getNotesMetadataValue(meal?.notes, 'scan_tags'));
 }
 
-function notesWithMetadata(notes, { mealType, scanIngredients = [], scanTags = [] } = {}) {
+function notesWithMetadata(notes, { mealType, scanIngredients = [], scanTags = [], usdaFdcId = null, usdaGrams = null } = {}) {
   const cleanNotes = notesWithoutSystemMetadata(notes);
   const tokens = [];
   if (mealType) tokens.push(`[[meal_type:${mealType}]]`);
   if (scanIngredients.length) tokens.push(`[[scan_ingredients:${encodeNotesMetadataList(scanIngredients)}]]`);
   if (scanTags.length) tokens.push(`[[scan_tags:${encodeNotesMetadataList(scanTags)}]]`);
+  if (usdaFdcId) tokens.push(`[[usda_fdc:${Number(usdaFdcId)}]]`);
+  if (usdaGrams) tokens.push(`[[usda_grams:${Math.round(Number(usdaGrams))}]]`);
   return `${cleanNotes}${cleanNotes && tokens.length ? ' ' : ''}${tokens.join(' ')}`.trim();
 }
 
@@ -4013,6 +4187,7 @@ async function saveSnapScan(event) {
   const mealTime = document.getElementById('mealTime').value;
   const finalMealType = mealType || inferMealTypeFromTimestamp(buildMealTimestamp(mealDate, mealTime));
   const baseNotes = document.getElementById('notes').value.trim();
+  const usdaNutrition = getSelectedUsdaNutrition();
   const meal = await persistNewMeal({
     id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
     family_id: appState.familyId,
@@ -4022,9 +4197,14 @@ async function saveSnapScan(event) {
     location_name: '',
     price: null,
     calories: numberOrNull(document.getElementById('calories').value),
+    protein_g: usdaNutrition?.protein_g ?? null,
+    carbs_g: usdaNutrition?.carbs_g ?? null,
+    fat_g: usdaNutrition?.fat_g ?? null,
     notes: notesWithMealType(baseNotes || snapScanDraft.note || '', finalMealType, {
       scanIngredients: snapScanDraft.ingredients,
-      scanTags: snapScanDraft.tags
+      scanTags: snapScanDraft.tags,
+      usdaFdcId: usdaNutrition?.fdc_id,
+      usdaGrams: usdaNutrition?.grams
     }),
     photo_url: savedPhotoUrl,
     eaten_at: buildMealTimestamp(mealDate, mealTime)
@@ -4319,6 +4499,7 @@ async function applyAiCalorieEstimate(options = {}) {
       document.getElementById('photoTitle').textContent = 'Photo ready';
       document.getElementById('photoHint').textContent = 'AI estimate ready. Review the scan, save it, or add it to the diary later.';
       updateMealPreview();
+      searchUsdaFoods({ automatic: true });
     },
     onError: () => {
       document.getElementById('photoTitle').textContent = 'Photo ready';

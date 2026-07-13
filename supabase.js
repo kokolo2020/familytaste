@@ -160,6 +160,9 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
+        protein_g: meal.protein_g ?? null,
+        carbs_g: meal.carbs_g ?? null,
+        fat_g: meal.fat_g ?? null,
         description: meal.notes || null,
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at

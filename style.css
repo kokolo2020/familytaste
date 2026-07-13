@@ -2345,6 +2345,124 @@ h1 span {
   background: linear-gradient(135deg, #fffef9, #f7fbf2);
 }
 
+.usda-nutrition-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #b8d7c1;
+  border-radius: 12px;
+  background: radial-gradient(circle at 100% 0, rgba(245, 185, 67, .16), transparent 34%), linear-gradient(135deg, #f5fbf5, #fffdf6);
+}
+
+.usda-source-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #174f38;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.usda-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.usda-search-row input,
+.usda-serving-input input {
+  min-height: 44px;
+  border: 1px solid #bdd1c3;
+  border-radius: 8px;
+  padding: 0 13px;
+  background: rgba(255, 255, 255, .92);
+  color: var(--text);
+}
+
+.usda-search-status,
+.usda-attribution {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.usda-search-status.estimate-error { color: #a43a28; font-weight: 750; }
+
+.usda-food-results {
+  display: grid;
+  gap: 8px;
+  max-height: 290px;
+  overflow: auto;
+}
+
+.usda-food-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d8e4da;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .88);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.usda-food-option:hover,
+.usda-food-option.selected {
+  border-color: #5b966f;
+  background: #ecf8ef;
+}
+
+.usda-food-option span { display: grid; gap: 3px; }
+.usda-food-option span:last-child { justify-items: end; text-align: right; white-space: nowrap; }
+.usda-food-option strong { font-size: 13px; line-height: 1.35; }
+.usda-food-option b { color: #285d3c; font-size: 13px; }
+.usda-food-option small { color: var(--muted); font-size: 10px; }
+
+.usda-selected-food {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, .6fr);
+  gap: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #173f32;
+  color: #fff;
+}
+
+.usda-selected-food > div:first-child,
+.usda-selected-food > label { display: grid; gap: 5px; }
+.usda-selected-food span,
+.usda-selected-food small { color: #cce0d4; font-size: 11px; }
+.usda-selected-food label { color: #e4f0e8; font-size: 11px; font-weight: 800; }
+
+.usda-serving-input { position: relative; display: block; }
+.usda-serving-input input { width: 100%; padding-right: 32px; }
+.usda-serving-input b { position: absolute; right: 12px; top: 14px; color: #315e48; }
+
+.usda-macro-summary {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.usda-macro-summary span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .1);
+}
+
+.usda-macro-summary strong { color: #fff; font-size: 14px; }
+.usda-macro-summary b { color: #bcd4c6; font-size: 9px; }
+
 .scan-action-row {
   display: flex;
   flex-wrap: wrap;
@@ -4365,6 +4483,11 @@ h1 span {
   #page-dashboard .nutrition-donut strong { font-size: 10px; }
   #page-dashboard .nutrition-donut small { font-size: 5px; }
   #page-dashboard .analysis-note { margin-top: 6px; padding-top: 5px; font-size: 5px; }
+  .usda-search-row,
+  .usda-selected-food { grid-template-columns: 1fr; }
+  .usda-food-option { grid-template-columns: 1fr; }
+  .usda-food-option span:last-child { justify-items: start; text-align: left; }
+  .usda-macro-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .mobile-nav .nav-item { font-size: 9px; }
   .mobile-nav .nav-item[data-page="snap"] { width: 66px; height: 66px; margin: -24px auto 0; border: 5px solid #fff; border-radius: 50%; color: #fff; background: #ff6716; }
 }

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713a" />
+  <link rel="stylesheet" href="style.css?v=20260713b" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -280,6 +280,33 @@
                 </div>
                 <div id="scanFactList" class="scan-chip-list"></div>
                 <small id="scanAiNote" class="muted"></small>
+              </section>
+              <section id="usdaNutritionPanel" class="usda-nutrition-panel wide" aria-labelledby="usdaNutritionTitle">
+                <div class="scan-insights-header">
+                  <div>
+                    <strong id="usdaNutritionTitle">USDA nutrition match</strong>
+                    <small>Confirm a FoodData Central match for verified nutrients per serving.</small>
+                  </div>
+                  <span class="usda-source-badge">USDA</span>
+                </div>
+                <div class="usda-search-row">
+                  <input id="usdaFoodQuery" type="search" placeholder="Search USDA foods" autocomplete="off">
+                  <button id="searchUsdaFoods" class="secondary-button" type="button">Search USDA</button>
+                </div>
+                <p id="usdaSearchStatus" class="usda-search-status">Scan a photo or enter a food name, then search USDA.</p>
+                <div id="usdaFoodResults" class="usda-food-results"></div>
+                <div id="usdaSelectedFood" class="usda-selected-food hidden">
+                  <div>
+                    <span>Selected USDA food</span>
+                    <strong id="usdaSelectedName"></strong>
+                    <small id="usdaSelectedMeta"></small>
+                  </div>
+                  <label>Serving weight
+                    <span class="usda-serving-input"><input id="usdaServingGrams" type="number" min="1" max="3000" step="1" value="100" inputmode="decimal"><b>g</b></span>
+                  </label>
+                  <div id="usdaMacroSummary" class="usda-macro-summary"></div>
+                </div>
+                <small class="usda-attribution">Source: USDA FoodData Central. Nutrition is calculated from the selected weight.</small>
               </section>
               <label class="wide">Scan Notes<textarea id="notes" name="notes" placeholder="Optional notes or ingredient corrections"></textarea></label>
               <input id="calories" name="calories" type="hidden" value="">
@@ -727,7 +754,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260713a"></script>
-  <script src="app.js?v=20260713c"></script>
+  <script src="supabase.js?v=20260713b"></script>
+  <script src="app.js?v=20260713d"></script>
 </body>
 </html>
