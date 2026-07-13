@@ -45,7 +45,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.1.0';
+const APP_VERSION = 'v1.2.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -265,6 +265,8 @@ function bindEvents() {
     const futurePathTarget = event.target.closest('[data-future-path]');
     const futureChangeTarget = event.target.closest('[data-future-change]');
     const futureIntakeTarget = event.target.closest('[data-future-intake]');
+    const profileTitleTarget = event.target.closest('[data-profile-title]');
+    const featuredAchievementTarget = event.target.closest('[data-feature-achievement]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -308,6 +310,14 @@ function bindEvents() {
     if (futureIntakeTarget) {
       appState.futureYou.intake = Number(futureIntakeTarget.dataset.futureIntake) || 100;
       renderFutureYou();
+    }
+
+    if (profileTitleTarget) {
+      handleSelectFoodTitle(profileTitleTarget.dataset.profileTitle);
+    }
+
+    if (featuredAchievementTarget) {
+      handleToggleFeaturedAchievement(featuredAchievementTarget.dataset.featureAchievement);
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -931,13 +941,14 @@ function renderProfiles() {
   const featuredMember = realMembers.find((member) => member.id === appState.currentMember?.id) || realMembers[0] || null;
 
   if (currentProfile) {
+    const featuredTitle = featuredMember ? buildFoodAchievementProfile(featuredMember).activeTitle : null;
     currentProfile.innerHTML = featuredMember ? `
       <button class="selector-current-card" type="button" data-open-member-id="${escapeAttr(featuredMember.id)}">
         <span class="selector-current-avatar">${avatarMarkup(featuredMember)}</span>
         <span class="selector-current-copy">
           <small>Current profile</small>
           <strong>${escapeHtml(featuredMember.name)}</strong>
-          <span>${escapeHtml(featuredMember.role || 'Profile')}</span>
+          <span>${featuredTitle?.icon || '🍽️'} ${escapeHtml(featuredTitle?.title || featuredMember.role || 'Profile')}</span>
         </span>
         <span class="selector-current-arrow" aria-hidden="true">↗</span>
       </button>
@@ -948,6 +959,7 @@ function renderProfiles() {
     <button class="profile-card ${featuredMember?.id === member.id ? 'is-active' : ''}" type="button" data-member-id="${escapeAttr(member.id)}">
       <span class="avatar">${avatarMarkup(member)}</span>
       <strong>${escapeHtml(member.name)}</strong>
+      ${member.id === 'add' ? '' : `<small>${escapeHtml(buildFoodAchievementProfile(member).activeTitle.title)}</small>`}
     </button>
   `).join('');
 
@@ -1676,8 +1688,11 @@ function renderAll() {
 
 function updateProfileUi() {
   const member = appState.currentMember;
+  const foodTitle = buildFoodAchievementProfile(member).activeTitle;
   document.getElementById('navAvatar').innerHTML = avatarMarkup(member);
   document.getElementById('navName').textContent = member.name;
+  const navSubtitle = document.querySelector('.nav-profile small');
+  if (navSubtitle) navSubtitle.textContent = `${foodTitle.icon} ${foodTitle.title}`;
   document.getElementById('activeAvatar').innerHTML = `${avatarMarkup(member)} <span>${escapeHtml(member.name)}</span>`;
 }
 
@@ -3907,6 +3922,193 @@ function renderChat() {
   chatList.scrollTop = chatList.scrollHeight;
 }
 
+function buildFoodAchievementProfile(member = appState.currentMember) {
+  const meals = member
+    ? appState.meals.filter((meal) => mealBelongsToMember(meal, member, true))
+    : [];
+  const dayStats = new Map();
+  const uniqueFoods = new Set();
+  const breakfastDays = new Set();
+  const foodCounts = new Map();
+  let snackCount = 0;
+  let midnightCount = 0;
+  let photoCount = 0;
+  let usdaCount = 0;
+  let homeMealCount = 0;
+
+  meals.forEach((meal) => {
+    const day = mealDayKey(meal);
+    if (day) {
+      const stats = dayStats.get(day) || { calories: 0, meals: 0, text: '' };
+      stats.calories += Number(meal.calories) || 0;
+      stats.meals += 1;
+      stats.text += ` ${foodSearchText(meal)}`;
+      dayStats.set(day, stats);
+    }
+
+    const foodName = String(meal.food_name || '').trim().toLowerCase();
+    if (foodName) {
+      uniqueFoods.add(foodName);
+      foodCounts.set(foodName, (foodCounts.get(foodName) || 0) + 1);
+    }
+
+    const mealType = getMealType(meal) || inferMealTypeFromTimestamp(meal.eaten_at || meal.created_at);
+    if (mealType === 'snack') snackCount += 1;
+    if (mealType === 'breakfast' && day) breakfastDays.add(day);
+    const mealDate = new Date(meal.eaten_at || meal.created_at);
+    if (!Number.isNaN(mealDate.getTime()) && mealDate.getHours() <= 4) midnightCount += 1;
+    if (meal.photo_url) photoCount += 1;
+    if (getNotesMetadataValue(meal.notes, 'usda_fdc')) usdaCount += 1;
+    if (!String(meal.restaurant_name || '').trim()) homeMealCount += 1;
+  });
+
+  const maxDayCalories = Math.round(Math.max(0, ...Array.from(dayStats.values(), (day) => day.calories)));
+  const maxDayMeals = Math.max(0, ...Array.from(dayStats.values(), (day) => day.meals));
+  const repeatCount = Math.max(0, ...foodCounts.values());
+  const longestStreak = longestConsecutiveFoodLogStreak([...dayStats.keys()]);
+  const rainbowCount = Math.max(0, ...Array.from(dayStats.values(), (day) => countFoodColorGroups(day.text)));
+
+  const badge = (id, icon, name, title, description, current, target, progressLabel, options = {}) => ({
+    id,
+    icon,
+    name,
+    title,
+    description,
+    current,
+    target,
+    progressLabel,
+    earned: current >= target,
+    estimated: Boolean(options.estimated)
+  });
+
+  const achievements = [
+    badge('first-bite', '🍴', 'First Bite', 'Food Rookie', 'Log your first meal.', meals.length, 1, `${Math.min(meals.length, 1)}/1 meal`),
+    badge('big-day', '🔥', '2,500 Club', 'The Big Day Logger', 'Log an estimated 2,500 calories in one day.', maxDayCalories, 2500, `${Math.min(maxDayCalories, 2500).toLocaleString()}/2,500 kcal`, { estimated: true }),
+    badge('buffet-boss', '👑', 'Buffet Boss', 'Buffet Boss', 'Log five meals or snacks in one day.', maxDayMeals, 5, `${Math.min(maxDayMeals, 5)}/5 in one day`),
+    badge('snack-commander', '🍿', 'Snack Attack', 'Snack Commander', 'Log ten snacks across your diary.', snackCount, 10, `${Math.min(snackCount, 10)}/10 snacks`),
+    badge('breakfast-champion', '☀️', 'Rise & Dine', 'Breakfast Champion', 'Log breakfast on five different days.', breakfastDays.size, 5, `${Math.min(breakfastDays.size, 5)}/5 days`),
+    badge('midnight-muncher', '🌙', 'Midnight Muncher', 'Midnight Muncher', 'Log something between midnight and 4:59 AM.', midnightCount, 1, midnightCount ? 'Night snack spotted' : 'Waiting for midnight'),
+    badge('flavor-explorer', '🌍', 'Flavor Explorer', 'The Flavor Explorer', 'Discover twenty different logged foods.', uniqueFoods.size, 20, `${Math.min(uniqueFoods.size, 20)}/20 foods`),
+    badge('rainbow-collector', '🌈', 'Rainbow Plate', 'Rainbow Collector', 'Spot five food-color groups in one day.', rainbowCount, 5, `${Math.min(rainbowCount, 5)}/5 colors`),
+    badge('camera-first', '📸', 'Camera Eats First', 'Camera Eats First', 'Save ten meals with a photo.', photoCount, 10, `${Math.min(photoCount, 10)}/10 photos`),
+    badge('usda-expert', '🔎', 'USDA Expert', 'The USDA Expert', 'Log ten foods matched with USDA data.', usdaCount, 10, `${Math.min(usdaCount, 10)}/10 matches`),
+    badge('diary-detective', '📔', 'Diary Detective', 'Diary Detective', 'Build a seven-day meal logging streak.', longestStreak, 7, `${Math.min(longestStreak, 7)}/7 day streak`),
+    badge('family-chef', '🍳', 'Home Table Hero', 'The Family Chef', 'Log ten meals without a restaurant.', homeMealCount, 10, `${Math.min(homeMealCount, 10)}/10 home meals`),
+    badge('same-again', '🔁', 'Same Again, Chef', 'The Family Favorite', 'Repeat one favorite food three times.', repeatCount, 3, `${Math.min(repeatCount, 3)}/3 repeats`)
+  ];
+  const earnedBeforeLegend = achievements.filter((item) => item.earned).length;
+  achievements.push(badge('feast-legend', '🎉', 'Feast Mode Legend', 'Feast Mode Legend', 'Unlock eight other food achievements.', earnedBeforeLegend, 8, `${Math.min(earnedBeforeLegend, 8)}/8 badges`));
+
+  const starterTitle = { id: 'starter', icon: '🍽️', title: 'Fresh Plate' };
+  const unlockedTitles = [starterTitle, ...achievements.filter((item) => item.earned).map((item) => ({ id: item.id, icon: item.icon, title: item.title }))];
+  const selectedId = appState.profileMeasurements[member?.id]?.selected_food_title || '';
+  const selectedTitle = unlockedTitles.find((item) => item.id === selectedId);
+  const activeTitle = selectedTitle || unlockedTitles[unlockedTitles.length - 1] || starterTitle;
+  const earnedAchievements = achievements.filter((item) => item.earned);
+  const savedFeaturedIds = appState.profileMeasurements[member?.id]?.featured_food_achievements;
+  const featuredIds = Array.isArray(savedFeaturedIds)
+    ? savedFeaturedIds.filter((id) => earnedAchievements.some((item) => item.id === id)).slice(-3)
+    : earnedAchievements.slice(-3).reverse().map((item) => item.id);
+  const featuredAchievements = featuredIds.map((id) => earnedAchievements.find((item) => item.id === id)).filter(Boolean);
+  return { achievements, unlockedTitles, activeTitle, featuredAchievements, earnedCount: earnedAchievements.length };
+}
+
+function longestConsecutiveFoodLogStreak(dayKeys) {
+  const timestamps = [...new Set(dayKeys)]
+    .map((key) => {
+      const day = new Date(key);
+      return Number.isNaN(day.getTime()) ? NaN : Date.UTC(day.getFullYear(), day.getMonth(), day.getDate());
+    })
+    .filter(Number.isFinite)
+    .sort((left, right) => left - right);
+  let longest = timestamps.length ? 1 : 0;
+  let current = longest;
+  for (let index = 1; index < timestamps.length; index += 1) {
+    current = timestamps[index] - timestamps[index - 1] === 86400000 ? current + 1 : 1;
+    longest = Math.max(longest, current);
+  }
+  return longest;
+}
+
+function countFoodColorGroups(text) {
+  const groups = [
+    ['red', 'tomato', 'strawberry', 'watermelon', 'cherry', 'pepper'],
+    ['orange', 'orange', 'carrot', 'pumpkin', 'mango', 'sweet potato'],
+    ['yellow', 'banana', 'corn', 'pineapple', 'lemon', 'egg'],
+    ['green', 'broccoli', 'spinach', 'greens', 'avocado', 'cucumber', 'lettuce'],
+    ['blue-purple', 'blueberry', 'grape', 'eggplant', 'beet', 'purple'],
+    ['white-brown', 'rice', 'bread', 'oat', 'potato', 'mushroom', 'chicken', 'tofu']
+  ];
+  const normalized = String(text || '').toLowerCase();
+  return groups.filter(([, ...keywords]) => keywords.some((keyword) => normalized.includes(keyword))).length;
+}
+
+function handleSelectFoodTitle(titleId) {
+  const member = appState.currentMember;
+  if (!member) return;
+  const profile = buildFoodAchievementProfile(member);
+  if (!profile.unlockedTitles.some((title) => title.id === titleId)) return;
+  appState.profileMeasurements[member.id] = {
+    ...(appState.profileMeasurements[member.id] || {}),
+    selected_food_title: titleId
+  };
+  saveStoredAppData();
+  updateProfileUi();
+  renderProfiles();
+  renderProfile();
+}
+
+function handleToggleFeaturedAchievement(achievementId) {
+  const member = appState.currentMember;
+  if (!member) return;
+  const profile = buildFoodAchievementProfile(member);
+  const achievement = profile.achievements.find((item) => item.id === achievementId && item.earned);
+  if (!achievement) return;
+  const currentIds = profile.featuredAchievements.map((item) => item.id);
+  const nextIds = currentIds.includes(achievementId)
+    ? currentIds.filter((id) => id !== achievementId)
+    : [...currentIds, achievementId].slice(-3);
+  appState.profileMeasurements[member.id] = {
+    ...(appState.profileMeasurements[member.id] || {}),
+    featured_food_achievements: nextIds
+  };
+  saveStoredAppData();
+  renderProfile();
+}
+
+function renderProfileAchievements(member) {
+  const container = document.getElementById('profileAchievements');
+  if (!container) return;
+  const profile = buildFoodAchievementProfile(member);
+  document.getElementById('profileFoodTitle').textContent = `${profile.activeTitle.icon} ${profile.activeTitle.title}`;
+  container.innerHTML = `
+    <div class="achievement-heading">
+      <div><p class="eyebrow">Food Trophy Cabinet</p><h4>${profile.earnedCount} of ${profile.achievements.length} unlocked</h4></div>
+      <span>${profile.activeTitle.icon} Active title</span>
+    </div>
+    <div class="food-title-picker">
+      <strong>Choose your title</strong>
+      <div>${profile.unlockedTitles.map((title) => `<button class="${profile.activeTitle.id === title.id ? 'active' : ''}" type="button" data-profile-title="${escapeAttr(title.id)}">${title.icon} ${escapeHtml(title.title)}</button>`).join('')}</div>
+    </div>
+    <div class="featured-achievement-block">
+      <strong>Favorite badges <small>Choose up to three</small></strong>
+      ${profile.featuredAchievements.length ? `<div class="featured-achievement-row">${profile.featuredAchievements.map((achievement) => `<span>${achievement.icon}<b>${escapeHtml(achievement.name)}</b></span>`).join('')}</div>` : '<p>Unlock a badge, then pin it here.</p>'}
+    </div>
+    <details class="achievement-cabinet">
+      <summary>View Trophy Cabinet <span>${profile.earnedCount}/${profile.achievements.length} earned</span></summary>
+      <div class="achievement-grid">
+        ${profile.achievements.map((achievement) => `
+          <article class="achievement-card ${achievement.earned ? 'earned' : 'locked'}">
+            <div class="achievement-icon">${achievement.earned ? achievement.icon : '🔒'}</div>
+            <div><span>${achievement.earned ? 'Unlocked' : achievement.progressLabel}${achievement.estimated ? ' · estimated' : ''}</span><strong>${escapeHtml(achievement.name)}</strong><p>${escapeHtml(achievement.description)}</p></div>
+            ${achievement.earned ? `<button class="achievement-pin ${profile.featuredAchievements.some((item) => item.id === achievement.id) ? 'active' : ''}" type="button" data-feature-achievement="${escapeAttr(achievement.id)}" aria-label="${profile.featuredAchievements.some((item) => item.id === achievement.id) ? 'Remove' : 'Add'} ${escapeAttr(achievement.name)} from favorite badges">★</button>` : ''}
+            <div class="achievement-progress"><i style="width:${Math.min(100, Math.round((achievement.current / achievement.target) * 100))}%"></i></div>
+          </article>`).join('')}
+      </div>
+    </details>
+    <p class="achievement-note">Achievements celebrate diary activity, not health outcomes. Calories are estimates and are never treated as a target.</p>`;
+}
+
 function renderProfile() {
   const member = appState.currentMember || appState.members[0];
   document.getElementById('profileAvatarLarge').innerHTML = avatarMarkup(member);
@@ -3934,6 +4136,7 @@ function renderProfile() {
   document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
   document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
   document.getElementById('profileHealthSummary').textContent = buildProfileHealthSummary(measurements);
+  renderProfileAchievements(member);
   renderAvatarPicker(member);
 }
 
@@ -3962,6 +4165,7 @@ async function handleSaveProfileMeasurements() {
     goal
   });
   appState.profileMeasurements[member.id] = {
+    ...(appState.profileMeasurements[member.id] || {}),
     height_cm: height,
     weight_kg: weight,
     age,

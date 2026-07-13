@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713d" />
+  <link rel="stylesheet" href="style.css?v=20260713e" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -591,10 +591,12 @@
             <div>
               <p class="eyebrow">Your account</p>
               <h3 id="profileNameLarge">Dad</h3>
+              <p id="profileFoodTitle" class="profile-food-title">🍽️ Fresh Plate</p>
               <div class="profile-name-edit">
                 <input id="profileNameInput" type="text" maxlength="30" placeholder="Display name" autocomplete="off">
                 <button class="primary-button" id="saveProfileName" type="button">Save Name</button>
               </div>
+              <section id="profileAchievements" class="profile-achievements" aria-live="polite"></section>
               <section class="profile-measurements" aria-labelledby="profileMeasurementsTitle">
                 <div>
                   <p class="eyebrow">Body measurements</p>
@@ -760,6 +762,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713b"></script>
-  <script src="app.js?v=20260713f"></script>
+  <script src="app.js?v=20260713g"></script>
 </body>
 </html>
