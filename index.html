@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713m" />
+  <link rel="stylesheet" href="style.css?v=20260713n" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -78,6 +78,32 @@
       </div>
     </section>
 
+    <section id="dailySummaryIntro" class="daily-summary-intro hidden" aria-labelledby="dailySummaryIntroTitle" aria-modal="true" role="dialog">
+      <div class="daily-summary-intro-card">
+        <header>
+          <div>
+            <p class="eyebrow">Today at a glance</p>
+            <h1 id="dailySummaryIntroTitle">Your day, plated.</h1>
+            <p id="dailySummaryIntroSubtitle">A quick look at where today’s calories came from.</p>
+          </div>
+          <button class="daily-summary-skip" data-action="close-daily-summary" type="button">Skip</button>
+        </header>
+        <div class="daily-summary-intro-content">
+          <div class="daily-calorie-pie-wrap">
+            <div id="dailyCaloriePie" class="daily-calorie-pie">
+              <div><strong id="dailySummaryTotalCalories">0</strong><span>calories</span></div>
+            </div>
+            <span id="dailySummaryMealCount" class="daily-summary-meal-count">0 dishes today</span>
+          </div>
+          <div id="dailySummaryDishLegend" class="daily-summary-dish-legend"></div>
+        </div>
+        <footer>
+          <span>Opening your food diary…</span>
+          <i><b></b></i>
+        </footer>
+      </div>
+    </section>
+
     <section id="landing" class="landing-view hidden" aria-hidden="true">
       <div class="landing-shell">
         <div class="selector-handle" aria-hidden="true"></div>
@@ -133,25 +159,6 @@
                 <p id="dashboardDate" class="dashboard-date">Today</p>
                 <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
               </div>
-
-              <section class="food-story-card dashboard-card" aria-labelledby="foodStoryTitle">
-                <header class="food-story-header">
-                  <div>
-                    <p class="eyebrow">Your 7-day food story</p>
-                    <h3 id="foodStoryTitle">Your week at a glance</h3>
-                  </div>
-                  <button class="food-story-link" data-page="weekly" type="button">Full report <span>↗</span></button>
-                </header>
-                <div id="foodStoryChart" class="food-story-chart" role="img" aria-label="Seven-day calories and food balance chart"></div>
-                <div class="food-story-footer">
-                  <div class="food-story-metrics">
-                    <article><span>Avg calories</span><strong id="foodStoryCalories">0</strong></article>
-                    <article><span>Food balance</span><strong id="foodStoryBalance">--</strong></article>
-                    <article><span>Food variety</span><strong id="foodStoryVariety">0</strong></article>
-                  </div>
-                  <p id="foodStoryTakeaway" class="food-story-takeaway">Log a meal to start your food story.</p>
-                </div>
-              </section>
 
               <section class="today-food-panel dashboard-card">
                 <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
@@ -738,6 +745,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260713o"></script>
+  <script src="app.js?v=20260713p"></script>
 </body>
 </html>
