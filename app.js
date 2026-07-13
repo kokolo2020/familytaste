@@ -793,8 +793,10 @@ async function hydrateFamilyData() {
     });
 
     if (members.length) {
-      appState.members = mergeMembers(members.map(normalizeMember), appState.members);
+      const normalizedMembers = members.map(normalizeMember);
+      appState.members = mergeMembers(normalizedMembers, appState.members);
       applyStoredProfilePhotos();
+      mergeProfileMeasurementsFromMembers(normalizedMembers);
     }
     if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
     if (snapScans.length) appState.snapScans = mergeRecords(snapScans.map(normalizeSnapScan), appState.snapScans);
@@ -1019,8 +1021,8 @@ function getProfileIdentity(member = appState.currentMember) {
   const measurements = appState.profileMeasurements[member.id] || {};
   const parsedName = parseProfileName(member.name);
   return {
-    firstName: String(measurements.first_name || parsedName.firstName || '').trim(),
-    lastName: String(measurements.last_name || parsedName.lastName || '').trim()
+    firstName: String(measurements.first_name || member.first_name || parsedName.firstName || '').trim(),
+    lastName: String(measurements.last_name || member.last_name || parsedName.lastName || '').trim()
   };
 }
 
@@ -3756,7 +3758,15 @@ async function handleSaveProfileMeasurements() {
   };
   member.height_cm = height;
   member.weight_kg = weight;
+  member.age = age;
+  member.sex = sex;
+  member.activity = activity;
+  member.goal = goal;
+  member.health_focus = healthFocus;
+  member.food_alerts = foodAlerts;
   member.target_calories = targetCalories;
+  member.protein_grams = proteinGrams;
+  member.water_liters = waterLiters;
   if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
   appState.bioLogs[member.id][todayKey()] = {
     ...(appState.bioLogs[member.id][todayKey()] || {}),
@@ -3770,9 +3780,21 @@ async function handleSaveProfileMeasurements() {
   button.textContent = 'Saved ✓';
   setTimeout(() => { button.textContent = 'Save & Calculate'; }, 1600);
 
-  await syncMemberToSupabase(member.id, { weight_kg: weight });
-  await syncMemberToSupabase(member.id, { height_cm: height });
-  await syncMemberToSupabase(member.id, { target_calories: targetCalories });
+  await syncMemberToSupabase(member.id, {
+    first_name: getProfileIdentity(member).firstName,
+    last_name: getProfileIdentity(member).lastName,
+    height_cm: height,
+    weight_kg: weight,
+    age,
+    sex,
+    activity,
+    goal,
+    health_focus: healthFocus,
+    food_alerts: foodAlerts,
+    target_calories: targetCalories,
+    protein_grams: proteinGrams,
+    water_liters: waterLiters
+  });
 }
 
 async function handleSaveProfileOnboarding() {
@@ -3833,15 +3855,35 @@ async function handleSaveProfileOnboarding() {
     water_liters: waterLiters
   };
   member.name = fullName;
+  member.first_name = firstName;
+  member.last_name = lastName;
   member.height_cm = height;
   member.weight_kg = weight;
+  member.age = age;
+  member.sex = sex;
+  member.activity = activity;
+  member.goal = goal;
+  member.health_focus = healthFocus;
+  member.food_alerts = foodAlerts;
   member.target_calories = targetCalories;
+  member.protein_grams = proteinGrams;
+  member.water_liters = waterLiters;
   const matchingMember = appState.members.find((item) => item.id === member.id);
   if (matchingMember) {
     matchingMember.name = fullName;
+    matchingMember.first_name = firstName;
+    matchingMember.last_name = lastName;
     matchingMember.height_cm = height;
     matchingMember.weight_kg = weight;
+    matchingMember.age = age;
+    matchingMember.sex = sex;
+    matchingMember.activity = activity;
+    matchingMember.goal = goal;
+    matchingMember.health_focus = healthFocus;
+    matchingMember.food_alerts = foodAlerts;
     matchingMember.target_calories = targetCalories;
+    matchingMember.protein_grams = proteinGrams;
+    matchingMember.water_liters = waterLiters;
   }
   if (!appState.bioLogs[member.id]) appState.bioLogs[member.id] = {};
   appState.bioLogs[member.id][todayKey()] = {
@@ -3859,9 +3901,19 @@ async function handleSaveProfileOnboarding() {
 
   await syncMemberToSupabase(member.id, {
     name: fullName,
+    first_name: firstName,
+    last_name: lastName,
     height_cm: height,
     weight_kg: weight,
-    target_calories: targetCalories
+    age,
+    sex,
+    activity,
+    goal,
+    health_focus: healthFocus,
+    food_alerts: foodAlerts,
+    target_calories: targetCalories,
+    protein_grams: proteinGrams,
+    water_liters: waterLiters
   });
 }
 
@@ -3890,8 +3942,14 @@ async function handleSaveProfileName() {
   const parsedName = parseProfileName(newName);
 
   member.name = newName;
+  member.first_name = parsedName.firstName;
+  member.last_name = parsedName.lastName;
   const matchingMember = appState.members.find((item) => item.id === member.id);
-  if (matchingMember) matchingMember.name = newName;
+  if (matchingMember) {
+    matchingMember.name = newName;
+    matchingMember.first_name = parsedName.firstName;
+    matchingMember.last_name = parsedName.lastName;
+  }
   appState.profileMeasurements[member.id] = {
     ...(appState.profileMeasurements[member.id] || {}),
     first_name: parsedName.firstName,
@@ -3903,7 +3961,11 @@ async function handleSaveProfileName() {
   renderProfile();
   renderSettings();
 
-  await syncMemberToSupabase(member.id, { name: newName });
+  await syncMemberToSupabase(member.id, {
+    name: newName,
+    first_name: parsedName.firstName,
+    last_name: parsedName.lastName
+  });
 }
 
 async function syncMemberToSupabase(memberId, fields) {
@@ -4489,10 +4551,44 @@ function normalizeMember(member) {
     photo_url: member.photo_url || '',
     photo: member.photo_url || member.photo || defaultProfilePhoto(member),
     role: member.role || 'Profile',
+    first_name: member.first_name || '',
+    last_name: member.last_name || '',
     weight_kg: member.weight_kg ?? null,
     height_cm: member.height_cm ?? null,
-    target_calories: member.target_calories ?? null
+    age: member.age ?? null,
+    sex: member.sex || '',
+    activity: member.activity ?? null,
+    goal: member.goal || '',
+    health_focus: member.health_focus || '',
+    food_alerts: member.food_alerts || '',
+    target_calories: member.target_calories ?? null,
+    protein_grams: member.protein_grams ?? null,
+    water_liters: member.water_liters ?? null
   };
+}
+
+function mergeProfileMeasurementsFromMembers(members = []) {
+  members.forEach((member) => {
+    if (!member?.id || member.id === 'add') return;
+    const existing = appState.profileMeasurements[member.id] || {};
+    const parsedName = parseProfileName(member.name);
+    appState.profileMeasurements[member.id] = {
+      ...existing,
+      first_name: member.first_name || existing.first_name || parsedName.firstName || '',
+      last_name: member.last_name || existing.last_name || parsedName.lastName || '',
+      height_cm: member.height_cm ?? existing.height_cm ?? null,
+      weight_kg: member.weight_kg ?? existing.weight_kg ?? null,
+      age: member.age ?? existing.age ?? null,
+      sex: member.sex || existing.sex || '',
+      activity: member.activity ?? existing.activity ?? null,
+      goal: member.goal || existing.goal || '',
+      health_focus: member.health_focus || existing.health_focus || '',
+      food_alerts: member.food_alerts || existing.food_alerts || '',
+      target_calories: member.target_calories ?? existing.target_calories ?? null,
+      protein_grams: member.protein_grams ?? existing.protein_grams ?? null,
+      water_liters: member.water_liters ?? existing.water_liters ?? null
+    };
+  });
 }
 
 function avatarMarkup(member) {

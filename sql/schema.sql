@@ -11,8 +11,22 @@ create table if not exists members (
   id uuid primary key default gen_random_uuid(),
   family_id uuid references families(id) on delete cascade,
   name text not null,
+  first_name text,
+  last_name text,
   avatar text default '👤',
   role text default 'member',
+  photo_url text,
+  height_cm numeric,
+  weight_kg numeric,
+  age integer,
+  sex text,
+  activity numeric,
+  goal text,
+  health_focus text,
+  food_alerts text,
+  target_calories integer,
+  protein_grams integer,
+  water_liters numeric,
   created_at timestamptz default now()
 );
 
