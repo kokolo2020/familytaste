@@ -12,9 +12,6 @@ const appState = {
   meals: [],
   snapScans: [],
   favorites: getDefaultFavoriteRestaurants(),
-  chefOrders: [],
-  cart: [],
-  voiceNotes: [],
   bioLogs: {},
   profileMeasurements: {},
   workoutHistory: {},
@@ -32,9 +29,6 @@ const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
 const localSnapScansStorageKey = 'familyBites.snapScans.v1';
 const localMembersStorageKey = 'familyBites.members.v1';
-const chefOrdersStorageKey = 'familyBites.chefOrders';
-const chefCartStorageKey = 'familyBites.chefCart';
-const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
 const workoutHistoryStorageKey = 'familyBites.workoutHistory.v1';
@@ -43,7 +37,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -130,21 +124,8 @@ const avatarOptions = [
   { id: 'rithyna', label: 'Rithyna', url: 'assets/avatars/mom.jpg' },
   { id: 'emily', label: 'Emily', url: 'assets/avatars/emily.jpg' },
   { id: 'james', label: 'James', url: 'assets/avatars/james.jpg' },
-  { id: 'sophia', label: 'Sophia', url: 'assets/avatars/sophia.jpg' },
-  { id: 'chef', label: 'Chef', url: 'assets/avatars/chef.jpg' }
+  { id: 'sophia', label: 'Sophia', url: 'assets/avatars/sophia.jpg' }
 ];
-
-const menuItems = [
-  { id: 'lemon-chicken', name: 'Lemon Garlic Chicken', detail: 'Roasted veggies, hearty portion', emoji: '🍗', photo: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=700&q=82' },
-  { id: 'salmon-rice', name: 'Salmon Rice Bowl', detail: 'Protein bowl with greens', emoji: '🍣', photo: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=700&q=82' },
-  { id: 'spaghetti', name: 'Spaghetti Bolognese', detail: 'Classic red sauce pasta', emoji: '🍝', photo: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?auto=format&fit=crop&w=700&q=82' },
-  { id: 'tacos', name: 'Tacos Night', detail: 'Chicken, salsa, and salad', emoji: '🌮', photo: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=700&q=82' },
-  { id: 'pizza', name: 'Homemade Pizza', detail: 'Cheese, tomato, basil', emoji: '🍕', photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=700&q=82' },
-  { id: 'brunch', name: 'Weekend Brunch', detail: 'Pancakes, fruit, and eggs', emoji: '🥞', photo: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=82' }
-];
-
-let voiceRecorder = null;
-let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
 let snapScanDraft = createEmptySnapScanDraft();
 let lastSnapEstimateSignature = '';
@@ -323,24 +304,9 @@ function bindEvents() {
       chooseProfileAvatar(avatarTarget.dataset.avatarUrl);
     }
 
-    const orderTarget = event.target.closest('[data-add-cart]');
-    if (orderTarget) {
-      addToCart(orderTarget.dataset.addCart);
-    }
-
-    const cartRemoveTarget = event.target.closest('[data-remove-cart]');
-    if (cartRemoveTarget) {
-      removeFromCart(cartRemoveTarget.dataset.removeCart);
-    }
-
-    const completeTarget = event.target.closest('[data-complete-order]');
-    if (completeTarget) {
-      completeChefOrder(completeTarget.dataset.completeOrder);
-    }
-
-    const orderAgainTarget = event.target.closest('[data-order-again]');
-    if (orderAgainTarget) {
-      orderAgain(orderAgainTarget.dataset.orderAgain);
+    const logRestaurantTarget = event.target.closest('[data-log-restaurant]');
+    if (logRestaurantTarget) {
+      logRestaurantVisit(logRestaurantTarget.dataset.logRestaurant);
     }
 
     const removeMemberTarget = event.target.closest('[data-remove-member]');
@@ -430,8 +396,6 @@ function bindEvents() {
   document.getElementById('clearSnapForm').addEventListener('click', resetSnapWorkspace);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
-  document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
-  document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileOnboarding')?.addEventListener('click', handleSaveProfileOnboarding);
@@ -502,9 +466,6 @@ function resetFamilyState() {
   appState.meals = [];
   appState.snapScans = [];
   appState.favorites = getDefaultFavoriteRestaurants();
-  appState.chefOrders = [];
-  appState.cart = [];
-  appState.voiceNotes = [];
   appState.bioLogs = {};
   appState.profileMeasurements = {};
   appState.workoutHistory = {};
@@ -517,9 +478,9 @@ function clearLocalFamilyCache() {
     localMealsStorageKey,
     localSnapScansStorageKey,
     localMembersStorageKey,
-    chefOrdersStorageKey,
-    chefCartStorageKey,
-    chefVoiceStorageKey,
+    'familyBites.chefOrders',
+    'familyBites.chefCart',
+    'familyBites.chefVoiceNotes',
     bioLogsStorageKey,
     profileMeasurementsStorageKey,
     workoutHistoryStorageKey,
@@ -997,7 +958,7 @@ function navTemplate(item) {
 }
 
 function resolveNavPage(pageName) {
-  if (['settings', 'order', 'weekly', 'favorites', 'chef', 'profile', 'recipes', 'workouts', 'future'].includes(pageName)) return 'settings';
+  if (['settings', 'weekly', 'favorites', 'profile', 'recipes', 'workouts', 'future'].includes(pageName)) return 'settings';
   return pageName;
 }
 
@@ -1034,10 +995,6 @@ function handleAction(action) {
     selectMember(appState.currentMember || getDefaultMember());
   }
 
-  if (action === 'demo-order') {
-    openDemoPage('order');
-  }
-
   if (action === 'demo-weekly') {
     openDemoPage('weekly');
   }
@@ -1047,13 +1004,10 @@ function handleAction(action) {
   }
 
   if (action === 'clear-all-data') {
-    if (!confirm('Clear all meals, notes, and orders saved in this browser? This cannot be undone.')) return;
+    if (!confirm('Clear all meals and saved app data in this browser? This cannot be undone.')) return;
     clearLocalFamilyCache();
     appState.meals = [];
     appState.snapScans = [];
-    appState.chefOrders = [];
-    appState.cart = [];
-    appState.voiceNotes = [];
     renderAll();
   }
 
@@ -1660,9 +1614,6 @@ function renderAll() {
   renderMeals();
   renderSnapAlbum();
   renderFavorites();
-  renderOrderMenu();
-  renderCart();
-  renderChefInterface();
   renderReport();
   renderProfile();
   renderRecipes();
@@ -3487,182 +3438,11 @@ function renderFavorites() {
         <p>${escapeHtml(restaurant.notes || restaurant.address || 'Saved favorite')}</p>
         <p>${escapeHtml(restaurant.phone || 'Phone not saved')}</p>
       </div>
-      <button type="button" data-order-again="${escapeAttr(restaurant.name)}">Order Again</button>
+      <button type="button" data-log-restaurant="${escapeAttr(restaurant.name)}">Log a Visit</button>
     </article>
   `).join('');
 
   document.getElementById('favoriteGrid').innerHTML = cards;
-}
-
-function renderOrderMenu() {
-  document.getElementById('orderGrid').innerHTML = menuItems.map((item) => `
-    <article class="order-menu-card">
-      <img src="${escapeAttr(item.photo)}" alt="${escapeAttr(item.name)}">
-      <div>
-        <h4>${escapeHtml(item.name)}</h4>
-        <p>${escapeHtml(item.detail)}</p>
-      </div>
-      <button type="button" data-add-cart="${escapeAttr(item.id)}">Order</button>
-    </article>
-  `).join('');
-}
-
-function renderCart() {
-  const cartList = document.getElementById('cartList');
-  const sendButton = document.getElementById('sendCartButton');
-  if (!cartList || !sendButton) return;
-
-  cartList.innerHTML = appState.cart.map((item) => `
-    <article class="cart-item">
-      <span>${escapeHtml(item.emoji || '🍽️')}</span>
-      <div>
-        <strong>${escapeHtml(item.name)}</strong>
-        <small>${escapeHtml(item.member_name || 'You')}</small>
-      </div>
-      <button type="button" data-remove-cart="${escapeAttr(item.cart_id)}" aria-label="Remove ${escapeAttr(item.name)}">×</button>
-    </article>
-  `).join('') || '<p class="muted">No foods in cart yet.</p>';
-
-  sendButton.disabled = appState.cart.length === 0;
-  sendButton.textContent = appState.cart.length
-    ? `Done · Send ${appState.cart.length} to Chef`
-    : 'Done · Send to Chef';
-}
-
-function renderChefInterface() {
-  const activeOrders = appState.chefOrders.filter((order) => order.status !== 'done');
-  document.getElementById('chefOrderList').innerHTML = activeOrders.map((order) => `
-    <article class="chef-order-card ${order.photo ? 'has-photo' : ''}">
-      <span>${escapeHtml(order.emoji || '🍽️')}</span>
-      ${order.photo ? `<img src="${escapeAttr(order.photo)}" alt="${escapeAttr(order.food_name)}">` : ''}
-      <div>
-        <h4>${escapeHtml(order.food_name)}</h4>
-        <p>${escapeHtml(order.detail || 'Saved order')}</p>
-        <small>${escapeHtml(order.member_name || 'You')} · ${formatDate(order.created_at)}</small>
-      </div>
-      <button type="button" data-complete-order="${escapeAttr(order.id)}">Done</button>
-    </article>
-  `).join('') || emptyChefState('No food orders sent yet.');
-
-  document.getElementById('chefVoiceList').innerHTML = appState.voiceNotes.map((note) => `
-    <article class="chef-voice-card">
-      <div>
-        <h4>${escapeHtml(note.member_name || 'You')} voice note</h4>
-        <small>${formatDate(note.created_at)}</small>
-      </div>
-      <audio controls src="${escapeAttr(note.audio_url)}"></audio>
-    </article>
-  `).join('') || emptyChefState('No voice notes yet.');
-}
-
-function addToCart(menuItemId) {
-  const item = menuItems.find((entry) => entry.id === menuItemId);
-  const member = appState.currentMember || appState.members[0];
-  if (!item) return;
-
-  appState.cart.push({
-    cart_id: crypto.randomUUID ? crypto.randomUUID() : `cart-${Date.now()}`,
-    menu_item_id: item.id,
-    name: item.name,
-    detail: item.detail,
-    emoji: item.emoji,
-    photo: item.photo,
-    member_id: member.id,
-    member_name: member.name,
-    added_at: new Date().toISOString()
-  });
-  saveStoredAppData();
-  renderCart();
-}
-
-function removeFromCart(cartId) {
-  appState.cart = appState.cart.filter((item) => item.cart_id !== cartId);
-  saveStoredAppData();
-  renderCart();
-}
-
-function sendCartToChef() {
-  if (!appState.cart.length) return;
-
-  const now = new Date().toISOString();
-  const batchId = crypto.randomUUID ? crypto.randomUUID() : `batch-${Date.now()}`;
-  const orders = appState.cart.map((item) => ({
-    id: crypto.randomUUID ? crypto.randomUUID() : `order-${Date.now()}-${item.menu_item_id}`,
-    batch_id: batchId,
-    food_name: item.name,
-    detail: item.detail,
-    emoji: item.emoji,
-    photo: item.photo,
-    member_id: item.member_id,
-    member_name: item.member_name,
-    status: 'sent',
-    created_at: now
-  }));
-
-  appState.chefOrders = [...orders, ...appState.chefOrders];
-  appState.cart = [];
-  saveStoredAppData();
-  renderCart();
-  renderChefInterface();
-  showPage('chef');
-}
-
-function completeChefOrder(orderId) {
-  appState.chefOrders = appState.chefOrders.map((order) => (
-    order.id === orderId ? { ...order, status: 'done' } : order
-  ));
-  saveStoredAppData();
-  renderChefInterface();
-}
-
-async function toggleVoiceRecording() {
-  const button = document.getElementById('voiceRecordButton');
-  if (voiceRecorder?.state === 'recording') {
-    voiceRecorder.stop();
-    button.textContent = 'Record Voice';
-    return;
-  }
-
-  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    alert('Voice recording is not supported in this browser.');
-    return;
-  }
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    voiceChunks = [];
-    voiceRecorder = new MediaRecorder(stream);
-    voiceRecorder.addEventListener('dataavailable', (event) => {
-      if (event.data.size) voiceChunks.push(event.data);
-    });
-    voiceRecorder.addEventListener('stop', () => {
-      stream.getTracks().forEach((track) => track.stop());
-      saveVoiceNote(new Blob(voiceChunks, { type: voiceRecorder.mimeType || 'audio/webm' }));
-    });
-    voiceRecorder.start();
-    button.textContent = 'Stop Recording';
-  } catch (error) {
-    console.warn('Microphone unavailable.', error);
-    alert('Microphone access was blocked or unavailable.');
-  }
-}
-
-function saveVoiceNote(blob) {
-  const reader = new FileReader();
-  reader.addEventListener('load', () => {
-    const member = appState.currentMember || appState.members[0];
-    appState.voiceNotes.unshift({
-      id: crypto.randomUUID ? crypto.randomUUID() : `voice-${Date.now()}`,
-      member_id: member.id,
-      member_name: member.name,
-      audio_url: String(reader.result || ''),
-      created_at: new Date().toISOString()
-    });
-    saveStoredAppData();
-    renderChefInterface();
-    showPage('chef');
-  });
-  reader.readAsDataURL(blob);
 }
 
 function renderReport() {
@@ -4992,15 +4772,15 @@ function savedOrDefaultProfilePhoto(member, savedPhoto) {
 function applyStoredAppData() {
   try {
     localStorage.removeItem('familyBites.chat.v2');
+    localStorage.removeItem('familyBites.chefOrders');
+    localStorage.removeItem('familyBites.chefCart');
+    localStorage.removeItem('familyBites.chefVoiceNotes');
   } catch (error) {
-    console.warn('Could not remove the retired chat cache.', error);
+    console.warn('Could not remove retired feature caches.', error);
   }
   const storedMembers = getStoredJson(localMembersStorageKey, []).map(normalizeMember);
   const storedMeals = getStoredJson(localMealsStorageKey, []).map(normalizeMeal);
   const storedSnapScans = getStoredJson(localSnapScansStorageKey, []).map(normalizeSnapScan);
-  const storedOrders = getStoredJson(chefOrdersStorageKey, []);
-  const storedCart = getStoredJson(chefCartStorageKey, []);
-  const storedVoiceNotes = getStoredJson(chefVoiceStorageKey, []);
   const storedBioLogs = getStoredJson(bioLogsStorageKey, {});
   const storedProfileMeasurements = getStoredJson(profileMeasurementsStorageKey, {});
   const storedWorkoutHistory = getStoredJson(workoutHistoryStorageKey, {});
@@ -5012,18 +4792,12 @@ function applyStoredAppData() {
   if (Object.keys(storedSavedWorkouts).length) appState.savedWorkouts = storedSavedWorkouts;
   if (storedMeals.length) appState.meals = mergeRecords(storedMeals, appState.meals);
   if (storedSnapScans.length) appState.snapScans = mergeRecords(storedSnapScans, appState.snapScans);
-  if (storedOrders.length) appState.chefOrders = storedOrders;
-  if (storedCart.length) appState.cart = storedCart;
-  if (storedVoiceNotes.length) appState.voiceNotes = storedVoiceNotes;
 }
 
 function saveStoredAppData() {
   setStoredJson(localMembersStorageKey, appState.members);
   setStoredJson(localMealsStorageKey, appState.meals);
   setStoredJson(localSnapScansStorageKey, appState.snapScans);
-  setStoredJson(chefOrdersStorageKey, appState.chefOrders);
-  setStoredJson(chefCartStorageKey, appState.cart);
-  setStoredJson(chefVoiceStorageKey, appState.voiceNotes);
   setStoredJson(bioLogsStorageKey, appState.bioLogs);
   setStoredJson(profileMeasurementsStorageKey, appState.profileMeasurements);
   setStoredJson(workoutHistoryStorageKey, appState.workoutHistory);
@@ -5323,11 +5097,7 @@ function escapeAttr(value = '') {
   return escapeHtml(value).replace(/`/g, '&#096;');
 }
 
-function emptyChefState(message) {
-  return `<article class="chef-order-card"><span>🍽️</span><div><h4>${message}</h4><p>Ready when you are.</p></div></article>`;
-}
-
-function orderAgain(restaurantName) {
+function logRestaurantVisit(restaurantName) {
   document.getElementById('restaurantName').value = restaurantName;
   showPage('snap');
 }
@@ -5674,7 +5444,6 @@ function renderSettings() {
         <button class="settings-nav-btn" data-page="workouts">🏃 Workouts</button>
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
         <button class="settings-nav-btn" data-page="body">🧍 Body Map</button>
-        <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
         <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
         <button class="settings-nav-btn" data-page="timeline">📔 Diary</button>
         <button class="settings-nav-btn" data-page="favorites">❤️ Favorites</button>
@@ -5685,7 +5454,7 @@ function renderSettings() {
     <div class="settings-section danger-zone">
       <p class="eyebrow">Data</p>
       <h3>Clear all local data</h3>
-      <p>Removes all meals, orders, and cart saved in this browser. This cannot be undone.</p>
+      <p>Removes all meals and saved app data in this browser. This cannot be undone.</p>
       <button class="danger-button" data-action="clear-all-data">🗑️ Clear All Data</button>
     </div>
 

@@ -38,5 +38,4 @@ After the files are in GitHub:
 - Family/member table
 - Photo upload storage
 - AI food calorie detection
-- Chef ordering workflow
 - Weekly nutrition reports
