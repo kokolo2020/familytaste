@@ -24,7 +24,8 @@ const appState = {
   futureYou: {
     months: 6,
     path: 'steady',
-    changes: []
+    changes: [],
+    intake: 100
   }
 };
 
@@ -44,7 +45,7 @@ const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.1.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -263,6 +264,7 @@ function bindEvents() {
     const futureHorizonTarget = event.target.closest('[data-future-months]');
     const futurePathTarget = event.target.closest('[data-future-path]');
     const futureChangeTarget = event.target.closest('[data-future-change]');
+    const futureIntakeTarget = event.target.closest('[data-future-intake]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -301,6 +303,11 @@ function bindEvents() {
 
     if (futureChangeTarget) {
       toggleFutureChange(futureChangeTarget.dataset.futureChange);
+    }
+
+    if (futureIntakeTarget) {
+      appState.futureYou.intake = Number(futureIntakeTarget.dataset.futureIntake) || 100;
+      renderFutureYou();
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -5311,6 +5318,7 @@ function buildFutureYouSimulation() {
   const months = appState.futureYou.months;
   const path = appState.futureYou.path;
   const selectedChanges = appState.futureYou.changes;
+  const intake = appState.futureYou.intake || 100;
   const horizonBoost = months === 12 ? 1.3 : 1;
   const pathBoost = path === 'adventure' ? 16 : path === 'gentle' ? 8 : 0;
 
@@ -5340,12 +5348,14 @@ function buildFutureYouSimulation() {
   const projectedMemories = Math.round(weeklyLogs * months * 4.345);
   const confidence = meals.length >= 20 ? 'Trend-powered' : meals.length >= 8 ? 'Taking shape' : 'Early sketch';
   const strongestScore = Object.entries(scores).sort((left, right) => right[1] - left[1])[0]?.[0] || 'variety';
-  const persona = buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges });
+  const persona = buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges, intake });
 
-  return { meals, signals, scores, months, path, selectedChanges, uniqueFoodCount: uniqueFoods.size, activeDayCount: activeDays.size, projectedMemories, confidence, persona };
+  return { meals, signals, scores, months, path, selectedChanges, intake, uniqueFoodCount: uniqueFoods.size, activeDayCount: activeDays.size, projectedMemories, confidence, persona };
 }
 
-function buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges }) {
+function buildFuturePersona({ scores, signals, strongestScore, path, selectedChanges, intake }) {
+  if (intake === 200) return { icon: '👑', title: 'The Buffet Legend', badge: 'Mega Feast energy', color: 'sunset' };
+  if (intake === 150) return { icon: '🍕', title: 'The Feast Mode Foodie', badge: 'Extra plate power', color: 'gold' };
   if (path === 'adventure' || scores.variety >= 80) return { icon: '🌍', title: 'The Flavor Explorer', badge: 'Curious eater', color: 'sunset' };
   if (selectedChanges.includes('home-meal')) return { icon: '🍳', title: 'The Kitchen Regular', badge: 'Home-base energy', color: 'gold' };
   if (strongestScore === 'rhythm' && scores.rhythm >= 70) return { icon: '☀️', title: 'The Rhythm Keeper', badge: 'Steady days', color: 'sky' };
@@ -5365,7 +5375,12 @@ function buildFutureStory(simulation) {
   const changeCopy = simulation.selectedChanges.length
     ? ` Your ${simulation.selectedChanges.length} selected mini-quest${simulation.selectedChanges.length === 1 ? '' : 's'} add a little extra momentum.`
     : '';
-  return `${name}, ${horizon} from now, Future You ${pathCopy[simulation.path]}.${changeCopy}`;
+  const feastCopy = simulation.intake === 200
+    ? ' In this silly Mega Feast universe, the fridge has started calling you boss.'
+    : simulation.intake === 150
+      ? ' In Feast Mode, your grocery cart politely asks for backup.'
+      : '';
+  return `${name}, ${horizon} from now, Future You ${pathCopy[simulation.path]}.${changeCopy}${feastCopy}`;
 }
 
 function buildFutureMilestones(simulation) {
@@ -5379,11 +5394,51 @@ function buildFutureMilestones(simulation) {
   ];
 }
 
+function buildFeastModeContent(intake) {
+  if (intake === 200) {
+    return {
+      title: 'Mega Feast Mode',
+      icon: '👑',
+      copy: 'Future You has become mayor of Buffet Town. Both hands approve this timeline.',
+      body: 'assets/future/feast-200.webp',
+      stats: [['Plate power', '2×'], ['Snack gravity', 'Legendary'], ['Fridge status', 'Needs backup']]
+    };
+  }
+  if (intake === 150) {
+    return {
+      title: 'Feast Mode',
+      icon: '🍕',
+      copy: 'The portions got ambitious, the shirt got roomier, and Future You still found space for dessert.',
+      body: 'assets/future/feast-150.webp',
+      stats: [['Plate power', '1.5×'], ['Snack gravity', 'Strong'], ['Grocery cart', 'Very busy']]
+    };
+  }
+  return {
+    title: 'Original Recipe',
+    icon: '🙂',
+    copy: 'Your usual food rhythm, starring the current you. Turn the dial to enter a sillier universe.',
+    body: '',
+    stats: [['Plate power', '1×'], ['Snack gravity', 'Normal'], ['Fridge status', 'All good']]
+  };
+}
+
+function futureFeastCharacterMarkup(simulation, feastMode) {
+  if (!feastMode.body) {
+    return `<div class="future-feast-current"><div>${avatarMarkup(appState.currentMember)}</div><span>Current You</span></div>`;
+  }
+  return `
+    <div class="future-feast-character feast-${simulation.intake}">
+      <img class="future-feast-body" src="${feastMode.body}" alt="Playful ${feastMode.title} cartoon body">
+      <div class="future-feast-face">${avatarMarkup(appState.currentMember)}</div>
+    </div>`;
+}
+
 function renderFutureYou() {
   const container = document.getElementById('futureYouContent');
   if (!container || !appState.currentMember) return;
   const simulation = buildFutureYouSimulation();
   const milestones = buildFutureMilestones(simulation);
+  const feastMode = buildFeastModeContent(simulation.intake);
   const pathOptions = [
     { id: 'steady', icon: '🛤️', title: 'Keep my rhythm', copy: 'See where today’s habits could lead.' },
     { id: 'gentle', icon: '✨', title: 'One small shift', copy: 'Add a little structure, keep favorite foods.' },
@@ -5413,6 +5468,21 @@ function renderFutureYou() {
           <strong>${escapeHtml(simulation.persona.title)}</strong><small>${escapeHtml(simulation.persona.badge)}</small>
         </div>
       </section>
+      <section class="future-feast-section feast-level-${simulation.intake}">
+        <div class="future-feast-copy">
+          <p class="eyebrow">What if I eat more?</p>
+          <h3>Turn up the feast dial</h3>
+          <p>This is a funny AI-made avatar remix, not a body or health prediction.</p>
+          <div class="future-intake-switch" aria-label="Choose a playful food level">
+            <button class="${simulation.intake === 100 ? 'active' : ''}" data-future-intake="100" type="button"><b>100%</b><span>My usual</span></button>
+            <button class="${simulation.intake === 150 ? 'active' : ''}" data-future-intake="150" type="button"><b>150%</b><span>Feast Mode</span></button>
+            <button class="${simulation.intake === 200 ? 'active' : ''}" data-future-intake="200" type="button"><b>200%</b><span>Mega Feast</span></button>
+          </div>
+          <div class="future-feast-message"><span>${feastMode.icon}</span><div><strong>${feastMode.title}</strong><p>${feastMode.copy}</p></div></div>
+          <div class="future-feast-stats">${feastMode.stats.map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join('')}</div>
+        </div>
+        <div class="future-feast-stage">${futureFeastCharacterMarkup(simulation, feastMode)}</div>
+      </section>
       <section class="future-control-section">
         <div class="future-section-heading"><div><p class="eyebrow">Choose a storyline</p><h3>How does Future You get there?</h3></div><span>${simulation.confidence}</span></div>
         <div class="future-path-grid">${pathOptions.map((option) => `<button class="future-path-card${simulation.path === option.id ? ' active' : ''}" data-future-path="${option.id}" type="button"><span>${option.icon}</span><strong>${option.title}</strong><small>${option.copy}</small></button>`).join('')}</div>
@@ -5430,7 +5500,7 @@ function renderFutureYou() {
         <div class="future-section-heading"><div><p class="eyebrow">Your story arc</p><h3>Future food memories</h3></div></div>
         <div class="future-timeline">${milestones.map((milestone, index) => `<article><span>${index + 1}</span><div><small>${milestone.label}</small><strong>${escapeHtml(milestone.title)}</strong><p>${escapeHtml(milestone.copy)}</p></div></article>`).join('')}</div>
       </section>
-      <p class="future-disclaimer">For fun and motivation, based on your logged food habits. This is not medical advice or a prediction of health outcomes.</p>
+      <p class="future-disclaimer">For fun and motivation only. Avatar changes are fictional AI illustrations, not predictions of body shape, weight, or health outcomes.</p>
     </div>`;
 }
 
