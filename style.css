@@ -1885,6 +1885,15 @@ h1 span {
   line-height: 1.55;
 }
 
+.empty-meal-card {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+
+.empty-meal-card .empty-state-action {
+  margin-top: 12px;
+}
+
 .meal-description {
   display: block;
   margin-top: 6px;

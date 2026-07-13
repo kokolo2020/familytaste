@@ -366,7 +366,7 @@
     if (existing?.length) return;
 
     const starterMembers = [
-      { family_id: familyId, name: ownerName, avatar: '👤', role: 'Family Admin' }
+      { family_id: familyId, name: ownerName, avatar: '👤', role: 'Personal profile' }
     ];
 
     const { error: insertError } = await client.from('members').insert(starterMembers);

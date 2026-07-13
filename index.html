@@ -47,9 +47,9 @@
           </div>
         </form>
         <form id="authFamilyForm" class="auth-card hidden">
-          <p class="auth-helper">Create the name for your personal meal map.</p>
+          <p class="auth-helper">Create the private space where your meals, goals, and wellness history will live.</p>
           <label>Meal map name
-            <input id="authFamilyNameInput" type="text" autocomplete="organization" placeholder="MyMealMap" required>
+            <input id="authFamilyNameInput" type="text" autocomplete="organization" placeholder="Koko's Meal Map" required>
           </label>
           <button id="authCreateFamilyButton" class="primary-button" type="submit">Create meal map</button>
           <button id="authSignOutButton" class="secondary-button" type="button">Sign out</button>
@@ -118,7 +118,7 @@
                 <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
               </section>
 
-              <details class="yesterday-diary-card dashboard-card">
+              <details id="dashboardHistoryCard" class="yesterday-diary-card dashboard-card">
                 <summary>
                   <span class="yesterday-diary-icon">📅</span>
                   <span><strong id="foodHistoryTitle">Yesterday’s Food Diary</strong><small id="yesterdayDiarySummary">0 meals · 0 cal</small></span>
@@ -727,7 +727,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="app.js?v=20260713b"></script>
+  <script src="supabase.js?v=20260713a"></script>
+  <script src="app.js?v=20260713c"></script>
 </body>
 </html>

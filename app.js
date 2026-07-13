@@ -438,17 +438,12 @@ function looksLikeUuid(value) {
 
 function getDefaultAppMembers() {
   return [
-    { id: 'me', name: 'My Profile', avatar: '👤', role: 'Primary profile', photo: 'assets/avatars/dad.jpg' },
-    { id: 'add', name: 'Add Profile', avatar: '＋', role: 'Create another profile' }
+    { id: 'me', name: 'My Profile', avatar: '👤', role: 'Personal profile', photo: '' }
   ];
 }
 
 function getDefaultFavoriteRestaurants() {
-  return [
-    { id: 'fav-1', name: 'Grandma Kitchen', phone: 'Add number', address: 'Near home', notes: 'Comfort food for Sunday dinner.' },
-    { id: 'fav-2', name: 'Pizza Company', phone: '1112', address: 'Delivery', notes: 'Fast Friday-night order.' },
-    { id: 'fav-3', name: 'Sushi Family Bar', phone: 'Add number', address: 'City center', notes: 'Daughter always votes for salmon rolls.' }
-  ];
+  return [];
 }
 
 function resetFamilyState() {
@@ -615,8 +610,25 @@ function renderAuthState() {
     subtitle.textContent = 'Enter the code from your email. If your email app opens the sign-in link here, that also works.';
   } else if (state === 'needs_family') {
     title.textContent = 'Create your meal map';
-    subtitle.textContent = 'This email is signed in, but it is not linked to a personal meal space yet.';
+    subtitle.textContent = 'This email is signed in. Create your private meal space to continue.';
+    const familyNameInput = document.getElementById('authFamilyNameInput');
+    if (familyNameInput && !familyNameInput.value.trim()) {
+      familyNameInput.value = buildSuggestedMealMapName(appState.auth.user?.email || appState.auth.pendingEmail || '');
+    }
   }
+}
+
+function buildSuggestedMealMapName(email = '') {
+  const localPart = String(email || '').split('@')[0] || '';
+  const cleaned = localPart.replace(/[._-]+/g, ' ').trim();
+  if (!cleaned) return 'MyMealMap';
+  const name = cleaned
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+  return `${name}'s Meal Map`;
 }
 
 function formatAuthError(error) {
@@ -1487,6 +1499,8 @@ function renderDashboard() {
 }
 
 function renderDashboardHistory(memberMeals, yesterdayMeals) {
+  const historyCard = document.getElementById('dashboardHistoryCard');
+  if (historyCard) historyCard.classList.toggle('hidden', !memberMeals.length);
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const historyMeals = dashboardHistoryRange === 'week'
     ? memberMeals.filter((meal) => new Date(meal.eaten_at || meal.created_at).getTime() >= weekAgo)
@@ -2381,7 +2395,7 @@ function renderFoodList(elementId, meals, emptyMessage) {
   const orderedMeals = [...meals].sort(compareDashboardMealOrder);
   const groupedMarkup = buildDashboardMealGroups(orderedMeals);
   document.getElementById(elementId).innerHTML =
-    groupedMarkup || emptyState(emptyMessage);
+    groupedMarkup || dashboardMealEmptyState(emptyMessage);
 }
 
 let editingMealId = null;
@@ -4613,7 +4627,7 @@ function defaultProfilePhoto(member) {
   };
   const idKey = String(member.id || '').toLowerCase();
   const nameKey = String(member.name || '').toLowerCase();
-  return map[idKey] || map[nameKey] || 'assets/avatars/dad.jpg';
+  return map[idKey] || map[nameKey] || '';
 }
 
 function applyStoredProfilePhotos() {
@@ -4944,6 +4958,19 @@ function restaurantEmoji(name = '') {
   if (lower.includes('sushi')) return '🍣';
   if (lower.includes('kitchen')) return '🥘';
   return '🍽️';
+}
+
+function dashboardMealEmptyState(message) {
+  return `
+    <article class="meal-card empty-meal-card">
+      <span class="meal-emoji">🍽️</span>
+      <div>
+        <h4>${message}</h4>
+        <p>Start by scanning a meal photo or adding your first entry.</p>
+        <button class="secondary-button empty-state-action" data-page="snap" type="button">Add your first meal</button>
+      </div>
+    </article>
+  `;
 }
 
 function emptyState(message) {
