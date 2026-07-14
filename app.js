@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.14.2';
+const APP_VERSION = 'v1.14.3';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -591,6 +591,7 @@ function renderAuthState() {
   const isReady = state === 'ready';
   authGate.classList.toggle('is-loading', state === 'loading');
   authGate.classList.toggle('hidden', isReady);
+  document.getElementById('mobileNav')?.classList.toggle('hidden', !isReady);
   if (isReady) {
     if (!appState.currentMember) {
       const defaultMember = getDefaultMember();
@@ -671,6 +672,7 @@ function readPendingOtpEmail() {
   return String(
     sessionStorage.getItem(pendingOtpEmailStorageKey)
     || localStorage.getItem(pendingOtpEmailStorageKey)
+    || window.history.state?.pendingOtpEmail
     || ''
   ).trim().toLowerCase();
 }
@@ -680,11 +682,22 @@ function savePendingOtpEmail(email) {
   if (!normalizedEmail) return;
   sessionStorage.setItem(pendingOtpEmailStorageKey, normalizedEmail);
   localStorage.setItem(pendingOtpEmailStorageKey, normalizedEmail);
+  window.history.replaceState(
+    { ...(window.history.state || {}), pendingOtpEmail: normalizedEmail },
+    '',
+    `${window.location.pathname}${window.location.search}#verify-code`
+  );
 }
 
 function clearPendingOtpEmail() {
   sessionStorage.removeItem(pendingOtpEmailStorageKey);
   localStorage.removeItem(pendingOtpEmailStorageKey);
+  const nextState = { ...(window.history.state || {}) };
+  delete nextState.pendingOtpEmail;
+  const nextUrl = window.location.hash === '#verify-code'
+    ? `${window.location.pathname}${window.location.search}`
+    : window.location.href;
+  window.history.replaceState(nextState, '', nextUrl);
 }
 
 async function bootstrapAuth() {
@@ -1264,18 +1277,26 @@ async function handleAuthEmailSubmit(event) {
     return;
   }
 
+  appState.auth.pendingEmail = email;
+  appState.auth.status = 'otp_sent';
+  savePendingOtpEmail(email);
+  renderAuthState();
+  setAuthFeedback('Sending your code…');
+  document.getElementById('authOtpInput')?.focus();
+
   try {
-    setAuthFeedback('Sending your code…');
     await window.familyBitesDb.sendOtp(email);
-    appState.auth.pendingEmail = email;
-    appState.auth.status = 'otp_sent';
-    savePendingOtpEmail(email);
     setAuthFeedback(`Code sent to ${email}.`, 'success');
-    renderAuthState();
-    document.getElementById('authOtpInput')?.focus();
   } catch (error) {
     console.warn('OTP send failed.', error);
-    setAuthFeedback(formatAuthError(error), 'error');
+    const message = String(error?.message || '').toLowerCase();
+    const codeMayAlreadyExist = message.includes('security purposes') || message.includes('rate limit');
+    setAuthFeedback(
+      codeMayAlreadyExist
+        ? 'A code was already requested. Check your email or wait a minute before resending.'
+        : `${formatAuthError(error)} If a code arrived, you can still enter it here.`,
+      codeMayAlreadyExist ? 'success' : 'error'
+    );
   }
 }
 
