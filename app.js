@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.13.0';
+const APP_VERSION = 'v1.14.0';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -1977,7 +1977,13 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
   const rightColumn = document.getElementById('bodyMapRight');
   const focusCards = document.getElementById('bodyFocusCards');
   const actionList = document.getElementById('bodyActionList');
+  const bodyFigure = document.querySelector('.body-map-figure');
   if (!leftColumn || !rightColumn || !focusCards || !actionList) return;
+
+  const member = appState.currentMember;
+  const savedSex = String(appState.profileMeasurements[member?.id]?.sex || member?.sex || '').trim().toLowerCase();
+  const inferredMale = /\b(dad|papa|father)\b/i.test(member?.name || '');
+  if (bodyFigure) bodyFigure.dataset.avatarSex = savedSex === 'male' || (!savedSex && inferredMale) ? 'male' : 'female';
 
   const leftPositions = ['brain', 'liver', 'muscles', 'joints', 'immunity', 'energy'];
   const rightPositions = ['heart', 'eyes', 'digestion', 'skin', 'recovery', 'bones'];

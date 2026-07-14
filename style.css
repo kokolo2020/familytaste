@@ -347,6 +347,10 @@
   transition: filter .28s ease, opacity .28s ease;
 }
 
+.body-map-base-male { display: none !important; }
+.body-map-figure[data-avatar-sex="male"] .body-map-base-female { display: none !important; }
+.body-map-figure[data-avatar-sex="male"] .body-map-base-male { display: block !important; }
+
 .body-map-anatomy {
   position: absolute;
   inset: 0;
