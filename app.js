@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.12.0';
+const APP_VERSION = 'v1.13.0';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -2082,6 +2082,7 @@ function setBodyMapSpotlightActive(position, active) {
   if (!figure || !hotspot) return;
 
   figure.classList.toggle('is-inspecting', active);
+  figure.dataset.activeSystem = active ? position : '';
   hotspot.classList.toggle('is-active', active);
   card?.classList.toggle('is-active', active);
   if (label) {

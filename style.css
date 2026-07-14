@@ -347,6 +347,31 @@
   transition: filter .28s ease, opacity .28s ease;
 }
 
+.body-map-anatomy {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  height: 100%;
+  opacity: 0;
+  clip-path: ellipse(var(--reveal-width, 0%) var(--reveal-height, 0%) at var(--reveal-x, 50%) var(--reveal-y, 50%));
+  filter: saturate(1.2) brightness(1.06) drop-shadow(0 0 12px rgba(255, 110, 55, .2)) !important;
+  transition: clip-path .3s cubic-bezier(.2, .8, .2, 1), opacity .2s ease !important;
+}
+
+.body-map-figure.is-inspecting .body-map-anatomy { opacity: 1; }
+.body-map-figure[data-active-system="eyes"] .body-map-anatomy,
+.body-map-figure[data-active-system="skin"] .body-map-anatomy { opacity: 0; }
+.body-map-figure[data-active-system="brain"] { --reveal-x: 50%; --reveal-y: 6%; --reveal-width: 15%; --reveal-height: 6%; }
+.body-map-figure[data-active-system="heart"] { --reveal-x: 55%; --reveal-y: 26%; --reveal-width: 11%; --reveal-height: 8%; }
+.body-map-figure[data-active-system="liver"] { --reveal-x: 42%; --reveal-y: 31%; --reveal-width: 15%; --reveal-height: 8%; }
+.body-map-figure[data-active-system="digestion"] { --reveal-x: 50%; --reveal-y: 43%; --reveal-width: 20%; --reveal-height: 16%; }
+.body-map-figure[data-active-system="muscles"] { --reveal-x: 29%; --reveal-y: 46%; --reveal-width: 17%; --reveal-height: 25%; }
+.body-map-figure[data-active-system="joints"] { --reveal-x: 40%; --reveal-y: 68%; --reveal-width: 12%; --reveal-height: 9%; }
+.body-map-figure[data-active-system="immunity"] { --reveal-x: 49%; --reveal-y: 35%; --reveal-width: 17%; --reveal-height: 11%; }
+.body-map-figure[data-active-system="energy"] { --reveal-x: 50%; --reveal-y: 49%; --reveal-width: 30%; --reveal-height: 29%; }
+.body-map-figure[data-active-system="recovery"] { --reveal-x: 35%; --reveal-y: 56%; --reveal-width: 17%; --reveal-height: 20%; }
+.body-map-figure[data-active-system="bones"] { --reveal-x: 63%; --reveal-y: 70%; --reveal-width: 13%; --reveal-height: 25%; }
+
 .body-map-visual {
   position: relative;
   width: min(100%, 270px);
@@ -355,6 +380,7 @@
 .body-map-hotspots {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -380,7 +406,7 @@
   animation: body-hotspot-pulse 1.8s ease-in-out infinite;
 }
 
-.body-map-figure.is-inspecting img {
+.body-map-figure.is-inspecting .body-map-base {
   filter: saturate(.72) brightness(.78) drop-shadow(0 18px 24px rgba(142, 75, 33, .12));
   opacity: .82;
 }
@@ -389,7 +415,7 @@
   position: absolute;
   left: 50%;
   bottom: 4%;
-  z-index: 2;
+  z-index: 3;
   padding: 7px 12px;
   border: 1px solid rgba(255, 255, 255, .8);
   border-radius: 999px;
@@ -409,8 +435,12 @@
   transform: translate(-50%, 0);
 }
 
-[data-body-hotspot="brain"] { --hotspot-x: 50%; --hotspot-y: 8%; --hotspot-width: 29%; --hotspot-height: 9%; --hotspot-color: 213, 79, 235; }
-[data-body-hotspot="eyes"] { --hotspot-x: 50%; --hotspot-y: 12%; --hotspot-width: 18%; --hotspot-height: 4%; --hotspot-color: 84, 205, 255; }
+[data-body-hotspot="brain"] { --hotspot-x: 50%; --hotspot-y: 6%; --hotspot-width: 29%; --hotspot-height: 9%; --hotspot-color: 213, 79, 235; }
+[data-body-hotspot="eyes"] { --hotspot-x: 50%; --hotspot-y: 9.3%; --hotspot-width: 18%; --hotspot-height: 4%; --hotspot-color: 84, 205, 255; background: none !important; box-shadow: none !important; }
+[data-body-hotspot="eyes"]::before,
+[data-body-hotspot="eyes"]::after { content: ''; position: absolute; top: 50%; width: 28%; height: 62%; border-radius: 50%; background: radial-gradient(ellipse, rgba(84, 205, 255, 1), rgba(84, 205, 255, .28) 58%, transparent 72%); box-shadow: 0 0 10px rgba(84, 205, 255, .8); transform: translateY(-50%); }
+[data-body-hotspot="eyes"]::before { left: 4%; }
+[data-body-hotspot="eyes"]::after { right: 4%; }
 [data-body-hotspot="heart"] { --hotspot-x: 55%; --hotspot-y: 28%; --hotspot-width: 20%; --hotspot-height: 12%; --hotspot-color: 255, 55, 84; }
 [data-body-hotspot="liver"] { --hotspot-x: 42%; --hotspot-y: 32%; --hotspot-width: 29%; --hotspot-height: 12%; --hotspot-color: 255, 163, 47; }
 [data-body-hotspot="digestion"] { --hotspot-x: 50%; --hotspot-y: 43%; --hotspot-width: 34%; --hotspot-height: 22%; --hotspot-color: 255, 143, 43; }
