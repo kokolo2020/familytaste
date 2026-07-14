@@ -38,7 +38,7 @@ const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.9.1';
+const APP_VERSION = 'v1.10.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -1113,7 +1113,7 @@ function showDailySummaryIntro() {
   const todayMeals = getMemberMeals().filter(isToday);
   if (!overlay || !todayMeals.length || localStorage.getItem(seenKey)) return false;
 
-  const colors = ['#ff9b36', '#f5c451', '#9fd36b', '#47a77d', '#e66d53', '#e49aaf', '#7f9bd7', '#c58dd8'];
+  const colors = ['#d96b2b', '#d9a632', '#6d9b60', '#347966', '#b95343', '#ad7187', '#637fae', '#8e6fa0'];
   const grouped = new Map();
   todayMeals.forEach((meal) => {
     const name = String(meal.food_name || 'Saved dish').trim() || 'Saved dish';
@@ -1138,15 +1138,20 @@ function showDailySummaryIntro() {
   const pie = document.getElementById('dailyCaloriePie');
   if (pie) pie.style.background = `conic-gradient(${slices.join(', ')})`;
   setText('dailySummaryTotalCalories', totalCalories.toLocaleString());
-  setText('dailySummaryMealCount', `${dishes.length} dish${dishes.length === 1 ? '' : 'es'} today`);
-  setText('dailySummaryIntroSubtitle', `${todayMeals.length} meal entr${todayMeals.length === 1 ? 'y' : 'ies'} make up today’s ${totalCalories.toLocaleString()} calories.`);
+  setText('dailySummaryMealCount', `${dishes.length} dish${dishes.length === 1 ? '' : 'es'}`);
+  const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date());
+  setText('dailySummaryIntroSubtitle', `${todayLabel} · ${dishes.length} dish${dishes.length === 1 ? '' : 'es'} logged`);
   const legend = document.getElementById('dailySummaryDishLegend');
   if (legend) {
     const visibleDishes = dishes.slice(0, 5);
     legend.innerHTML = visibleDishes.map((dish) => `
       <article>
         <i style="--dish-color:${dish.color}"></i>
-        <span><strong>${escapeHtml(dish.name)}</strong><small>${dish.percent}% of today</small></span>
+        <span>
+          <strong>${escapeHtml(dish.name)}</strong>
+          <small>${dish.percent}% of today</small>
+          <em><u style="--dish-color:${dish.color};--dish-percent:${dish.percent}%"></u></em>
+        </span>
         <b>${dish.calories.toLocaleString()} cal</b>
       </article>
     `).join('') + (dishes.length > visibleDishes.length ? `<p>+${dishes.length - visibleDishes.length} more dish${dishes.length - visibleDishes.length === 1 ? '' : 'es'}</p>` : '');

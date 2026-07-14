@@ -988,30 +988,33 @@ img {
   background: rgba(255, 245, 243, 0.98);
 }
 
-.daily-summary-intro { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 22px; overflow-y: auto; opacity: 0; background: radial-gradient(circle at 15% 12%, rgba(255, 178, 76, .32), transparent 30%), radial-gradient(circle at 90% 88%, rgba(96, 154, 105, .24), transparent 28%), #f8f1e7; transition: opacity .28s ease; }
+.daily-summary-intro { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 22px; overflow-y: auto; opacity: 0; background: radial-gradient(circle at 12% 10%, rgba(211, 137, 69, .18), transparent 31%), radial-gradient(circle at 88% 90%, rgba(76, 126, 91, .13), transparent 30%), #f3eee7; transition: opacity .28s ease; }
 .daily-summary-intro.is-visible { opacity: 1; }
-.daily-summary-intro-card { position: relative; width: min(760px, 100%); max-height: calc(100svh - 44px); overflow: auto; padding: 26px; border: 1px solid rgba(98, 65, 34, .12); border-radius: 30px; background: rgba(255, 253, 248, .96); box-shadow: 0 28px 80px rgba(63, 43, 25, .18); transform: translateY(16px) scale(.98); transition: transform .38s cubic-bezier(.2,.75,.25,1); }
+.daily-summary-intro-card { position: relative; width: min(700px, 100%); max-height: calc(100svh - 44px); overflow: auto; padding: 26px; border: 1px solid rgba(98, 65, 34, .1); border-radius: 24px; background: #fcfaf6; box-shadow: 0 24px 70px rgba(63, 43, 25, .16); transform: translateY(16px) scale(.98); transition: transform .38s cubic-bezier(.2,.75,.25,1); }
 .daily-summary-intro.is-visible .daily-summary-intro-card { transform: translateY(0) scale(1); }
-.daily-summary-intro-card::before { content: ""; position: absolute; top: -90px; right: -80px; width: 220px; height: 220px; border: 1px solid rgba(224, 126, 47, .12); border-radius: 50%; box-shadow: 0 0 0 30px rgba(224, 126, 47, .04), 0 0 0 62px rgba(224, 126, 47, .025); pointer-events: none; }
+.daily-summary-intro-card::before { content: ""; position: absolute; top: -105px; right: -95px; width: 220px; height: 220px; border: 1px solid rgba(190, 111, 55, .1); border-radius: 50%; box-shadow: 0 0 0 34px rgba(190, 111, 55, .025); pointer-events: none; }
 .daily-summary-intro-card > header { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.daily-summary-intro-card header .eyebrow { margin: 0 0 6px; color: #dc641d; font-size: 10px; letter-spacing: .12em; }
-.daily-summary-intro-card h1 { margin: 0; color: #2c2118; font: 750 clamp(34px, 5vw, 54px)/.98 "Playfair Display", Georgia, serif; letter-spacing: -.025em; }
-.daily-summary-intro-card header p:last-child { margin: 9px 0 0; color: #87776a; font-size: 13px; }
+.daily-summary-intro-card > header > div { min-width: 0; }
+.daily-summary-intro-card header .eyebrow { margin: 0 0 6px; color: #b95729; font-size: 9px; letter-spacing: .14em; }
+.daily-summary-intro-card h1 { margin: 0; color: #2c2118; font: 750 clamp(30px, 4vw, 42px)/1 "Playfair Display", Georgia, serif; letter-spacing: -.025em; }
+.daily-summary-intro-card header p:last-child { margin: 8px 0 0; color: #87776a; font-size: 12px; }
 .daily-summary-skip { position: relative; display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border: 1px solid #e9ddd0; border-radius: 50%; color: #6f6257; background: #fff; font-size: 22px; line-height: 1; }
-.daily-summary-intro-content { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; align-items: center; margin: 24px 0 20px; }
+.daily-summary-intro-content { display: grid; grid-template-columns: 225px minmax(0, 1fr); gap: 30px; align-items: center; margin: 22px 0 20px; }
 .daily-calorie-pie-wrap { display: grid; justify-items: center; gap: 10px; }
-.daily-calorie-pie { display: grid; place-items: center; width: 250px; height: 250px; padding: 24px; border-radius: 50%; box-shadow: 0 18px 34px rgba(79, 55, 31, .16); transform: rotate(-50deg) scale(.82); animation: daily-pie-arrive .7s cubic-bezier(.16,.82,.25,1) .16s forwards; }
-.daily-calorie-pie > div { display: grid; place-content: center; width: 132px; height: 132px; border: 8px solid rgba(255,255,255,.75); border-radius: 50%; background: #fffdf8; box-shadow: 0 10px 25px rgba(70, 47, 26, .14); text-align: center; transform: rotate(50deg); }
-.daily-calorie-pie strong { color: #2d3e31; font: 800 34px/1 "Playfair Display", Georgia, serif; }
-.daily-calorie-pie span { margin-top: 4px; color: #99897a; font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .09em; }
-.daily-summary-meal-count { color: #76685c; font-size: 11px; font-weight: 850; }
+.daily-calorie-pie { display: grid; place-items: center; width: 215px; height: 215px; padding: 20px; border-radius: 50%; box-shadow: 0 16px 30px rgba(79, 55, 31, .14); transform: scale(.86); animation: daily-pie-arrive .6s cubic-bezier(.16,.82,.25,1) .12s forwards; }
+.daily-calorie-pie > div { display: grid; place-content: center; width: 112px; height: 112px; border: 6px solid rgba(255,255,255,.72); border-radius: 50%; background: #fffdf9; box-shadow: 0 8px 20px rgba(70, 47, 26, .12); text-align: center; }
+.daily-calorie-pie strong { color: #294336; font: 800 31px/1 "Playfair Display", Georgia, serif; }
+.daily-calorie-pie span { margin-top: 3px; color: #8c7f73; font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .09em; }
+.daily-calorie-pie small { margin-top: 4px; color: #b15c2d; font-size: 8px; font-weight: 850; }
 .daily-summary-dish-legend { display: grid; gap: 7px; min-width: 0; }
-.daily-summary-dish-legend article { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-width: 0; padding: 10px 12px; border: 1px solid #eee4d9; border-radius: 13px; background: #fff; }
-.daily-summary-dish-legend article > i { width: 10px; height: 34px; border-radius: 99px; background: var(--dish-color); }
-.daily-summary-dish-legend article > span { display: grid; gap: 2px; min-width: 0; }
-.daily-summary-dish-legend article strong { overflow: hidden; color: #382b22; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.daily-summary-dish-legend article { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; gap: 10px; align-items: start; min-width: 0; padding: 10px 12px; border: 1px solid #ebe2d8; border-radius: 12px; background: #fff; }
+.daily-summary-dish-legend article > i { width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; background: var(--dish-color); }
+.daily-summary-dish-legend article > span { display: grid; gap: 3px; min-width: 0; }
+.daily-summary-dish-legend article strong { display: -webkit-box; overflow: hidden; color: #382b22; font-size: 12px; line-height: 1.2; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .daily-summary-dish-legend article small { color: #9a8b7e; font-size: 9px; }
 .daily-summary-dish-legend article > b { color: #4a7742; font-size: 11px; white-space: nowrap; }
+.daily-summary-dish-legend article em { display: block; height: 4px; overflow: hidden; border-radius: 99px; background: #eee9e3; }
+.daily-summary-dish-legend article em u { display: block; width: var(--dish-percent); height: 100%; border-radius: inherit; background: var(--dish-color); text-decoration: none; }
 .daily-summary-dish-legend > p { margin: 1px 0 0; color: #89796b; font-size: 10px; text-align: right; }
 .daily-summary-intro-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; border-top: 1px solid #eee4d9; }
 .daily-summary-hide-option { display: flex; align-items: center; gap: 10px; color: #5d5045; cursor: pointer; }
@@ -1021,7 +1024,7 @@ img {
 .daily-summary-hide-option small { color: #988a7d; font-size: 9px; }
 .daily-summary-continue { padding: 10px 15px; border-radius: 999px; color: #fff; background: #e87527; font-size: 10px; font-weight: 850; box-shadow: 0 7px 16px rgba(216, 99, 29, .2); }
 
-@keyframes daily-pie-arrive { to { transform: rotate(0) scale(1); } }
+@keyframes daily-pie-arrive { to { transform: scale(1); } }
 @media (max-width: 620px) {
   .daily-summary-intro { place-items: center; padding: 10px; }
   .daily-summary-intro-card { max-height: calc(100svh - 20px); padding: 15px; border-radius: 20px; }
@@ -1035,7 +1038,6 @@ img {
   .daily-calorie-pie > div { width: 78px; height: 78px; border-width: 5px; }
   .daily-calorie-pie strong { font-size: 21px; }
   .daily-calorie-pie span { margin-top: 2px; font-size: 7px; }
-  .daily-summary-meal-count { font-size: 9px; text-align: center; }
   .daily-summary-dish-legend { gap: 4px; }
   .daily-summary-dish-legend article { grid-template-columns: 8px minmax(0, 1fr) auto; gap: 7px; padding: 7px 8px; border-radius: 10px; }
   .daily-summary-dish-legend article > i { width: 7px; height: 25px; }

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260713p" />
+  <link rel="stylesheet" href="style.css?v=20260714a" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -82,18 +82,17 @@
       <div class="daily-summary-intro-card">
         <header>
           <div>
-            <p class="eyebrow">Today at a glance</p>
-            <h1 id="dailySummaryIntroTitle">Your day, plated.</h1>
-            <p id="dailySummaryIntroSubtitle">A quick look at where today’s calories came from.</p>
+            <p class="eyebrow">Daily food brief</p>
+            <h1 id="dailySummaryIntroTitle">Today’s calorie mix</h1>
+            <p id="dailySummaryIntroSubtitle">A clear breakdown of today’s logged dishes.</p>
           </div>
           <button class="daily-summary-skip" data-action="close-daily-summary" type="button" aria-label="Close daily summary">×</button>
         </header>
         <div class="daily-summary-intro-content">
           <div class="daily-calorie-pie-wrap">
             <div id="dailyCaloriePie" class="daily-calorie-pie">
-              <div><strong id="dailySummaryTotalCalories">0</strong><span>calories</span></div>
+              <div><strong id="dailySummaryTotalCalories">0</strong><span>calories</span><small id="dailySummaryMealCount">0 dishes</small></div>
             </div>
-            <span id="dailySummaryMealCount" class="daily-summary-meal-count">0 dishes today</span>
           </div>
           <div id="dailySummaryDishLegend" class="daily-summary-dish-legend"></div>
         </div>
@@ -748,6 +747,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260713q"></script>
+  <script src="app.js?v=20260714a"></script>
 </body>
 </html>
