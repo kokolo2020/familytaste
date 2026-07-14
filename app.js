@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.14.0';
+const APP_VERSION = 'v1.14.1';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -556,7 +556,7 @@ function restoreUiStateAfterAuth() {
   updateProfileUi();
   landing?.classList.add('hidden');
   workspace?.classList.remove('hidden');
-  showPage(savedState.page || 'dashboard');
+  showPage(savedState?.page || 'dashboard');
   return true;
 }
 
