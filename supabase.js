@@ -1,6 +1,7 @@
 (function initFamilyBitesSupabase() {
   const url = window.FAMILYBITES_SUPABASE_URL || 'https://mjnigheggxtythytsqle.supabase.co';
   const anonKey = window.FAMILYBITES_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qbmlnaGVnZ3h0eXRoeXRzcWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzYwMDcsImV4cCI6MjA5NTY1MjAwN30.mh1psePuKeQ8SH5uita7BsUKd6wd5IwHVVlDmJCMA0Q';
+  const authRedirectUrl = window.FAMILYBITES_AUTH_REDIRECT_URL || 'https://mymealmap1.netlify.app/';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
@@ -27,7 +28,7 @@
       const { error } = await client.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}${window.location.pathname}`
+          emailRedirectTo: authRedirectUrl
         }
       });
       if (error) throw error;
