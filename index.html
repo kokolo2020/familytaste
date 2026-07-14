@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260714j" />
+  <link rel="stylesheet" href="style.css?v=20260714k" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -163,6 +163,43 @@
                 <p id="dashboardDate" class="dashboard-date">Today</p>
                 <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
               </div>
+
+              <section id="dailyCompass" class="daily-compass dashboard-card" aria-labelledby="dailyCompassTitle">
+                <header class="daily-compass-header">
+                  <div>
+                    <p class="eyebrow">Your Daily Compass</p>
+                    <h3 id="dailyCompassTitle">Today, at a glance</h3>
+                  </div>
+                  <span id="dailyCompassStatus" class="daily-compass-status">Ready to begin</span>
+                </header>
+                <div class="daily-compass-layout">
+                  <button class="daily-compass-ring" data-page="timeline" type="button" aria-label="Open today’s food diary">
+                    <span><strong id="dailyCompassCalories">0</strong><small>of <b id="dailyCompassGoal">2,200</b> cal</small></span>
+                  </button>
+                  <div class="daily-compass-progress">
+                    <div>
+                      <span id="dailyCompassRemainingLabel">Remaining today</span>
+                      <strong id="dailyCompassRemaining">2,200 cal</strong>
+                    </div>
+                    <i><em id="dailyCompassBar"></em></i>
+                    <small id="dailyCompassProgressCopy">Your first meal starts today’s map.</small>
+                  </div>
+                  <div class="daily-compass-metrics">
+                    <button data-page="timeline" type="button"><span>Food score</span><strong id="dailyCompassFoodScore">--</strong><small>average</small></button>
+                    <button data-page="timeline" type="button"><span>Variety</span><strong id="dailyCompassVariety">0</strong><small>foods</small></button>
+                    <button data-page="timeline" type="button"><span>Dishes</span><strong id="dailyCompassDishes">0</strong><small>today</small></button>
+                  </div>
+                </div>
+                <div class="daily-compass-insight">
+                  <span>✦</span>
+                  <p><strong>Today’s observation</strong><span id="dailyCompassInsight">Log your first meal to reveal your daily pattern.</span></p>
+                </div>
+                <footer class="daily-compass-actions">
+                  <button class="daily-compass-primary" data-page="snap" type="button">📷 Scan next meal</button>
+                  <button data-page="timeline" type="button">Open diary</button>
+                  <button data-page="body" type="button">View food map</button>
+                </footer>
+              </section>
 
               <section class="today-food-panel dashboard-card">
                 <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
@@ -768,6 +805,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260714i"></script>
+  <script src="app.js?v=20260714j"></script>
 </body>
 </html>

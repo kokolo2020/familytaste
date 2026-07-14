@@ -637,6 +637,50 @@
 .dashboard-add-button { min-width: 98px; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--reference-orange); box-shadow: 0 8px 18px rgba(255,103,22,.25); font-weight: 800; }
 .dashboard-add-button span { margin-right: 5px; font-size: 22px; font-weight: 400; }
 
+.daily-compass {
+  position: relative;
+  padding: 18px;
+  overflow: hidden;
+  color: #f9f5eb;
+  border: 0 !important;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(245, 169, 54, .24), transparent 31%),
+    linear-gradient(135deg, #123e31 0%, #18513e 58%, #286248 100%) !important;
+  box-shadow: 0 18px 38px rgba(22, 69, 52, .2) !important;
+}
+.daily-compass::after { content: ""; position: absolute; right: -52px; bottom: -80px; width: 190px; height: 190px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 26px rgba(255,255,255,.035); pointer-events: none; }
+.daily-compass-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+#page-dashboard .daily-compass-header .eyebrow { margin: 0 0 4px; color: #f5b94f; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
+.daily-compass-header h3 { margin: 0; color: #fffdf7; font: 750 23px/1.05 "Playfair Display", Georgia, serif; }
+.daily-compass-status { padding: 6px 9px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: #e9f4ec; background: rgba(255,255,255,.09); font-size: 9px; font-weight: 850; white-space: nowrap; }
+.daily-compass-layout { position: relative; z-index: 1; display: grid; grid-template-columns: 116px minmax(120px, 1fr); gap: 16px; align-items: center; margin-top: 16px; }
+.daily-compass-ring { --compass-progress: 0deg; display: grid; place-items: center; width: 112px; height: 112px; padding: 0; border: 0; border-radius: 50%; background: radial-gradient(circle, #164735 0 55%, transparent 57%), conic-gradient(#f5a928 var(--compass-progress), rgba(255,255,255,.14) 0); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 12px 24px rgba(4,35,25,.2); }
+.daily-compass-ring > span { display: grid; gap: 3px; color: #fff; }
+.daily-compass-ring strong { font: 800 25px/1 "Playfair Display", Georgia, serif; }
+.daily-compass-ring small { color: #bcd2c6; font-size: 8px; }
+.daily-compass-ring b { color: inherit; font: inherit; }
+.daily-compass-progress { display: grid; gap: 8px; min-width: 0; }
+.daily-compass-progress > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.daily-compass-progress span { color: #bcd2c6; font-size: 10px; font-weight: 750; }
+.daily-compass-progress strong { color: #fff; font-size: 15px; }
+.daily-compass-progress > i { height: 7px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.13); }
+.daily-compass-progress > i em { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f1bd47, #ef7b27); transition: width .45s ease; }
+.daily-compass-progress > small { color: #c8dbd0; font-size: 9px; line-height: 1.35; }
+.daily-compass-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.daily-compass-metrics button { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 8px; padding: 9px 10px; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; color: #fff; background: rgba(255,255,255,.075); text-align: left; }
+.daily-compass-metrics span { grid-column: 1 / -1; color: #bcd2c6; font-size: 8px; font-weight: 750; }
+.daily-compass-metrics strong { font-size: 16px; }
+.daily-compass-metrics small { color: #d4e2da; font-size: 8px; }
+.daily-compass-insight { position: relative; z-index: 1; display: flex; gap: 9px; margin-top: 10px; padding: 10px 11px; border-radius: 10px; color: #f4b844; background: rgba(6,41,30,.28); }
+.daily-compass-insight p { display: grid; gap: 2px; margin: 0; }
+.daily-compass-insight strong { color: #fff; font-size: 9px; }
+.daily-compass-insight p span { color: #c8dbd0; font-size: 9px; line-height: 1.4; }
+.daily-compass-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 7px; margin-top: 11px; }
+.daily-compass-actions button { min-height: 36px; padding: 7px 9px; border: 1px solid rgba(255,255,255,.14); border-radius: 9px; color: #eef7f1; background: rgba(255,255,255,.08); font-size: 9px; font-weight: 850; }
+.daily-compass-actions .daily-compass-primary { border-color: #f4a421; color: #26391d; background: #f4b337; box-shadow: 0 7px 16px rgba(9,34,24,.16); }
+.daily-compass.is-over-goal .daily-compass-status { color: #ffe6d2; background: rgba(184,74,35,.35); }
+.daily-compass.is-over-goal .daily-compass-ring { background: radial-gradient(circle, #164735 0 55%, transparent 57%), conic-gradient(#ef7546 var(--compass-progress), rgba(255,255,255,.14) 0); }
+
 #page-dashboard .dashboard-card { border-color: #eeeae4; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(69,48,31,.055); }
 #page-dashboard .today-food-panel { padding: 0 13px; overflow: hidden; }
 #page-dashboard .yesterday-diary-card { padding: 0; overflow: hidden; }
@@ -4949,6 +4993,15 @@ h1 span {
   #page-dashboard .today-food-totals { margin-top: 7px; font-size: 12px; }
   #page-dashboard .dashboard-add-button { min-width: 78px; min-height: 38px; padding: 0 12px; font-size: 12px; }
   #page-dashboard .dashboard-add-button span { margin-right: 3px; font-size: 18px; }
+  #page-dashboard .daily-compass { padding: 14px; border-radius: 16px; }
+  #page-dashboard .daily-compass-header h3 { font-size: 21px; }
+  #page-dashboard .daily-compass-layout { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; margin-top: 13px; }
+  #page-dashboard .daily-compass-ring { width: 94px; height: 94px; }
+  #page-dashboard .daily-compass-ring strong { font-size: 22px; }
+  #page-dashboard .daily-compass-metrics { gap: 5px; }
+  #page-dashboard .daily-compass-metrics button { padding: 8px; }
+  #page-dashboard .daily-compass-actions { grid-template-columns: 1.35fr 1fr 1fr; gap: 5px; }
+  #page-dashboard .daily-compass-actions button { min-height: 34px; padding: 6px 5px; font-size: 8px; }
   #page-dashboard .today-food-panel { padding: 0 14px; border-radius: 16px; }
   #page-dashboard .dashboard-meal-group { margin-bottom: 8px; padding: 0 10px 2px; border-radius: 14px; }
   #page-dashboard .dashboard-meal-group-header { padding: 9px 0 6px; }

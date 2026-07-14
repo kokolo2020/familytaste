@@ -1821,6 +1821,40 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
   const progress = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
   const overGoalCalories = calorieGoal ? Math.max(calories - calorieGoal, 0) : 0;
   const isOverGoal = overGoalCalories > 0;
+  const remainingCalories = Math.max(calorieGoal - calories, 0);
+  const compassProgress = calorieGoal ? Math.min(Math.round((calories / calorieGoal) * 100), 100) : 0;
+  const mealScores = todayMeals.map((meal) => analyzeMealQuality(meal).score);
+  const averageFoodScore = mealScores.length
+    ? Math.round(mealScores.reduce((total, score) => total + score, 0) / mealScores.length)
+    : null;
+  const compassInsight = !mealCount
+    ? 'Log your first meal to reveal your daily pattern.'
+    : isOverGoal
+      ? `Today is ${overGoalCalories.toLocaleString()} calories above your target. A simpler next choice can steady the day.`
+      : averageFoodScore >= 75
+        ? 'Your food choices are scoring well today. Keep the same rhythm for your next meal.'
+        : mealCount > 1 && mealVariety <= 1
+          ? 'Today is repeating one food. A different ingredient or food group would add variety.'
+          : `${remainingCalories.toLocaleString()} calories remain, with room to make the next meal count.`;
+
+  setText('dailyCompassCalories', calories.toLocaleString());
+  setText('dailyCompassGoal', calorieGoal.toLocaleString());
+  setText('dailyCompassRemaining', `${(isOverGoal ? overGoalCalories : remainingCalories).toLocaleString()} cal`);
+  setText('dailyCompassRemainingLabel', isOverGoal ? 'Above today’s target' : 'Remaining today');
+  setText('dailyCompassProgressCopy', !mealCount
+    ? 'Your first meal starts today’s map.'
+    : `${rawProgress}% of your daily target logged.`);
+  setText('dailyCompassFoodScore', averageFoodScore === null ? '--' : averageFoodScore);
+  setText('dailyCompassVariety', mealVariety);
+  setText('dailyCompassDishes', mealCount);
+  setText('dailyCompassInsight', compassInsight);
+  setText('dailyCompassStatus', !mealCount ? 'Ready to begin' : isOverGoal ? 'Target passed' : compassProgress >= 75 ? 'Nearly there' : 'In progress');
+  const compassBar = document.getElementById('dailyCompassBar');
+  if (compassBar) compassBar.style.width = `${compassProgress}%`;
+  const compassRing = document.querySelector('.daily-compass-ring');
+  if (compassRing) compassRing.style.setProperty('--compass-progress', `${compassProgress * 3.6}deg`);
+  const compass = document.getElementById('dailyCompass');
+  if (compass) compass.classList.toggle('is-over-goal', isOverGoal);
 
   setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
   setText('dashboardMemberName', appState.currentMember?.name || 'there');
