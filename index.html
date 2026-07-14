@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260714m" />
+  <link rel="stylesheet" href="style.css?v=20260714n" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -223,6 +223,7 @@
                   <button class="daily-compass-primary" data-page="snap" type="button">📷 Scan next meal</button>
                   <button data-page="timeline" type="button">Open diary</button>
                   <button data-page="body" type="button">View food map</button>
+                  <button class="daily-compass-replay" data-page="weekly" type="button">▶ Weekly replay</button>
                   <button class="daily-compass-share" data-action="open-daily-share" type="button">↗ Share my day</button>
                 </footer>
               </section>
@@ -463,22 +464,36 @@
           <div id="favoriteGrid" class="restaurant-grid"></div>
         </section>
 
-        <section id="page-weekly" class="page" data-title="Weekly AI Report" data-kicker="Nutrition recap">
+        <section id="page-weekly" class="page" data-title="Weekly Replay" data-kicker="Your food story">
           <div class="weekly-report-shell">
-            <header class="weekly-report-hero">
+            <header class="weekly-report-hero weekly-replay-hero">
               <div>
-                <p class="eyebrow">MyMealMap insights</p>
-                <h3>Weekly Report</h3>
+                <p class="eyebrow">Your MyMealMap replay</p>
+                <h3 id="weeklyReplayTitle">Your week,<br>plated.</h3>
                 <p id="weeklyDateRange" class="weekly-date-range">Last 7 days</p>
+                <button class="weekly-replay-share" data-action="share-weekly-replay" type="button">↗ Share this replay</button>
               </div>
-              <div class="weekly-hero-art" aria-hidden="true">🥬 <span>🍅</span> 🍊</div>
+              <div class="weekly-replay-stamp" aria-hidden="true"><span id="weeklyReplayScore">--</span><small>food score</small></div>
             </header>
 
+            <section class="weekly-replay-intro" aria-labelledby="weeklyReplayPersona">
+              <div class="weekly-replay-persona">
+                <span id="weeklyReplayEmoji" aria-hidden="true">🍽️</span>
+                <div><p>Your food character</p><h4 id="weeklyReplayPersona">The Week in Progress</h4><small id="weeklyReplayPersonaCopy">Log a few meals and your food character will appear.</small></div>
+              </div>
+              <div id="weeklyReplayMoments" class="weekly-replay-moments"></div>
+            </section>
+
+            <section class="weekly-replay-strip">
+              <header><div><p class="eyebrow">Seven-day playback</p><h4>Your rhythm, day by day</h4></div><small id="weeklyReplayCoverage">Waiting for records</small></header>
+              <div id="weeklyReplayTimeline" class="weekly-replay-timeline"></div>
+            </section>
+
             <div class="weekly-stat-strip">
-              <article><span>Meals</span><strong id="reportMeals">0</strong></article>
+              <article><span>Meals replayed</span><strong id="reportMeals">0</strong></article>
               <article><span>Calories</span><strong id="reportCalories">0</strong></article>
-              <article><span>Spent</span><strong id="reportSpend">฿0</strong></article>
-              <article><span>Top food</span><strong id="reportFood">-</strong></article>
+              <article><span>Different foods</span><strong id="reportVariety">0</strong></article>
+              <article><span>Repeat favorite</span><strong id="reportFood">-</strong></article>
             </div>
 
             <section class="weekly-chart-card family-weekly-card">
@@ -502,7 +517,7 @@
             </section>
 
             <section class="weekly-chart-card">
-              <div class="weekly-card-title"><span class="weekly-card-icon peach">♨</span><div><h4>Calories This Week</h4><p>Your daily food energy</p></div></div>
+              <div class="weekly-card-title"><span class="weekly-card-icon peach">♨</span><div><h4>Calories in This Replay</h4><p>Recorded food energy by day</p></div></div>
               <div id="weeklyCalorieChart" class="weekly-bars" aria-label="Calories by day"></div>
             </section>
 
@@ -844,6 +859,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260714n"></script>
+  <script src="app.js?v=20260714o"></script>
 </body>
 </html>

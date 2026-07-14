@@ -1131,6 +1131,11 @@ function handleAction(action) {
     return;
   }
 
+  if (action === 'share-weekly-replay') {
+    shareWeeklyReplay();
+    return;
+  }
+
   if (action === 'home') {
     if (appState.auth.status !== 'ready') return;
     showPage('dashboard');
@@ -4111,35 +4116,137 @@ function renderFavorites() {
 function renderReport() {
   const member = appState.currentMember || appState.members[0];
   if (!member) return;
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const inThisWeek = (meal) => new Date(meal.eaten_at || meal.created_at).getTime() >= weekAgo;
-  const meals = getMemberMeals().filter(inThisWeek);
+  const replay = buildWeeklyReplayData();
+  const meals = replay.meals;
   const calories = sum(meals, 'calories');
   const spend = sum(meals, 'price');
   const favoriteRestaurant = mostCommon(meals.map((meal) => meal.restaurant_name).filter(Boolean));
-  const favoriteFood = mostCommon(meals.map((meal) => meal.food_name).filter(Boolean));
+  const favoriteFood = replay.repeatFavorite;
 
   document.getElementById('reportMeals').textContent = meals.length.toString();
   document.getElementById('reportCalories').textContent = calories.toLocaleString();
-  document.getElementById('reportSpend').textContent = formatMoney(spend);
+  document.getElementById('reportVariety').textContent = replay.variety.toString();
   document.getElementById('reportRestaurant').textContent = favoriteRestaurant || '-';
   document.getElementById('reportFood').textContent = favoriteFood || '-';
   document.getElementById('reportFavoriteDish').textContent = favoriteFood || '-';
   document.getElementById('weeklyRecommendation').textContent = buildWeeklySummary(meals, calories, spend, favoriteFood);
-  renderWeeklyDateRange();
+  renderWeeklyReplay(replay);
   renderProfileWeeklyHealth(member, meals);
   renderMealBalance(meals);
-  renderWeeklyCalories(meals);
+  renderWeeklyCalories(meals, replay.days);
   renderFoodVariety(meals);
 }
 
-function renderWeeklyDateRange() {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - 6);
-  const startLabel = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const endLabel = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  document.getElementById('weeklyDateRange').textContent = `${startLabel} – ${endLabel}`;
+function buildWeeklyReplayData() {
+  const mealPool = getMemberMeals()
+    .filter((meal) => Number.isFinite(new Date(meal.eaten_at || meal.created_at).getTime()))
+    .sort((left, right) => new Date(right.eaten_at || right.created_at) - new Date(left.eaten_at || left.created_at));
+  const recordedKeys = [...new Set(mealPool.map(mealDayKey).filter(Boolean))].slice(0, 7);
+  const recordedKeySet = new Set(recordedKeys);
+  const meals = mealPool.filter((meal) => recordedKeySet.has(mealDayKey(meal)));
+  const dayMap = new Map(recordedKeys.map((key) => {
+    const sourceMeal = mealPool.find((meal) => mealDayKey(meal) === key);
+    const date = new Date(sourceMeal.eaten_at || sourceMeal.created_at);
+    date.setHours(12, 0, 0, 0);
+    return [key, { key, date, meals: [], calories: 0, score: 0 }];
+  }));
+  meals.forEach((meal) => {
+    const day = dayMap.get(mealDayKey(meal));
+    if (!day) return;
+    day.meals.push(meal);
+    day.calories += Number(meal.calories) || 0;
+  });
+  const days = Array.from(dayMap.values()).map((day) => ({
+    ...day,
+    score: day.meals.length ? Math.round(day.meals.reduce((total, meal) => total + analyzeMealQuality(meal).score, 0) / day.meals.length) : 0
+  })).sort((left, right) => left.date - right.date);
+  const names = meals.map((meal) => String(meal.food_name || 'Saved dish').trim()).filter(Boolean);
+  const nameCounts = names.reduce((counts, name) => {
+    const key = name.toLowerCase();
+    const current = counts.get(key) || { name, count: 0 };
+    current.count += 1;
+    counts.set(key, current);
+    return counts;
+  }, new Map());
+  const rankedNames = Array.from(nameCounts.values()).sort((left, right) => right.count - left.count || left.name.localeCompare(right.name));
+  const repeatFavorite = rankedNames[0]?.name || '';
+  const oneOffNames = new Set(rankedNames.filter((item) => item.count === 1).map((item) => item.name.toLowerCase()));
+  const surpriseMeal = meals.find((meal) => oneOffNames.has(String(meal.food_name || '').trim().toLowerCase()));
+  const scores = meals.map((meal) => analyzeMealQuality(meal).score);
+  const foodScore = scores.length ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : 0;
+  const variety = nameCounts.size;
+  const standoutDay = days.length ? [...days].sort((left, right) => right.calories - left.calories)[0] : null;
+  const lightestDay = days.length > 1 ? [...days].sort((left, right) => left.calories - right.calories)[0] : null;
+  const persona = buildWeeklyReplayPersona({ meals, days, variety, foodScore, repeatFavorite });
+  return { meals, days, calories: sum(meals, 'calories'), variety, foodScore, repeatFavorite, surpriseFood: surpriseMeal?.food_name || '', standoutDay, lightestDay, persona };
+}
+
+function buildWeeklyReplayPersona({ meals, days, variety, foodScore }) {
+  if (!meals.length) return { title: 'The Week in Progress', emoji: '🍽️', copy: 'Log a few meals and your food character will appear.' };
+  const varietyRatio = variety / Math.max(meals.length, 1);
+  const mealTypes = meals.map(getMealType);
+  const breakfastCount = mealTypes.filter((type) => type === 'breakfast' || type === 'brunch').length;
+  const homeMeals = meals.filter((meal) => !String(meal.restaurant_name || '').trim()).length;
+  if (foodScore >= 78 && variety >= 5) return { title: 'The Balanced Explorer', emoji: '🧭', copy: 'Strong food scores and plenty of different flavors shaped this replay.' };
+  if (varietyRatio >= .78 && variety >= 5) return { title: 'The Flavor Collector', emoji: '🎨', copy: `${variety} different foods kept your week colorful and unpredictable.` };
+  if (breakfastCount >= Math.max(3, Math.ceil(meals.length * .35))) return { title: 'The Morning Regular', emoji: '🌤️', copy: 'Breakfast gave this week its clearest and most dependable rhythm.' };
+  if (homeMeals >= Math.max(5, Math.ceil(meals.length * .7))) return { title: 'The Home Table Hero', emoji: '🏡', copy: 'Most of this food story happened away from restaurant menus.' };
+  if (days.length >= 6) return { title: 'The Rhythm Keeper', emoji: '🥁', copy: 'Consistent logging made this one of your clearest food stories yet.' };
+  return { title: 'The Food Storyteller', emoji: '📖', copy: 'Your meals are starting to reveal a recognizable weekly pattern.' };
+}
+
+function replayDayLabel(day) {
+  return day?.date?.toLocaleDateString('en-US', { weekday: 'short' }) || '-';
+}
+
+function renderWeeklyReplay(replay) {
+  const name = getProfileIdentity().firstName || appState.currentMember?.name || 'Your';
+  setText('weeklyReplayTitle', replay.meals.length ? `${name}’s week, plated.` : 'Your week, plated.');
+  setText('weeklyReplayScore', replay.meals.length ? replay.foodScore : '--');
+  setText('weeklyReplayEmoji', replay.persona.emoji);
+  setText('weeklyReplayPersona', replay.persona.title);
+  setText('weeklyReplayPersonaCopy', replay.persona.copy);
+  if (replay.days.length) {
+    const start = replay.days[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = replay.days.at(-1).date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    setText('weeklyDateRange', `${start} – ${end} · latest ${replay.days.length} recorded day${replay.days.length === 1 ? '' : 's'}`);
+  } else {
+    setText('weeklyDateRange', 'Your next meal starts the replay');
+  }
+  setText('weeklyReplayCoverage', replay.days.length ? `${replay.days.length} recorded day${replay.days.length === 1 ? '' : 's'} · ${replay.meals.length} meals` : 'Waiting for records');
+  const moments = [
+    { icon: '🔥', label: 'Biggest plate day', value: replay.standoutDay ? replayDayLabel(replay.standoutDay) : '-', copy: replay.standoutDay ? `${Math.round(replay.standoutDay.calories).toLocaleString()} calories across ${replay.standoutDay.meals.length} meal${replay.standoutDay.meals.length === 1 ? '' : 's'}` : 'Waiting for meals' },
+    { icon: '🔁', label: 'Repeat favorite', value: replay.repeatFavorite || '-', copy: replay.repeatFavorite ? 'The familiar face of this food story' : 'No repeat favorite yet' },
+    { icon: '✨', label: 'Surprise guest', value: replay.surpriseFood || '-', copy: replay.surpriseFood ? 'Appeared once and made the replay' : 'More variety will reveal one' },
+    { icon: '🌈', label: 'Flavor range', value: replay.variety ? `${replay.variety} foods` : '-', copy: replay.lightestDay ? `${replayDayLabel(replay.lightestDay)} was the lightest logged day` : 'Every different food adds color' }
+  ];
+  document.getElementById('weeklyReplayMoments').innerHTML = moments.map((moment, index) => `
+    <article style="--replay-delay:${index * 70}ms"><span>${moment.icon}</span><small>${escapeHtml(moment.label)}</small><strong>${escapeHtml(moment.value)}</strong><p>${escapeHtml(moment.copy)}</p></article>
+  `).join('');
+  const maxCalories = Math.max(...replay.days.map((day) => day.calories), 1);
+  document.getElementById('weeklyReplayTimeline').innerHTML = replay.days.length ? replay.days.map((day, index) => {
+    const height = Math.max(12, Math.round(day.calories / maxCalories * 100));
+    return `<article style="--replay-delay:${index * 55}ms"><strong>${replayDayLabel(day)}</strong><div><i style="height:${height}%"></i></div><b>${Math.round(day.calories).toLocaleString()}</b><small>${day.meals.length} meal${day.meals.length === 1 ? '' : 's'}</small></article>`;
+  }).join('') : '<p class="muted">Log meals on a few days to watch your weekly rhythm appear.</p>';
+}
+
+async function shareWeeklyReplay() {
+  const replay = buildWeeklyReplayData();
+  if (!replay.meals.length) {
+    showAppNotice('Log at least one meal before sharing your replay.', 'warning');
+    return;
+  }
+  const text = `My MyMealMap Weekly Replay: ${replay.meals.length} meals across ${replay.days.length} recorded days, ${replay.variety} different foods, and a ${replay.foodScore}/100 food score. I earned “${replay.persona.title}.”`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'My MyMealMap Weekly Replay', text, url: 'https://mymealmap1.netlify.app/share/' });
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\nhttps://mymealmap1.netlify.app/share/`);
+    showAppNotice('Replay summary copied. Paste it into your favorite social app.', 'success');
+  } catch (error) {
+    if (error?.name !== 'AbortError') showAppNotice('Could not share this replay on this device.', 'warning');
+  }
 }
 
 function renderMealBalance(meals) {
@@ -4167,8 +4274,12 @@ function renderMealBalance(meals) {
   `).join('') : '<p class="muted">Add meals with a meal type to see your balance.</p>';
 }
 
-function renderWeeklyCalories(meals) {
-  const days = Array.from({ length: 7 }, (_, index) => {
+function renderWeeklyCalories(meals, replayDays = []) {
+  const days = replayDays.length ? replayDays.map((day) => {
+    const date = new Date(day.date);
+    date.setHours(0, 0, 0, 0);
+    return { date, calories: 0 };
+  }) : Array.from({ length: 7 }, (_, index) => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() - (6 - index));
@@ -4324,14 +4435,8 @@ function buildWeeklySummary(meals, calories, spend, favoriteFood) {
   const days = new Set(meals.map((meal) => new Date(meal.eaten_at || meal.created_at).toDateString())).size;
   const avgPerDay = Math.round(calories / Math.max(days, 1));
   const parts = [];
-  parts.push(`${name} logged ${meals.length} meal${meals.length !== 1 ? 's' : ''} across ${days} day${days !== 1 ? 's' : ''} this week (${calories.toLocaleString()} calories, about ${avgPerDay.toLocaleString()} per active day).`);
-  if (avgPerDay > 2400) {
-    parts.push('That is above the 2,200 daily guide — try a lighter dinner or swap one snack for fruit.');
-  } else if (avgPerDay > 0 && avgPerDay < 1400) {
-    parts.push('That is on the light side — make sure breakfast is not being skipped.');
-  } else {
-    parts.push('Calorie balance looks steady — keep it up.');
-  }
+  parts.push(`${name} logged ${meals.length} meal${meals.length !== 1 ? 's' : ''} across ${days} recorded day${days !== 1 ? 's' : ''} (${calories.toLocaleString()} calories, about ${avgPerDay.toLocaleString()} per active day).`);
+  parts.push('This replay reflects logged meals only, so missing entries can change the pattern.');
   if (favoriteFood) parts.push(`Most repeated dish: ${favoriteFood}.`);
   if (spend > 0) parts.push(`Food spending recorded this week: ${formatMoney(spend)}.`);
   return parts.join(' ');
@@ -6107,7 +6212,7 @@ function renderSettings() {
         <button class="settings-nav-btn" data-page="workouts">🏃 Workouts</button>
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
         <button class="settings-nav-btn" data-page="body">🧍 Body Map</button>
-        <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
+        <button class="settings-nav-btn" data-page="weekly">▶ Weekly Replay</button>
         <button class="settings-nav-btn" data-page="timeline">📔 Diary</button>
         <button class="settings-nav-btn" data-page="favorites">❤️ Favorites</button>
         <button class="settings-nav-btn" data-page="profile">👤 Profile</button>
