@@ -121,6 +121,69 @@ const micronutrientSignals = [
   }
 ];
 
+const bodyFoodSuggestionCatalog = {
+  brain: [
+    { name: 'Eggs with berries', why: 'Eggs and berries are commonly associated with choline and antioxidant food signals.' },
+    { name: 'Salmon with leafy greens', why: 'A practical mix of omega-3-rich fish and colorful vegetables.' },
+    { name: 'Oatmeal with walnuts and blueberries', why: 'Whole grains, walnuts, and berries add a varied plant-food signal.' }
+  ],
+  heart: [
+    { name: 'Oatmeal with berries', why: 'Oats and berries are commonly associated with fiber-rich eating patterns.' },
+    { name: 'Bean and avocado salad', why: 'Beans add fiber while avocado contributes unsaturated fats.' },
+    { name: 'Salmon with leafy greens', why: 'Fish and greens provide a simple heart-friendly food pattern.' }
+  ],
+  muscles: [
+    { name: 'Chicken and lentil bowl', why: 'Chicken and lentils provide familiar protein-building foods.' },
+    { name: 'Tofu vegetable stir-fry', why: 'Tofu offers plant protein alongside colorful vegetables.' },
+    { name: 'Greek yogurt with nuts', why: 'A quick protein-oriented option with texture and variety.' }
+  ],
+  digestion: [
+    { name: 'Oatmeal with banana and chia', why: 'Oats, fruit, and seeds add several familiar fiber sources.' },
+    { name: 'Bean and vegetable soup', why: 'Beans and vegetables create a simple fiber-rich combination.' },
+    { name: 'Brown rice vegetable bowl', why: 'Whole grains and vegetables broaden today’s plant-food variety.' }
+  ],
+  energy: [
+    { name: 'Banana oatmeal yogurt bowl', why: 'Fruit, oats, and yogurt combine carbohydrates with protein.' },
+    { name: 'Egg and whole-grain toast', why: 'A simple mix of protein and carbohydrate foods.' },
+    { name: 'Rice bowl with tofu and vegetables', why: 'A balanced plate pattern that includes energy and protein foods.' }
+  ],
+  bones: [
+    { name: 'Yogurt with fruit and almonds', why: 'Yogurt and almonds are familiar calcium-associated foods.' },
+    { name: 'Tofu and broccoli stir-fry', why: 'Tofu and green vegetables add plant-based calcium signals.' },
+    { name: 'Sardines on whole-grain toast', why: 'Sardines are commonly associated with calcium and vitamin D foods.' }
+  ],
+  liver: [
+    { name: 'Broccoli tofu bowl', why: 'Broccoli and tofu create a simple vegetable-forward meal.' },
+    { name: 'Salmon with cabbage salad', why: 'Fish and cruciferous vegetables add varied whole-food signals.' },
+    { name: 'Walnut berry oatmeal', why: 'Walnuts, berries, and oats broaden plant-food variety.' }
+  ],
+  eyes: [
+    { name: 'Carrot spinach egg bowl', why: 'Carrots, spinach, and eggs are commonly linked with eye-supporting nutrients.' },
+    { name: 'Salmon mango salad', why: 'Fish and orange-colored fruit add varied nutrient signals.' },
+    { name: 'Pumpkin tofu curry', why: 'Pumpkin and tofu provide a colorful plant-forward option.' }
+  ],
+  joints: [
+    { name: 'Salmon ginger rice bowl', why: 'Fish and ginger are commonly included in joint-friendly eating patterns.' },
+    { name: 'Berry yogurt with walnuts', why: 'Berries and walnuts add colorful plant and fat signals.' },
+    { name: 'Tuna olive salad', why: 'Fish, olives, and vegetables create a simple whole-food combination.' }
+  ],
+  skin: [
+    { name: 'Avocado tomato salad', why: 'Avocado and tomato provide colorful fats and plant-food signals.' },
+    { name: 'Berry yogurt bowl', why: 'Berries and yogurt add fruit, protein, and variety.' },
+    { name: 'Salmon with mango salsa', why: 'Fish and colorful fruit create a varied plate.' }
+  ],
+  immunity: [
+    { name: 'Orange berry yogurt bowl', why: 'Fruit and yogurt add vitamin-C-associated and fermented foods.' },
+    { name: 'Garlic vegetable soup', why: 'A vegetable-forward soup can broaden today’s plant variety.' },
+    { name: 'Ginger tofu greens', why: 'Ginger, tofu, and greens provide a simple varied combination.' }
+  ],
+  recovery: [
+    { name: 'Chicken rice vegetable bowl', why: 'Protein, carbohydrate, and vegetables make a familiar recovery-oriented plate.' },
+    { name: 'Salmon sweet potato plate', why: 'Fish and sweet potato pair protein with carbohydrate foods.' },
+    { name: 'Tofu quinoa greens', why: 'A plant-based combination of protein foods and greens.' }
+  ]
+};
+
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
   { id: 'rithyna', label: 'Rithyna', url: 'assets/avatars/mom.jpg' },
@@ -135,6 +198,7 @@ let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
 let authSessionRecoveryPromise = null;
 let profileOnboardingTimer = null;
+let bodySuggestionOffsets = {};
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -248,6 +312,8 @@ function bindEvents() {
     const futureIntakeTarget = event.target.closest('[data-future-intake]');
     const profileTitleTarget = event.target.closest('[data-profile-title]');
     const featuredAchievementTarget = event.target.closest('[data-feature-achievement]');
+    const bodySuggestionAddTarget = event.target.closest('[data-body-suggestion-add]');
+    const bodySuggestionRotateTarget = event.target.closest('[data-body-suggestion-rotate]');
 
     if (pageTarget) {
       showPage(pageTarget.dataset.page);
@@ -299,6 +365,14 @@ function bindEvents() {
 
     if (featuredAchievementTarget) {
       handleToggleFeaturedAchievement(featuredAchievementTarget.dataset.featureAchievement);
+    }
+
+    if (bodySuggestionAddTarget) {
+      handleAddBodyFoodSuggestion(bodySuggestionAddTarget.dataset.bodySuggestionAdd);
+    }
+
+    if (bodySuggestionRotateTarget) {
+      rotateBodyFoodSuggestion(bodySuggestionRotateTarget.dataset.bodySuggestionRotate);
     }
 
     const avatarTarget = event.target.closest('[data-avatar-url]');
@@ -2370,8 +2444,9 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
   const rightColumn = document.getElementById('bodyMapRight');
   const focusCards = document.getElementById('bodyFocusCards');
   const actionList = document.getElementById('bodyActionList');
+  const foodSuggestions = document.getElementById('bodyFoodSuggestions');
   const bodyFigure = document.querySelector('.body-map-figure');
-  if (!leftColumn || !rightColumn || !focusCards || !actionList) return;
+  if (!leftColumn || !rightColumn || !focusCards || !actionList || !foodSuggestions) return;
 
   const member = appState.currentMember;
   const savedSex = String(appState.profileMeasurements[member?.id]?.sex || member?.sex || '').trim().toLowerCase();
@@ -2402,7 +2477,7 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
     {
       icon: topImpact?.icon || '🌿',
       label: 'Top support',
-      value: hasMeals && topImpact ? `${topImpact.name} ${topImpact.score}%` : 'No signals yet',
+      value: hasMeals && topImpact ? `${topImpact.name} · ${bodySignalLabel(topImpact.score)}` : 'No signals yet',
       copy: hasMeals && topImpact ? topImpact.copy : 'Log meals to see your strongest body support.'
     },
     {
@@ -2426,7 +2501,7 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
       copy: !hasMeals
         ? 'The body map will fill in once today’s meals are logged.'
         : zeroSystems.length
-        ? 'These areas have little support from today’s logged foods.'
+        ? 'No matching food signal was found for these areas in today’s diary.'
         : 'Most body systems have at least one food signal today.'
     },
     {
@@ -2446,6 +2521,8 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
     </article>
   `).join('');
 
+  renderBodyFoodSuggestions(impacts);
+
   actionList.innerHTML = recommendations.slice(0, 4).map((item) => `
     <article class="recommendation-item body-action-item">
       <span>${item.icon}</span>
@@ -2457,6 +2534,66 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
   `).join('');
 }
 
+function bodySignalLabel(score) {
+  if (!score) return 'No signal yet';
+  if (score < 35) return 'Building';
+  if (score < 70) return 'Steady signal';
+  return 'Strong signal';
+}
+
+function getBodyFoodSuggestion(position) {
+  const options = bodyFoodSuggestionCatalog[position] || [];
+  if (!options.length) return null;
+  const offset = bodySuggestionOffsets[position] || 0;
+  return options[offset % options.length];
+}
+
+function renderBodyFoodSuggestions(impacts) {
+  const container = document.getElementById('bodyFoodSuggestions');
+  if (!container) return;
+  const suggestions = [...impacts]
+    .filter((impact) => bodyFoodSuggestionCatalog[impact.position]?.length)
+    .sort((left, right) => left.score - right.score)
+    .slice(0, 3)
+    .map((impact) => ({ impact, suggestion: getBodyFoodSuggestion(impact.position) }))
+    .filter((item) => item.suggestion);
+
+  container.innerHTML = suggestions.map(({ impact, suggestion }) => `
+    <article class="body-food-suggestion-card">
+      <header>
+        <span>${impact.icon}</span>
+        <div><small>${escapeHtml(impact.name)} · ${escapeHtml(bodySignalLabel(impact.score))}</small><strong>${escapeHtml(suggestion.name)}</strong></div>
+      </header>
+      <p>${escapeHtml(suggestion.why)}</p>
+      <footer>
+        <button class="body-suggestion-add" data-body-suggestion-add="${escapeAttr(impact.position)}" type="button">＋ Add to diary</button>
+        <button data-body-suggestion-rotate="${escapeAttr(impact.position)}" type="button">Another idea</button>
+      </footer>
+    </article>
+  `).join('');
+}
+
+function handleAddBodyFoodSuggestion(position) {
+  const suggestion = getBodyFoodSuggestion(position);
+  if (!suggestion) return;
+  openMealModal(null);
+  const foodName = document.getElementById('editFoodName');
+  if (foodName) {
+    foodName.value = suggestion.name;
+    foodName.focus();
+  }
+}
+
+function rotateBodyFoodSuggestion(position) {
+  const options = bodyFoodSuggestionCatalog[position] || [];
+  if (!options.length) return;
+  bodySuggestionOffsets[position] = ((bodySuggestionOffsets[position] || 0) + 1) % options.length;
+  const todayMeals = getMemberMeals().filter(isToday);
+  const calories = sum(todayMeals, 'calories');
+  const impacts = [...buildFoodBodyImpacts(todayMeals, calories), ...buildSecondaryFoodBodyImpacts(todayMeals, calories)];
+  renderBodyFoodSuggestions(impacts);
+}
+
 function renderBodySystemCard(impact) {
   const tone = impact.score >= 70 ? 'good' : impact.score >= 35 ? 'steady' : 'low';
   return `
@@ -2465,7 +2602,7 @@ function renderBodySystemCard(impact) {
         <span>${impact.icon}</span>
         <div>
           <strong>${escapeHtml(impact.name)}</strong>
-          <b>${impact.score}%</b>
+          <b class="body-signal-label">${escapeHtml(bodySignalLabel(impact.score))}</b>
         </div>
       </div>
       <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>

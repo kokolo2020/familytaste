@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260714l" />
+  <link rel="stylesheet" href="style.css?v=20260714m" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -575,6 +575,19 @@
               <p class="body-impact-note">ⓘ Body signals are nutrition guidance only, not diagnosis or medical treatment.</p>
             </section>
 
+            <section class="dashboard-card body-food-suggestions-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Food ideas from your map</p>
+                  <h3>What to add next</h3>
+                </div>
+                <span class="body-suggestion-badge">AI-guided</span>
+              </div>
+              <p class="panel-subtitle">Simple food ideas for areas with fewer signals in today’s diary.</p>
+              <div id="bodyFoodSuggestions" class="body-food-suggestion-grid"></div>
+              <p class="body-impact-note">ⓘ Suggestions are general food ideas, not deficiency screening or medical advice.</p>
+            </section>
+
             <section class="dashboard-card body-actions-card">
               <div class="section-title">
                 <div>
@@ -831,6 +844,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260714l"></script>
+  <script src="app.js?v=20260714m"></script>
 </body>
 </html>

@@ -214,6 +214,7 @@
 
 .body-overview-card,
 .body-map-card,
+.body-food-suggestions-card,
 .body-actions-card {
   padding: 22px;
 }
@@ -227,6 +228,10 @@
 }
 
 .body-actions-card {
+  order: 4;
+}
+
+.body-food-suggestions-card {
   order: 3;
 }
 
@@ -526,6 +531,22 @@
   line-height: 1;
 }
 
+.body-system-card-header .body-signal-label {
+  width: max-content;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #35634d;
+  background: #eaf4ed;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.body-system-card-low .body-signal-label { color: #8a6847; background: #f3ece3; }
+.body-system-card-steady .body-signal-label { color: #92631e; background: #fff1d5; }
+.body-system-card-good .body-signal-label { color: #2f6f46; background: #e4f4e8; }
+
 .body-system-card p {
   margin: 0;
   color: #665a4e;
@@ -553,6 +574,21 @@
 .body-action-list {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.body-food-suggestions-card > .section-title { align-items: flex-start; margin-bottom: 4px; }
+.body-food-suggestions-card .section-title h3 { font: 750 27px/1.05 "Playfair Display", Georgia, serif; }
+.body-suggestion-badge { padding: 7px 10px; border-radius: 999px; color: #306746; background: #e7f3e7; font-size: 9px; font-weight: 850; }
+.body-food-suggestion-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; margin-top: 15px; }
+.body-food-suggestion-card { display: grid; grid-template-rows: auto 1fr auto; min-height: 220px; padding: 15px; border: 1px solid #e9e1d5; border-radius: 18px; background: linear-gradient(160deg, #fffdfa, #f5faf3); box-shadow: 0 8px 20px rgba(50,69,43,.055); }
+.body-food-suggestion-card > header { display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: start; }
+.body-food-suggestion-card > header > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: #fff; box-shadow: 0 5px 12px rgba(51,42,31,.07); font-size: 19px; }
+.body-food-suggestion-card header div { min-width: 0; }
+.body-food-suggestion-card header small { display: block; margin-bottom: 4px; color: #8b795f; font-size: 8px; font-weight: 800; }
+.body-food-suggestion-card header strong { display: block; color: #223d31; font-size: 14px; line-height: 1.25; }
+.body-food-suggestion-card > p { margin: 13px 0; color: #716559; font-size: 10px; line-height: 1.5; }
+.body-food-suggestion-card > footer { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.body-food-suggestion-card > footer button { min-height: 34px; padding: 7px 8px; border: 1px solid #ded5c9; border-radius: 9px; color: #6b5a4d; background: #fff; font-size: 8px; font-weight: 850; }
+.body-food-suggestion-card > footer .body-suggestion-add { border-color: #e6792d; color: #fff; background: #e87527; }
 
 .body-action-item {
   height: 100%;
@@ -800,10 +836,13 @@
   #page-dashboard .panel-subtitle { margin-bottom: 10px; }
   .body-overview-card,
   .body-map-card,
+  .body-food-suggestions-card,
   .body-actions-card { padding: 16px; }
   .body-focus-grid,
   .body-map-column,
   .body-action-list { grid-template-columns: 1fr; }
+  .body-food-suggestion-grid { grid-template-columns: 1fr; gap: 8px; }
+  .body-food-suggestion-card { min-height: 0; padding: 13px; }
   .body-map-layout { gap: 10px; }
   .body-map-figure { padding: 10px 0 2px; border-radius: 20px; }
   .body-map-figure img { max-height: 320px; }
