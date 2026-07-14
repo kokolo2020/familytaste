@@ -398,7 +398,7 @@ function bindEvents() {
   document.getElementById('clearSnapForm').addEventListener('click', resetSnapWorkspace);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
-  document.getElementById('dailyShareShowNames')?.addEventListener('change', renderDailyShareCard);
+  document.getElementById('dailyShareHideNames')?.addEventListener('change', renderDailyShareCard);
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileOnboarding')?.addEventListener('click', handleSaveProfileOnboarding);
@@ -1278,7 +1278,7 @@ function openDailyShareModal() {
     showAppNotice('Log at least one meal before sharing your day.', 'warning');
     return;
   }
-  const namesToggle = document.getElementById('dailyShareShowNames');
+  const namesToggle = document.getElementById('dailyShareHideNames');
   if (namesToggle) namesToggle.checked = false;
   setDailyShareFeedback('');
   document.getElementById('dailyShareModal')?.classList.remove('hidden');
@@ -1371,7 +1371,7 @@ function renderDailyShareCard() {
   const context = canvas?.getContext('2d');
   if (!canvas || !context) return;
   const data = getDailyShareData();
-  const showNames = Boolean(document.getElementById('dailyShareShowNames')?.checked);
+  const showNames = !document.getElementById('dailyShareHideNames')?.checked;
   const { dishes, calories, goal, foodScore, variety, observation } = data;
   const divisor = calories || dishes.length || 1;
   context.clearRect(0, 0, canvas.width, canvas.height);
