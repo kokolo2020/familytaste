@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260714o" />
+  <link rel="stylesheet" href="style.css?v=20260714p" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -145,12 +145,13 @@
         </header>
         <div class="weekly-video-preview">
           <canvas id="weeklyVideoCanvas" width="720" height="1280" aria-label="Animated preview of your weekly replay video"></canvas>
+          <video id="weeklyVideoPlayer" class="hidden" controls playsinline preload="metadata" aria-label="Generated weekly replay video"></video>
           <span>12 sec · 9:16</span>
         </div>
         <p class="weekly-video-privacy">Only your food-story summary is included. Profile measurements and health details stay private.</p>
         <p id="weeklyVideoFeedback" class="daily-share-feedback" aria-live="polite"></p>
         <footer>
-          <button data-action="save-weekly-video" type="button">Save video</button>
+          <button id="weeklyVideoSaveButton" data-action="save-weekly-video" type="button">Create video</button>
           <button class="primary-button" data-action="share-weekly-video" type="button">Create &amp; share</button>
         </footer>
       </div>
@@ -882,6 +883,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260714p"></script>
+  <script src="app.js?v=20260714q"></script>
 </body>
 </html>

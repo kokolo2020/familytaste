@@ -4248,6 +4248,7 @@ function renderWeeklyReplay(replay) {
 const weeklyReplayVideoDuration = 12000;
 let weeklyReplayPreviewFrame = 0;
 let weeklyReplayVideoBlob = null;
+let weeklyReplayVideoUrl = '';
 let weeklyReplayVideoBusy = false;
 
 function setWeeklyVideoFeedback(message, tone = '') {
@@ -4271,6 +4272,7 @@ function openWeeklyVideoModal() {
     return;
   }
   weeklyReplayVideoBlob = null;
+  resetWeeklyVideoPlayer();
   setWeeklyVideoFeedback('Preview loops automatically. Creating the video takes about 12 seconds.');
   document.getElementById('weeklyVideoModal')?.classList.remove('hidden');
   startWeeklyReplayPreview(replay);
@@ -4279,8 +4281,37 @@ function openWeeklyVideoModal() {
 function closeWeeklyVideoModal() {
   if (weeklyReplayVideoBusy) return;
   cancelAnimationFrame(weeklyReplayPreviewFrame);
+  resetWeeklyVideoPlayer();
   document.getElementById('weeklyVideoModal')?.classList.add('hidden');
   setWeeklyVideoFeedback('');
+}
+
+function resetWeeklyVideoPlayer() {
+  if (weeklyReplayVideoUrl) URL.revokeObjectURL(weeklyReplayVideoUrl);
+  weeklyReplayVideoUrl = '';
+  const player = document.getElementById('weeklyVideoPlayer');
+  if (player) {
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    player.classList.add('hidden');
+  }
+  document.getElementById('weeklyVideoCanvas')?.classList.remove('hidden');
+  const saveButton = document.getElementById('weeklyVideoSaveButton');
+  if (saveButton) saveButton.textContent = 'Create video';
+}
+
+function showWeeklyVideoPlayer(blob) {
+  const player = document.getElementById('weeklyVideoPlayer');
+  if (!player) return;
+  if (weeklyReplayVideoUrl) URL.revokeObjectURL(weeklyReplayVideoUrl);
+  weeklyReplayVideoUrl = URL.createObjectURL(blob);
+  player.src = weeklyReplayVideoUrl;
+  player.classList.remove('hidden');
+  document.getElementById('weeklyVideoCanvas')?.classList.add('hidden');
+  const saveButton = document.getElementById('weeklyVideoSaveButton');
+  if (saveButton) saveButton.textContent = 'Save video';
+  player.play().catch(() => {});
 }
 
 function weeklyVideoEase(value) {
@@ -4525,6 +4556,7 @@ async function createWeeklyReplayVideo() {
     await stopped;
     stream.getTracks().forEach((track) => track.stop());
     weeklyReplayVideoBlob = new Blob(chunks, { type: recorder.mimeType || mimeType });
+    showWeeklyVideoPlayer(weeklyReplayVideoBlob);
     setWeeklyVideoFeedback('Your replay video is ready.', 'success');
     return weeklyReplayVideoBlob;
   } finally {
@@ -4540,7 +4572,12 @@ function weeklyReplayVideoFile(blob) {
 
 async function saveWeeklyReplayVideo(existingBlob) {
   try {
-    const blob = existingBlob instanceof Blob ? existingBlob : await createWeeklyReplayVideo();
+    if (!(existingBlob instanceof Blob) && !weeklyReplayVideoBlob) {
+      await createWeeklyReplayVideo();
+      setWeeklyVideoFeedback('Video ready. Watch it here, then tap Save video or Create & share.', 'success');
+      return;
+    }
+    const blob = existingBlob instanceof Blob ? existingBlob : weeklyReplayVideoBlob;
     const file = weeklyReplayVideoFile(blob);
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
