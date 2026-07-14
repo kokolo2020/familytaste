@@ -35,11 +35,12 @@ const workoutHistoryStorageKey = 'familyBites.workoutHistory.v1';
 const savedWorkoutsStorageKey = 'familyBites.savedWorkouts.v1';
 const lastAuthUserStorageKey = 'familyBites.lastAuthUserId';
 const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
-const uiStateStorageKey = 'familyBites.uiState.v1';
+const legacyUiStateStorageKey = 'familyBites.uiState.v1';
+const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.11.0';
-const APP_BUILD_DATE = '2026-07-13';
+const APP_VERSION = 'v1.11.1';
+const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
 const snapTagCatalog = [
@@ -489,14 +490,21 @@ function clearLocalFamilyCache() {
     workoutHistoryStorageKey,
     savedWorkoutsStorageKey,
     profilePhotoStorageKey,
-    uiStateStorageKey
+    legacyUiStateStorageKey
   ].forEach((key) => localStorage.removeItem(key));
+}
+
+function getUiStateStorageKey() {
+  const userId = String(appState.auth.user?.id || '').trim();
+  return userId ? `${uiStateStorageKeyPrefix}.${userId}` : '';
 }
 
 function saveUiState() {
   try {
+    const storageKey = getUiStateStorageKey();
+    if (!storageKey) return;
     const workspaceVisible = !document.getElementById('workspace')?.classList.contains('hidden');
-    localStorage.setItem(uiStateStorageKey, JSON.stringify({
+    localStorage.setItem(storageKey, JSON.stringify({
       memberId: appState.currentMember?.id || '',
       page: appState.currentPage || 'dashboard',
       workspaceVisible
@@ -508,8 +516,16 @@ function saveUiState() {
 
 function readUiState() {
   try {
-    const raw = localStorage.getItem(uiStateStorageKey);
+    const storageKey = getUiStateStorageKey();
+    if (!storageKey) return null;
+    const scopedState = localStorage.getItem(storageKey);
+    const legacyState = localStorage.getItem(legacyUiStateStorageKey);
+    const raw = scopedState || legacyState;
     if (!raw) return null;
+    if (!scopedState && legacyState) {
+      localStorage.setItem(storageKey, legacyState);
+      localStorage.removeItem(legacyUiStateStorageKey);
+    }
     const parsed = JSON.parse(raw);
     return {
       memberId: String(parsed?.memberId || '').trim(),
@@ -529,24 +545,13 @@ function restoreUiStateAfterAuth() {
   const savedMember = savedState?.memberId
     ? appState.members.find((member) => member.id === savedState.memberId && member.id !== 'add' && member.name !== 'Add Member' && member.name !== 'Add Profile')
     : null;
-  const restoreMember = savedMember && !isSeededDefaultMember(savedMember)
-    ? savedMember
-    : getDefaultMember();
-  const defaultMember = getDefaultMember();
+  const restoreMember = savedMember || getDefaultMember();
 
-  if (!restoreMember || !savedState?.workspaceVisible) {
-    if (!defaultMember) {
-      appState.currentMember = null;
-      workspace?.classList.add('hidden');
-      landing?.classList.add('hidden');
-      return false;
-    }
-    appState.currentMember = defaultMember;
-    updateProfileUi();
+  if (!restoreMember) {
+    appState.currentMember = null;
+    workspace?.classList.add('hidden');
     landing?.classList.add('hidden');
-    workspace?.classList.remove('hidden');
-    showPage(savedState?.page || 'dashboard');
-    return true;
+    return false;
   }
 
   appState.currentMember = restoreMember;
@@ -942,6 +947,7 @@ function renderProfiles() {
       }
       appState.currentMember = member;
       updateProfileUi();
+      saveUiState();
       renderProfiles();
     });
   });
