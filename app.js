@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.14.1';
+const APP_VERSION = 'v1.14.2';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -667,6 +667,26 @@ function formatAuthError(error) {
   return String(error?.message || 'Sign-in is unavailable right now. Please try again.');
 }
 
+function readPendingOtpEmail() {
+  return String(
+    sessionStorage.getItem(pendingOtpEmailStorageKey)
+    || localStorage.getItem(pendingOtpEmailStorageKey)
+    || ''
+  ).trim().toLowerCase();
+}
+
+function savePendingOtpEmail(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return;
+  sessionStorage.setItem(pendingOtpEmailStorageKey, normalizedEmail);
+  localStorage.setItem(pendingOtpEmailStorageKey, normalizedEmail);
+}
+
+function clearPendingOtpEmail() {
+  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  localStorage.removeItem(pendingOtpEmailStorageKey);
+}
+
 async function bootstrapAuth() {
   if (!window.familyBitesDb?.isConfigured) {
     appState.auth.status = 'signed_out';
@@ -675,8 +695,12 @@ async function bootstrapAuth() {
     return;
   }
 
-  const storedPendingEmail = sessionStorage.getItem(pendingOtpEmailStorageKey) || '';
-  if (storedPendingEmail) appState.auth.pendingEmail = storedPendingEmail;
+  const storedPendingEmail = readPendingOtpEmail();
+  if (storedPendingEmail) {
+    appState.auth.pendingEmail = storedPendingEmail;
+    appState.auth.status = 'otp_sent';
+    renderAuthState();
+  }
 
   window.familyBitesDb.onAuthStateChange((session) => {
     if (session) {
@@ -761,7 +785,7 @@ async function handleAuthenticatedSession(session) {
   appState.auth.user = session.user;
   appState.auth.pendingEmail = '';
   appState.auth.status = 'loading';
-  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  clearPendingOtpEmail();
   renderAuthState();
   setAuthFeedback('');
   syncBrowserUserScope(session.user?.id || '');
@@ -787,17 +811,17 @@ async function handleAuthenticatedSession(session) {
 }
 
 function handleSignedOutState() {
+  const pendingEmail = readPendingOtpEmail();
   appState.auth = {
-    status: 'signed_out',
+    status: pendingEmail ? 'otp_sent' : 'signed_out',
     user: null,
     membership: null,
-    pendingEmail: ''
+    pendingEmail
   };
-  sessionStorage.removeItem(pendingOtpEmailStorageKey);
   resetFamilyState();
   saveUiState();
   renderProfiles();
-  setAuthFeedback('');
+  setAuthFeedback(pendingEmail ? `Enter the code sent to ${pendingEmail}.` : '', pendingEmail ? 'success' : '');
   renderAuthState();
 }
 
@@ -1245,7 +1269,7 @@ async function handleAuthEmailSubmit(event) {
     await window.familyBitesDb.sendOtp(email);
     appState.auth.pendingEmail = email;
     appState.auth.status = 'otp_sent';
-    sessionStorage.setItem(pendingOtpEmailStorageKey, email);
+    savePendingOtpEmail(email);
     setAuthFeedback(`Code sent to ${email}.`, 'success');
     renderAuthState();
     document.getElementById('authOtpInput')?.focus();
@@ -1289,7 +1313,7 @@ async function handleAuthResendOtp() {
 function handleAuthChangeEmail() {
   appState.auth.status = 'signed_out';
   appState.auth.pendingEmail = '';
-  sessionStorage.removeItem(pendingOtpEmailStorageKey);
+  clearPendingOtpEmail();
   const otpInput = document.getElementById('authOtpInput');
   if (otpInput) otpInput.value = '';
   setAuthFeedback('');
