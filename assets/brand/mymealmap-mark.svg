@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">MyMealMap plate pin</title>
+  <desc id="desc">A cream plate and orange food path inside a deep green map pin.</desc>
+  <defs>
+    <linearGradient id="pin" x1="92" y1="55" x2="420" y2="468" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34795f"/>
+      <stop offset="1" stop-color="#153f31"/>
+    </linearGradient>
+    <linearGradient id="food" x1="202" y1="182" x2="313" y2="319" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb52e"/>
+      <stop offset="1" stop-color="#ee6226"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#173f32" flood-opacity=".24"/>
+    </filter>
+  </defs>
+  <path fill="url(#pin)" filter="url(#shadow)" d="M256 18C132 18 50 108 50 225c0 129 116 224 188 272 11 7 25 7 36 0 72-48 188-143 188-272C462 108 380 18 256 18Z"/>
+  <circle cx="256" cy="222" r="151" fill="#fffaf0"/>
+  <circle cx="256" cy="222" r="126" fill="#f4e4c8"/>
+  <circle cx="256" cy="222" r="103" fill="#fffdf8"/>
+  <path fill="url(#food)" d="M311 142c-54 13-103 51-118 101-12 40 3 75 39 82 44 9 80-36 84-83 3-34-8-68-5-100Z"/>
+  <path fill="none" stroke="#fff8e9" stroke-linecap="round" stroke-width="15" d="M216 289c17-33 39-59 72-93"/>
+  <circle cx="199" cy="170" r="13" fill="#79a957"/>
+  <circle cx="327" cy="192" r="11" fill="#ef6b2f"/>
+  <circle cx="322" cy="278" r="10" fill="#efb02e"/>
+</svg>

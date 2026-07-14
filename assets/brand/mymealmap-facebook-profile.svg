@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+  <title id="title">MyMealMap social profile logo</title>
+  <desc id="desc">The MyMealMap plate pin centered on a warm cream background.</desc>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#f8ead6"/>
+    </radialGradient>
+    <linearGradient id="pin" x1="296" y1="235" x2="784" y2="823" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34795f"/>
+      <stop offset="1" stop-color="#153f31"/>
+    </linearGradient>
+    <linearGradient id="food" x1="459" y1="416" x2="622" y2="610" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb52e"/>
+      <stop offset="1" stop-color="#ee6226"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="32" stdDeviation="28" flood-color="#173f32" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect width="1080" height="1080" rx="220" fill="url(#bg)"/>
+  <path fill="none" stroke="#ed6b2d" stroke-opacity=".12" stroke-width="24" d="M-90 850c254-166 426-84 599 44 180 133 359 115 661-73"/>
+  <path fill="none" stroke="#2e7259" stroke-opacity=".09" stroke-width="18" d="M-54 197c211 139 383 113 526 14 194-134 383-116 673 55"/>
+  <g filter="url(#shadow)">
+    <path fill="url(#pin)" d="M540 177c-185 0-307 134-307 309 0 192 173 333 280 405 16 10 38 10 54 0 107-72 280-213 280-405 0-175-122-309-307-309Z"/>
+    <circle cx="540" cy="481" r="225" fill="#fffaf0"/>
+    <circle cx="540" cy="481" r="188" fill="#f4e4c8"/>
+    <circle cx="540" cy="481" r="153" fill="#fffdf8"/>
+    <path fill="url(#food)" d="M622 362c-81 20-154 76-177 151-17 60 5 112 59 123 66 14 120-54 126-124 4-52-12-102-8-150Z"/>
+    <path fill="none" stroke="#fff8e9" stroke-linecap="round" stroke-width="22" d="M480 583c26-49 59-88 108-139"/>
+    <circle cx="455" cy="405" r="19" fill="#79a957"/>
+    <circle cx="646" cy="438" r="17" fill="#ef6b2f"/>
+    <circle cx="638" cy="568" r="15" fill="#efb02e"/>
+  </g>
+</svg>

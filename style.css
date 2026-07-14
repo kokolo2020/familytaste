@@ -852,6 +852,13 @@ img {
   height: 82px;
 }
 
+.plate-pin-logo > img {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
 .plate-pin-shape {
   position: absolute;
   top: 5px;
@@ -949,7 +956,7 @@ img {
   margin-bottom: 20px;
 }
 
-.auth-view.is-loading .plate-pin-logo { display: none; }
+.auth-view.is-loading .plate-pin-logo { display: block; height: 72px; }
 .auth-view.is-loading .logo-orbit { display: block; animation: auth-orbit-pulse 1.35s ease-in-out infinite; }
 .auth-view.is-loading .logo-orbit.orbit-two { animation-delay: -.45s; }
 .auth-view.is-loading .logo-orbit.orbit-three { animation-delay: -.9s; }
