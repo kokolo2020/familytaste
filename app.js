@@ -4192,8 +4192,17 @@ function buildWeeklyReplayData() {
   const variety = nameCounts.size;
   const standoutDay = days.length ? [...days].sort((left, right) => right.calories - left.calories)[0] : null;
   const lightestDay = days.length > 1 ? [...days].sort((left, right) => left.calories - right.calories)[0] : null;
+  const calorieMeals = meals.filter((meal) => Number(meal.calories) > 0);
+  const highestCalorieMeal = [...calorieMeals].sort((left, right) => Number(right.calories) - Number(left.calories))[0] || null;
+  const lowestCalorieMeal = [...calorieMeals].sort((left, right) => Number(left.calories) - Number(right.calories))[0] || null;
+  const healthiestMeal = [...meals].sort((left, right) => analyzeMealQuality(right).score - analyzeMealQuality(left).score)[0] || null;
+  const photoMeals = meals.filter((meal) => String(meal.photo_url || '').trim()).slice(0, 6);
+  const bodySignals = [...buildFoodBodyImpacts(meals, sum(meals, 'calories')), ...buildSecondaryFoodBodyImpacts(meals, sum(meals, 'calories'))]
+    .filter((impact) => impact.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3);
   const persona = buildWeeklyReplayPersona({ meals, days, variety, foodScore, repeatFavorite });
-  return { meals, days, calories: sum(meals, 'calories'), variety, foodScore, repeatFavorite, surpriseFood: surpriseMeal?.food_name || '', standoutDay, lightestDay, persona };
+  return { meals, days, calories: sum(meals, 'calories'), variety, foodScore, repeatFavorite, surpriseFood: surpriseMeal?.food_name || '', standoutDay, lightestDay, highestCalorieMeal, lowestCalorieMeal, healthiestMeal, photoMeals, bodySignals, persona, videoImages: new Map() };
 }
 
 function buildWeeklyReplayPersona({ meals, days, variety, foodScore }) {
@@ -4245,11 +4254,13 @@ function renderWeeklyReplay(replay) {
   }).join('') : '<p class="muted">Log meals on a few days to watch your weekly rhythm appear.</p>';
 }
 
-const weeklyReplayVideoDuration = 12000;
+const weeklyReplayVideoSceneDurations = [3200, 3800, 3600, 4000, 3500, 4300, 4300, 3300];
+const weeklyReplayVideoDuration = weeklyReplayVideoSceneDurations.reduce((total, duration) => total + duration, 0);
 let weeklyReplayPreviewFrame = 0;
 let weeklyReplayVideoBlob = null;
 let weeklyReplayVideoUrl = '';
 let weeklyReplayVideoBusy = false;
+let weeklyReplayVideoData = null;
 
 function setWeeklyVideoFeedback(message, tone = '') {
   const feedback = document.getElementById('weeklyVideoFeedback');
@@ -4271,11 +4282,17 @@ function openWeeklyVideoModal() {
     showAppNotice('Log at least one meal before creating a replay video.', 'warning');
     return;
   }
+  weeklyReplayVideoData = replay;
   weeklyReplayVideoBlob = null;
   resetWeeklyVideoPlayer();
-  setWeeklyVideoFeedback('Preview loops automatically. Creating the video takes about 12 seconds.');
+  setWeeklyVideoFeedback('Loading meal snapshots for your 30-second preview…');
   document.getElementById('weeklyVideoModal')?.classList.remove('hidden');
   startWeeklyReplayPreview(replay);
+  prepareWeeklyReplayImages(replay).then(() => {
+    if (weeklyReplayVideoData !== replay || document.getElementById('weeklyVideoModal')?.classList.contains('hidden')) return;
+    setWeeklyVideoFeedback('Preview loops automatically. Creating the video takes about 30 seconds.');
+    startWeeklyReplayPreview(replay);
+  });
 }
 
 function closeWeeklyVideoModal() {
@@ -4284,6 +4301,33 @@ function closeWeeklyVideoModal() {
   resetWeeklyVideoPlayer();
   document.getElementById('weeklyVideoModal')?.classList.add('hidden');
   setWeeklyVideoFeedback('');
+}
+
+function loadWeeklyReplayImage(source) {
+  return new Promise((resolve) => {
+    if (!source) {
+      resolve(null);
+      return;
+    }
+    const image = new Image();
+    if (!String(source).startsWith('data:') && !String(source).startsWith('blob:')) image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = source;
+  });
+}
+
+async function prepareWeeklyReplayImages(replay) {
+  if (replay.imagesReady) return replay;
+  const highlightedMeals = [replay.highestCalorieMeal, replay.lowestCalorieMeal, replay.healthiestMeal, ...replay.photoMeals].filter(Boolean);
+  const uniqueMeals = [...new Map(highlightedMeals.map((meal) => [meal.id || meal.photo_url || meal.food_name, meal])).values()];
+  await Promise.all(uniqueMeals.map(async (meal) => {
+    if (!meal.photo_url) return;
+    const image = await loadWeeklyReplayImage(meal.photo_url);
+    if (image) replay.videoImages.set(meal.id || meal.photo_url, image);
+  }));
+  replay.imagesReady = true;
+  return replay;
 }
 
 function resetWeeklyVideoPlayer() {
@@ -4344,14 +4388,15 @@ function drawWeeklyVideoBrand(context, light = true) {
 }
 
 function drawWeeklyReplayProgress(context, elapsed) {
-  const gap = 8;
-  const width = (624 - (gap * 3)) / 4;
-  for (let index = 0; index < 4; index += 1) {
-    const start = index * 3000;
-    const progress = Math.max(0, Math.min(1, (elapsed - start) / 3000));
+  const gap = 5;
+  const width = (624 - (gap * (weeklyReplayVideoSceneDurations.length - 1))) / weeklyReplayVideoSceneDurations.length;
+  let start = 0;
+  weeklyReplayVideoSceneDurations.forEach((duration, index) => {
+    const progress = Math.max(0, Math.min(1, (elapsed - start) / duration));
     fillRoundedCanvasRect(context, 48 + (index * (width + gap)), 28, width, 5, 3, 'rgba(255,255,255,.22)');
     if (progress) fillRoundedCanvasRect(context, 48 + (index * (width + gap)), 28, width * progress, 5, 3, '#f6bd4e');
-  }
+    start += duration;
+  });
 }
 
 function fillWeeklyVideoBackground(context, scene) {
@@ -4372,7 +4417,7 @@ function fillWeeklyVideoBackground(context, scene) {
   context.fillRect(0, 0, 720, 1280);
 }
 
-function drawWeeklyReplayVideoFrame(replay, elapsed) {
+function drawLegacyWeeklyReplayVideoFrame(replay, elapsed) {
   const canvas = document.getElementById('weeklyVideoCanvas');
   const context = canvas?.getContext('2d');
   if (!canvas || !context) return;
@@ -4496,6 +4541,223 @@ function drawWeeklyReplayVideoFrame(replay, elapsed) {
   drawWeeklyReplayProgress(context, safeElapsed);
 }
 
+function getWeeklyReplayVideoScene(elapsed) {
+  let cursor = 0;
+  for (let index = 0; index < weeklyReplayVideoSceneDurations.length; index += 1) {
+    const duration = weeklyReplayVideoSceneDurations[index];
+    if (elapsed < cursor + duration) return { index, progress: (elapsed - cursor) / duration };
+    cursor += duration;
+  }
+  return { index: weeklyReplayVideoSceneDurations.length - 1, progress: 1 };
+}
+
+function weeklyReplayMealImage(replay, meal) {
+  if (!meal) return null;
+  return replay.videoImages?.get(meal.id || meal.photo_url) || null;
+}
+
+function drawWeeklyReplayImageCover(context, image, x, y, width, height, radius = 24) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  const sourceX = (image.naturalWidth - sourceWidth) / 2;
+  const sourceY = (image.naturalHeight - sourceHeight) / 2;
+  context.save();
+  roundedCanvasRect(context, x, y, width, height, radius);
+  context.clip();
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+  const shade = context.createLinearGradient(0, y, 0, y + height);
+  shade.addColorStop(.5, 'rgba(10,25,19,0)');
+  shade.addColorStop(1, 'rgba(10,25,19,.7)');
+  context.fillStyle = shade;
+  context.fillRect(x, y, width, height);
+  context.restore();
+}
+
+function weeklyReplayFoodEmoji(meal) {
+  const text = foodSearchText(meal);
+  if (/coffee|tea|latte/.test(text)) return '☕';
+  if (/fruit|banana|apple|mango|berry|orange/.test(text)) return '🍓';
+  if (/salad|vegetable|greens/.test(text)) return '🥗';
+  if (/fish|salmon|tuna/.test(text)) return '🐟';
+  if (/chicken|beef|pork/.test(text)) return '🍽️';
+  if (/rice|noodle|pasta/.test(text)) return '🍜';
+  return '🍴';
+}
+
+function drawWeeklyReplayMealVisual(context, replay, meal, x, y, width, height, accent = '#ef7624') {
+  const image = weeklyReplayMealImage(replay, meal);
+  if (image) {
+    drawWeeklyReplayImageCover(context, image, x, y, width, height);
+    return;
+  }
+  const gradient = context.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, accent);
+  gradient.addColorStop(1, '#174c3c');
+  fillRoundedCanvasRect(context, x, y, width, height, 24, gradient);
+  context.fillStyle = 'rgba(255,255,255,.13)';
+  context.beginPath();
+  context.arc(x + width * .82, y + height * .18, width * .34, 0, Math.PI * 2);
+  context.fill();
+  context.font = `${Math.round(Math.min(width, height) * .3)}px Arial, sans-serif`;
+  context.textAlign = 'center';
+  context.fillStyle = '#fff';
+  context.fillText(weeklyReplayFoodEmoji(meal), x + (width / 2), y + (height * .57));
+  context.textAlign = 'left';
+}
+
+function drawWeeklyReplayMealCaption(context, meal, x, y, width, color = '#fffaf0') {
+  context.fillStyle = color;
+  context.font = '700 31px Georgia, serif';
+  drawCanvasText(context, meal?.food_name || 'Saved meal', x, y, width, 36, 2);
+}
+
+function drawWeeklyReplayBodyFigure(context, signals, reveal) {
+  const centerX = 360;
+  context.save();
+  context.strokeStyle = 'rgba(244,183,67,.95)';
+  context.fillStyle = 'rgba(255,255,255,.1)';
+  context.lineWidth = 20;
+  context.lineCap = 'round';
+  context.beginPath();
+  context.arc(centerX, 375, 58, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  fillRoundedCanvasRect(context, 270, 450, 180, 325, 80, 'rgba(255,255,255,.1)');
+  context.strokeStyle = '#ef7a4a';
+  context.lineWidth = 44;
+  context.beginPath();
+  context.moveTo(292, 500); context.lineTo(225, 700);
+  context.moveTo(428, 500); context.lineTo(495, 700);
+  context.moveTo(315, 750); context.lineTo(290, 1010);
+  context.moveTo(405, 750); context.lineTo(430, 1010);
+  context.stroke();
+  const positions = {
+    brain: [360, 360], eyes: [360, 382], heart: [390, 515], liver: [330, 585], muscles: [285, 590], digestion: [360, 650], energy: [360, 730], bones: [405, 850], joints: [420, 900], skin: [280, 520], immunity: [330, 690], recovery: [440, 620]
+  };
+  signals.forEach((signal, index) => {
+    const [x, y] = positions[signal.position] || [360, 620];
+    const pulse = 1 + (Math.sin((reveal * Math.PI * 4) + index) * .08);
+    context.shadowColor = ['#ffd65c', '#64d3a2', '#ff816f'][index % 3];
+    context.shadowBlur = 34 * reveal;
+    context.fillStyle = ['#ffd65c', '#64d3a2', '#ff816f'][index % 3];
+    context.beginPath();
+    context.arc(x, y, (17 + (index * 2)) * pulse * reveal, 0, Math.PI * 2);
+    context.fill();
+    context.shadowBlur = 0;
+    const labelX = index % 2 ? 475 : 55;
+    context.fillStyle = '#fffaf0';
+    context.font = '800 20px Arial, sans-serif';
+    context.fillText(`${signal.icon} ${signal.name}`, labelX, 430 + (index * 150));
+    context.fillStyle = '#bdd8cc';
+    context.font = '700 15px Arial, sans-serif';
+    context.fillText(`${signal.score}% food signal`, labelX, 458 + (index * 150));
+  });
+  context.restore();
+}
+
+function drawWeeklyReplayVideoFrame(replay, elapsed) {
+  const canvas = document.getElementById('weeklyVideoCanvas');
+  const context = canvas?.getContext('2d');
+  if (!canvas || !context) return;
+  const safeElapsed = Math.max(0, Math.min(weeklyReplayVideoDuration - 1, elapsed));
+  const sceneState = getWeeklyReplayVideoScene(safeElapsed);
+  const scene = sceneState.index;
+  const localProgress = sceneState.progress;
+  const reveal = weeklyVideoEase(Math.min(localProgress * 2.3, 1));
+  const memberName = getProfileIdentity().firstName || appState.currentMember?.name || 'Your';
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  const backgrounds = [0, 0, 1, 2, 1, 2, 0, 0];
+  fillWeeklyVideoBackground(context, backgrounds[scene]);
+  context.save();
+  context.globalAlpha = reveal;
+  context.translate(0, (1 - reveal) * 24);
+  drawWeeklyVideoBrand(context, backgrounds[scene] !== 2);
+
+  if (scene === 0) {
+    context.fillStyle = '#f5ba49';
+    context.font = '900 18px Arial, sans-serif';
+    context.fillText('YOUR 30-SECOND WEEKLY REPLAY', 52, 250);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 84px Georgia, serif';
+    context.fillText(`${memberName}’s week,`, 50, 360);
+    context.fillText('plated.', 50, 450);
+    context.fillStyle = '#c9ddd4';
+    context.font = '500 25px Arial, sans-serif';
+    context.fillText(`${replay.days.length} recorded days · ${replay.meals.length} meals · ${replay.variety} foods`, 52, 510);
+    context.font = '130px Arial, sans-serif';
+    context.fillText('🍽️', 290, 850);
+    context.fillStyle = '#f5ba49';
+    context.font = '800 17px Arial, sans-serif';
+    context.fillText('REAL MEALS. ONE COLORFUL STORY.', 52, 1140);
+  } else if (scene === 1) {
+    context.fillStyle = '#f5ba49'; context.font = '900 17px Arial, sans-serif'; context.fillText('SNAPSHOTS FROM YOUR WEEK', 52, 205);
+    context.fillStyle = '#fffaf0'; context.font = '700 55px Georgia, serif'; context.fillText('The plates that', 52, 275); context.fillText('made the story.', 52, 338);
+    const collageMeals = [...replay.photoMeals, replay.highestCalorieMeal, replay.healthiestMeal].filter(Boolean).slice(0, 4);
+    const slots = [[52,400,290,310],[362,400,306,205],[362,625,306,310],[52,730,290,205]];
+    slots.forEach((slot, index) => {
+      const meal = collageMeals[index] || replay.meals[index % replay.meals.length];
+      const scale = weeklyVideoEase(Math.max(0, Math.min(1, (localProgress * 2) - (index * .12))));
+      context.save(); context.translate(slot[0] + slot[2]/2, slot[1] + slot[3]/2); context.scale(scale, scale); context.translate(-(slot[0] + slot[2]/2), -(slot[1] + slot[3]/2));
+      drawWeeklyReplayMealVisual(context, replay, meal, ...slot, ['#ef7624','#17604a','#e9a51b','#ce4f36'][index]);
+      context.fillStyle = '#fff'; context.font = '800 15px Arial, sans-serif'; drawCanvasText(context, meal?.food_name || 'Saved meal', slot[0]+16, slot[1]+slot[3]-24, slot[2]-32, 18, 2); context.restore();
+    });
+  } else if (scene === 2) {
+    const meal = replay.highestCalorieMeal;
+    context.fillStyle = '#ffd5b6'; context.font = '900 17px Arial, sans-serif'; context.fillText('THE BIGGEST PLATE', 52, 205);
+    context.fillStyle = '#fffaf0'; context.font = '700 59px Georgia, serif'; context.fillText('Highest-calorie', 52, 280); context.fillText('meal of the week.', 52, 345);
+    drawWeeklyReplayMealVisual(context, replay, meal, 52, 405, 616, 500, '#ef7624');
+    drawWeeklyReplayMealCaption(context, meal, 78, 830, 440);
+    fillRoundedCanvasRect(context, 480, 815, 158, 70, 35, '#f7b941');
+    context.fillStyle = '#173f32'; context.font = '900 24px Arial, sans-serif'; context.textAlign = 'center'; context.fillText(`${Number(meal?.calories || 0).toLocaleString()} cal`, 559, 858); context.textAlign = 'left';
+    context.fillStyle = '#ffd5b6'; context.font = '500 19px Arial, sans-serif'; context.fillText('A highlight, not a judgment.', 52, 1035);
+  } else if (scene === 3) {
+    const cards = [{ meal: replay.lowestCalorieMeal, label: 'LIGHTEST MEAL', accent: '#1a806b' }, { meal: replay.healthiestMeal, label: 'STRONGEST FOOD SCORE', accent: '#ef7624' }];
+    context.fillStyle = '#b85b2a'; context.font = '900 17px Arial, sans-serif'; context.fillText('TWO DIFFERENT WINS', 52, 200);
+    context.fillStyle = '#2a2019'; context.font = '700 54px Georgia, serif'; context.fillText('Lightest plate.', 52, 275); context.fillText('Strongest balance.', 52, 335);
+    cards.forEach((card, index) => {
+      const y = 405 + (index * 370);
+      drawWeeklyReplayMealVisual(context, replay, card.meal, 52, y, 240, 310, card.accent);
+      context.fillStyle = '#a65d33'; context.font = '900 14px Arial, sans-serif'; context.fillText(card.label, 322, y + 45);
+      context.fillStyle = '#2d2119'; context.font = '700 28px Georgia, serif'; drawCanvasText(context, card.meal?.food_name || 'Saved meal', 322, y + 94, 330, 34, 2);
+      context.fillStyle = '#17604a'; context.font = '900 23px Arial, sans-serif';
+      context.fillText(index ? `${analyzeMealQuality(card.meal || {}).score}/100 score` : `${Number(card.meal?.calories || 0).toLocaleString()} calories`, 322, y + 185);
+    });
+  } else if (scene === 4) {
+    fillRoundedCanvasRect(context, 52, 220, 616, 820, 45, 'rgba(255,255,255,.12)');
+    context.font = '145px Arial, sans-serif'; context.textAlign = 'center'; context.fillText(replay.persona.emoji, 360, 470);
+    context.fillStyle = '#ffd5b6'; context.font = '900 17px Arial, sans-serif'; context.fillText('YOUR FOOD CHARACTER', 360, 555);
+    context.fillStyle = '#fffaf0'; context.font = '700 56px Georgia, serif'; drawCanvasText(context, replay.persona.title, 360, 635, 530, 62, 2);
+    context.fillStyle = '#fff0e4'; context.font = '400 22px Arial, sans-serif'; drawCanvasText(context, replay.persona.copy, 360, 785, 500, 31, 3);
+    context.fillStyle = '#f8c04f'; context.font = '900 16px Arial, sans-serif'; context.fillText(`REPEAT FAVORITE · ${replay.repeatFavorite || 'STILL EMERGING'}`, 360, 955); context.textAlign = 'left';
+  } else if (scene === 5) {
+    context.fillStyle = '#b85d2d'; context.font = '900 17px Arial, sans-serif'; context.fillText('SEVEN-DAY PLAYBACK', 52, 205);
+    context.fillStyle = '#2c2018'; context.font = '700 56px Georgia, serif'; context.fillText('Your rhythm,', 52, 278); context.fillText('day by day.', 52, 340);
+    const maxCalories = Math.max(...replay.days.map((day) => day.calories), 1);
+    const barWidth = 66; const barGap = 22;
+    replay.days.forEach((day, index) => {
+      const x = 56 + (index * (barWidth + barGap)); const targetHeight = Math.max(36, Math.round(day.calories / maxCalories * 440));
+      const barReveal = weeklyVideoEase(Math.max(0, Math.min(1, (localProgress * 2) - (index * .08)))); const height = targetHeight * barReveal;
+      fillRoundedCanvasRect(context, x, 900-height, barWidth, height, 13, index === replay.days.length-1 ? '#17604a' : '#ef7a25');
+      context.textAlign='center'; context.fillStyle='#715f52'; context.font='800 15px Arial, sans-serif'; context.fillText(replayDayLabel(day),x+barWidth/2,940); context.fillStyle='#244c3d'; context.fillText(Math.round(day.calories).toLocaleString(),x+barWidth/2,972);
+    }); context.textAlign='left';
+    fillRoundedCanvasRect(context,52,1040,616,110,24,'#173f32'); context.fillStyle='#f8c45c'; context.font='900 15px Arial, sans-serif'; context.fillText('WEEK TOTAL',82,1080); context.fillStyle='#fffaf0'; context.font='700 31px Georgia, serif'; context.fillText(`${replay.calories.toLocaleString()} recorded calories`,82,1125);
+  } else if (scene === 6) {
+    context.fillStyle='#f5ba49'; context.font='900 17px Arial, sans-serif'; context.fillText('BODY MAP · FOOD SIGNALS',52,195);
+    context.fillStyle='#fffaf0'; context.font='700 53px Georgia, serif'; context.fillText('Where your foods',52,265); context.fillText('showed up.',52,325);
+    drawWeeklyReplayBodyFigure(context,replay.bodySignals,weeklyVideoEase(Math.min(localProgress*2,1)));
+    context.fillStyle='#bcd6cb'; context.font='500 16px Arial, sans-serif'; context.fillText('Food-pattern highlights only · Not medical results',52,1165);
+  } else {
+    context.fillStyle='#f5ba49'; context.font='900 17px Arial, sans-serif'; context.fillText('THE FINAL PLATE',52,220);
+    context.fillStyle='#fffaf0'; context.font='700 62px Georgia, serif'; context.fillText('A week worth',52,300); context.fillText('remembering.',52,370);
+    const stats=[['FOOD SCORE',`${replay.foodScore}/100`],['DIFFERENT FOODS',replay.variety.toString()],['MEALS REPLAYED',replay.meals.length.toString()],['YOUR TITLE',replay.persona.title]];
+    stats.forEach((stat,index)=>{const x=52+((index%2)*318);const y=455+(Math.floor(index/2)*210);fillRoundedCanvasRect(context,x,y,298,180,28,'rgba(255,255,255,.09)');context.fillStyle='#bcd2c8';context.font='900 13px Arial, sans-serif';context.fillText(stat[0],x+24,y+45);context.fillStyle='#fffaf0';context.font=index===3?'700 24px Georgia, serif':'700 42px Georgia, serif';drawCanvasText(context,stat[1],x+24,y+98,250,33,2);});
+    context.fillStyle='#f5ba49';context.font='900 17px Arial, sans-serif';context.fillText('MAP YOUR NEXT MEAL',52,1005);context.fillStyle='#fffaf0';context.font='700 35px Georgia, serif';context.fillText('mymealmap1.netlify.app',52,1055);context.fillStyle='#bcd2c8';context.font='400 18px Arial, sans-serif';context.fillText('Your food story continues next week.',52,1110);
+  }
+  context.restore();
+  drawWeeklyReplayProgress(context, safeElapsed);
+}
+
 function startWeeklyReplayPreview(replay = buildWeeklyReplayData()) {
   cancelAnimationFrame(weeklyReplayPreviewFrame);
   const startedAt = performance.now();
@@ -4523,13 +4785,14 @@ async function createWeeklyReplayVideo() {
   const canvas = document.getElementById('weeklyVideoCanvas');
   const mimeType = getWeeklyReplayVideoMimeType();
   if (!canvas?.captureStream || !mimeType) throw new Error('Video export is not supported by this browser.');
-  const replay = buildWeeklyReplayData();
+  const replay = weeklyReplayVideoData || buildWeeklyReplayData();
   cancelAnimationFrame(weeklyReplayPreviewFrame);
   setWeeklyVideoBusy(true);
-  setWeeklyVideoFeedback('Creating your 12-second replay… Keep this screen open.');
+  setWeeklyVideoFeedback('Preparing snapshots and creating your 30-second replay… Keep this screen open.');
   try {
+    await prepareWeeklyReplayImages(replay);
     const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4000000 });
     const chunks = [];
     recorder.addEventListener('dataavailable', (event) => {
       if (event.data?.size) chunks.push(event.data);
