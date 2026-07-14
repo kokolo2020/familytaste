@@ -2535,10 +2535,11 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
 }
 
 function bodySignalLabel(score) {
-  if (!score) return 'No signal yet';
-  if (score < 35) return 'Building';
-  if (score < 70) return 'Steady signal';
-  return 'Strong signal';
+  const value = clampScore(score || 0);
+  if (!value) return 'No signal yet (0%)';
+  if (value < 35) return `Building (${value}%)`;
+  if (value < 70) return `Steady signal (${value}%)`;
+  return `Strong signal (${value}%)`;
 }
 
 function getBodyFoodSuggestion(position) {
