@@ -38,7 +38,7 @@ const pendingOtpEmailStorageKey = 'familyBites.pendingOtpEmail';
 const uiStateStorageKey = 'familyBites.uiState.v1';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.10.0';
+const APP_VERSION = 'v1.11.0';
 const APP_BUILD_DATE = '2026-07-13';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -134,6 +134,7 @@ let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
 let authSessionRecoveryPromise = null;
 let profileOnboardingTimer = null;
+let bodyMapConnectorFrame = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -412,6 +413,7 @@ function bindEvents() {
   document.getElementById('authSignOutButton')?.addEventListener('click', handleAuthSignOut);
   document.addEventListener('visibilitychange', handleAppResumeSessionCheck);
   window.addEventListener('pageshow', handleAppResumeSessionCheck);
+  window.addEventListener('resize', scheduleBodyMapConnectorRender);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     clearAutoEditEstimate();
     document.getElementById('mealModal').classList.add('hidden');
@@ -1981,6 +1983,14 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
 
   leftColumn.innerHTML = orderedLeft.map(renderBodySystemCard).join('');
   rightColumn.innerHTML = orderedRight.map(renderBodySystemCard).join('');
+  scheduleBodyMapConnectorRender();
+  document.querySelectorAll('.body-system-card[data-body-system]').forEach((card) => {
+    const position = card.dataset.bodySystem;
+    card.addEventListener('mouseenter', () => setBodyMapConnectorActive(position, true));
+    card.addEventListener('mouseleave', () => setBodyMapConnectorActive(position, false));
+    card.addEventListener('focusin', () => setBodyMapConnectorActive(position, true));
+    card.addEventListener('focusout', () => setBodyMapConnectorActive(position, false));
+  });
 
   const topImpact = [...impacts].sort((left, right) => right.score - left.score)[0];
   const zeroSystems = impacts.filter((impact) => impact.score === 0).slice(0, 2);
@@ -2047,7 +2057,7 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
 function renderBodySystemCard(impact) {
   const tone = impact.score >= 70 ? 'good' : impact.score >= 35 ? 'steady' : 'low';
   return `
-    <article class="body-system-card body-system-card-${tone}">
+    <article class="body-system-card body-system-card-${tone}" data-body-system="${escapeAttr(impact.position)}" data-body-score="${impact.score}" tabindex="0">
       <div class="body-system-card-header">
         <span>${impact.icon}</span>
         <div>
@@ -2058,6 +2068,67 @@ function renderBodySystemCard(impact) {
       <p title="${escapeAttr(impact.copy)}">${escapeHtml(impact.copy)}</p>
     </article>
   `;
+}
+
+const bodyMapAnchors = {
+  brain: { x: .5, y: .08 },
+  eyes: { x: .5, y: .115 },
+  heart: { x: .545, y: .275 },
+  liver: { x: .425, y: .315 },
+  digestion: { x: .5, y: .415 },
+  muscles: { x: .29, y: .42 },
+  joints: { x: .39, y: .66 },
+  immunity: { x: .49, y: .335 },
+  energy: { x: .5, y: .505 },
+  skin: { x: .73, y: .39 },
+  recovery: { x: .34, y: .56 },
+  bones: { x: .63, y: .73 }
+};
+
+function scheduleBodyMapConnectorRender() {
+  if (bodyMapConnectorFrame) cancelAnimationFrame(bodyMapConnectorFrame);
+  bodyMapConnectorFrame = requestAnimationFrame(() => {
+    bodyMapConnectorFrame = null;
+    renderBodyMapConnectors();
+  });
+}
+
+function renderBodyMapConnectors() {
+  const layout = document.querySelector('.body-map-layout');
+  const svg = document.getElementById('bodyMapConnectors');
+  const image = layout?.querySelector('.body-map-figure img');
+  if (!layout || !svg || !image || window.matchMedia('(max-width: 1100px)').matches) {
+    if (svg) svg.innerHTML = '';
+    return;
+  }
+  if (!image.complete) {
+    image.addEventListener('load', scheduleBodyMapConnectorRender, { once: true });
+    return;
+  }
+
+  const layoutRect = layout.getBoundingClientRect();
+  const imageRect = image.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${layoutRect.width} ${layoutRect.height}`);
+  svg.innerHTML = Array.from(layout.querySelectorAll('.body-system-card[data-body-system]')).map((card) => {
+    const position = card.dataset.bodySystem;
+    const anchor = bodyMapAnchors[position];
+    if (!anchor) return '';
+    const cardRect = card.getBoundingClientRect();
+    const isLeft = card.closest('#bodyMapLeft') !== null;
+    const startX = (isLeft ? cardRect.right : cardRect.left) - layoutRect.left;
+    const startY = cardRect.top - layoutRect.top + cardRect.height / 2;
+    const targetX = imageRect.left - layoutRect.left + imageRect.width * anchor.x;
+    const targetY = imageRect.top - layoutRect.top + imageRect.height * anchor.y;
+    const direction = isLeft ? 1 : -1;
+    const bend = Math.max(34, Math.min(92, Math.abs(targetX - startX) * .42));
+    const path = `M ${startX} ${startY} C ${startX + direction * bend} ${startY}, ${targetX - direction * bend} ${targetY}, ${targetX} ${targetY}`;
+    const signalClass = Number(card.dataset.bodyScore) > 0 ? ' has-signal' : '';
+    return `<g class="body-map-connector${signalClass}" data-body-connector="${escapeAttr(position)}"><path d="${path}"></path><circle cx="${targetX}" cy="${targetY}" r="4"></circle></g>`;
+  }).join('');
+}
+
+function setBodyMapConnectorActive(position, active) {
+  document.querySelector(`.body-map-connector[data-body-connector="${position}"]`)?.classList.toggle('is-active', active);
 }
 
 function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
