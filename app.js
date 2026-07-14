@@ -398,6 +398,7 @@ function bindEvents() {
   document.getElementById('clearSnapForm').addEventListener('click', resetSnapWorkspace);
   document.getElementById('editAiEstimateCalories').addEventListener('click', applyEditAiCalorieEstimate);
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
+  document.getElementById('dailyShareShowNames')?.addEventListener('change', renderDailyShareCard);
   document.getElementById('confirmAddMember').addEventListener('click', handleConfirmAddMember);
   document.getElementById('cancelAddMember').addEventListener('click', closeAddMemberModal);
   document.getElementById('saveProfileOnboarding')?.addEventListener('click', handleSaveProfileOnboarding);
@@ -1036,6 +1037,26 @@ function handleAction(action) {
     return;
   }
 
+  if (action === 'open-daily-share') {
+    openDailyShareModal();
+    return;
+  }
+
+  if (action === 'close-daily-share') {
+    closeDailyShareModal();
+    return;
+  }
+
+  if (action === 'share-daily-card') {
+    shareDailyCard();
+    return;
+  }
+
+  if (action === 'save-daily-share') {
+    saveDailyShareCard();
+    return;
+  }
+
   if (action === 'home') {
     if (appState.auth.status !== 'ready') return;
     showPage('dashboard');
@@ -1218,6 +1239,299 @@ function closeDailySummaryIntro() {
   overlay.classList.remove('is-visible');
   setTimeout(() => overlay.classList.add('hidden'), 280);
   queueProfileOnboardingCheck();
+}
+
+const dailyShareColors = ['#ec6c22', '#e5a814', '#5e9d59', '#14806d', '#c95e4c', '#9c6a8d', '#5d7fae', '#8a6aa0'];
+
+function getDailyShareData() {
+  const meals = getMemberMeals().filter(isToday);
+  const grouped = new Map();
+  meals.forEach((meal) => {
+    const name = String(meal.food_name || 'Saved dish').trim() || 'Saved dish';
+    const key = name.toLowerCase();
+    const current = grouped.get(key) || { name, calories: 0 };
+    current.calories += Number(meal.calories) || 0;
+    grouped.set(key, current);
+  });
+  const dishes = Array.from(grouped.values()).sort((left, right) => right.calories - left.calories);
+  const calories = dishes.reduce((total, dish) => total + dish.calories, 0);
+  const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
+  const goal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
+  const scores = meals.map((meal) => analyzeMealQuality(meal).score);
+  const foodScore = scores.length ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : 0;
+  const variety = new Set(meals.map((meal) => String(meal.food_name || '').trim().toLowerCase()).filter(Boolean)).size;
+  const remaining = Math.max(goal - calories, 0);
+  const over = Math.max(calories - goal, 0);
+  const observation = over
+    ? `${over.toLocaleString()} calories above today’s target. Tomorrow is a fresh map.`
+    : foodScore >= 75
+      ? 'A strong food-score day with room to keep the rhythm going.'
+      : variety >= 5
+        ? 'Plenty of variety shaped today’s food story.'
+        : `${remaining.toLocaleString()} calories remained in today’s target.`;
+  return { meals, dishes, calories, goal, foodScore, variety, observation };
+}
+
+function openDailyShareModal() {
+  const data = getDailyShareData();
+  if (!data.meals.length) {
+    showAppNotice('Log at least one meal before sharing your day.', 'warning');
+    return;
+  }
+  const namesToggle = document.getElementById('dailyShareShowNames');
+  if (namesToggle) namesToggle.checked = false;
+  setDailyShareFeedback('');
+  document.getElementById('dailyShareModal')?.classList.remove('hidden');
+  renderDailyShareCard();
+}
+
+function closeDailyShareModal() {
+  document.getElementById('dailyShareModal')?.classList.add('hidden');
+  setDailyShareFeedback('');
+}
+
+function setDailyShareFeedback(message, tone = '') {
+  const feedback = document.getElementById('dailyShareFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `daily-share-feedback${tone ? ` ${tone}` : ''}`;
+}
+
+function roundedCanvasRect(context, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + safeRadius, y);
+  context.arcTo(x + width, y, x + width, y + height, safeRadius);
+  context.arcTo(x + width, y + height, x, y + height, safeRadius);
+  context.arcTo(x, y + height, x, y, safeRadius);
+  context.arcTo(x, y, x + width, y, safeRadius);
+  context.closePath();
+}
+
+function fillRoundedCanvasRect(context, x, y, width, height, radius, color) {
+  roundedCanvasRect(context, x, y, width, height, radius);
+  context.fillStyle = color;
+  context.fill();
+}
+
+function drawCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines = 2) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  let consumed = 0;
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (context.measureText(candidate).width <= maxWidth || !line) {
+      line = candidate;
+      consumed += 1;
+    } else if (lines.length < maxLines - 1) {
+      lines.push(line);
+      line = word;
+      consumed += 1;
+    }
+  });
+  if (line && lines.length < maxLines) lines.push(line);
+  if (consumed < words.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last && context.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1);
+    lines[lines.length - 1] = `${last.trim()}…`;
+  }
+  lines.forEach((item, index) => context.fillText(item, x, y + (index * lineHeight)));
+}
+
+function drawDailyShareBrand(context) {
+  context.save();
+  context.translate(88, 82);
+  context.fillStyle = '#17604a';
+  context.beginPath();
+  context.arc(38, 38, 38, Math.PI, 0);
+  context.lineTo(67, 65);
+  context.quadraticCurveTo(38, 100, 9, 65);
+  context.closePath();
+  context.fill();
+  context.fillStyle = '#fffaf0';
+  context.beginPath();
+  context.arc(38, 38, 23, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#ef8b24';
+  context.beginPath();
+  context.ellipse(38, 38, 7, 15, .72, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+  context.fillStyle = '#153e32';
+  context.font = '700 45px Georgia, serif';
+  context.fillText('MyMealMap', 182, 126);
+  context.fillStyle = '#8a715d';
+  context.font = '800 15px Arial, sans-serif';
+  context.fillText('YOUR FOOD STORY, MAPPED.', 184, 154);
+}
+
+function renderDailyShareCard() {
+  const canvas = document.getElementById('dailyShareCanvas');
+  const context = canvas?.getContext('2d');
+  if (!canvas || !context) return;
+  const data = getDailyShareData();
+  const showNames = Boolean(document.getElementById('dailyShareShowNames')?.checked);
+  const { dishes, calories, goal, foodScore, variety, observation } = data;
+  const divisor = calories || dishes.length || 1;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#f7f1e7';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const glow = context.createRadialGradient(930, 80, 20, 930, 80, 360);
+  glow.addColorStop(0, 'rgba(242,167,60,.25)');
+  glow.addColorStop(1, 'rgba(242,167,60,0)');
+  context.fillStyle = glow;
+  context.fillRect(570, 0, 510, 430);
+  drawDailyShareBrand(context);
+
+  context.fillStyle = '#b85a26';
+  context.font = '800 20px Arial, sans-serif';
+  context.fillText('DAILY FOOD BRIEF', 88, 235);
+  context.fillStyle = '#251b14';
+  context.font = '700 70px Georgia, serif';
+  context.fillText('Today’s food story', 88, 310);
+  context.fillStyle = '#79695c';
+  context.font = '400 24px Arial, sans-serif';
+  const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+  context.fillText(`${dateLabel}  ·  ${dishes.length} dish${dishes.length === 1 ? '' : 'es'} logged`, 90, 353);
+
+  fillRoundedCanvasRect(context, 58, 390, 964, 615, 36, '#fffdf9');
+  context.save();
+  context.translate(320, 685);
+  context.rotate(-Math.PI / 2);
+  let angle = 0;
+  dishes.forEach((dish, index) => {
+    const slice = ((dish.calories || 1) / divisor) * Math.PI * 2;
+    context.beginPath();
+    context.strokeStyle = dailyShareColors[index % dailyShareColors.length];
+    context.lineWidth = 100;
+    context.arc(0, 0, 175, angle, angle + slice);
+    context.stroke();
+    angle += slice;
+  });
+  context.restore();
+  context.textAlign = 'center';
+  context.fillStyle = '#153e32';
+  context.font = '700 52px Georgia, serif';
+  context.fillText(calories.toLocaleString(), 320, 686);
+  context.fillStyle = '#857467';
+  context.font = '800 16px Arial, sans-serif';
+  context.fillText('CALORIES', 320, 716);
+  context.fillStyle = '#b55b2d';
+  context.font = '800 17px Arial, sans-serif';
+  context.fillText(`${Math.round((calories / goal) * 100)}% OF GOAL`, 320, 748);
+  context.textAlign = 'left';
+
+  const visibleDishes = dishes.slice(0, 5);
+  visibleDishes.forEach((dish, index) => {
+    const y = 465 + (index * 96);
+    const percent = Math.round(((dish.calories || 1) / divisor) * 100);
+    fillRoundedCanvasRect(context, 570, y, 400, 78, 18, '#f8f4ed');
+    context.fillStyle = dailyShareColors[index % dailyShareColors.length];
+    context.beginPath();
+    context.arc(600, y + 39, 10, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#34271f';
+    context.font = '700 22px Arial, sans-serif';
+    drawCanvasText(context, showNames ? dish.name : `Dish ${index + 1}`, 626, y + 33, 225, 25, 1);
+    context.fillStyle = '#8d7e72';
+    context.font = '400 16px Arial, sans-serif';
+    context.fillText(`${percent}% of today`, 626, y + 58);
+    context.fillStyle = '#3f713e';
+    context.font = '800 18px Arial, sans-serif';
+    context.textAlign = 'right';
+    context.fillText(`${dish.calories.toLocaleString()} cal`, 946, y + 43);
+    context.textAlign = 'left';
+  });
+  if (dishes.length > visibleDishes.length) {
+    context.fillStyle = '#8d7e72';
+    context.font = '700 16px Arial, sans-serif';
+    context.fillText(`+${dishes.length - visibleDishes.length} more dishes`, 584, 966);
+  }
+
+  [
+    { label: 'DAILY GOAL', value: `${goal.toLocaleString()} cal` },
+    { label: 'FOOD SCORE', value: `${foodScore}/100` },
+    { label: 'VARIETY', value: `${variety} foods` }
+  ].forEach((stat, index) => {
+    const x = 58 + (index * 327);
+    fillRoundedCanvasRect(context, x, 1040, 309, 116, 22, index === 1 ? '#e8f2e9' : '#fffdf9');
+    context.fillStyle = '#927d6b';
+    context.font = '800 14px Arial, sans-serif';
+    context.fillText(stat.label, x + 24, 1075);
+    context.fillStyle = '#173f33';
+    context.font = '700 30px Georgia, serif';
+    context.fillText(stat.value, x + 24, 1119);
+  });
+
+  fillRoundedCanvasRect(context, 58, 1185, 964, 105, 23, '#153f32');
+  context.fillStyle = '#f2ad3d';
+  context.font = '800 15px Arial, sans-serif';
+  context.fillText('TODAY’S OBSERVATION', 86, 1222);
+  context.fillStyle = '#f8f3e9';
+  context.font = '400 21px Arial, sans-serif';
+  drawCanvasText(context, observation, 86, 1256, 650, 26, 2);
+  context.fillStyle = '#f2ad3d';
+  context.font = '800 18px Arial, sans-serif';
+  context.textAlign = 'right';
+  context.fillText('mymealmap1.netlify.app', 990, 1257);
+  context.textAlign = 'left';
+}
+
+function dailyShareCanvasBlob() {
+  renderDailyShareCard();
+  return new Promise((resolve, reject) => {
+    document.getElementById('dailyShareCanvas')?.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error('Could not create the share image.'));
+    }, 'image/png');
+  });
+}
+
+async function shareDailyCard() {
+  try {
+    setDailyShareFeedback('Preparing your image…');
+    const blob = await dailyShareCanvasBlob();
+    const file = new File([blob], `mymealmap-${todayKey()}.png`, { type: 'image/png' });
+    const data = getDailyShareData();
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        title: 'My MyMealMap food story',
+        text: `Today’s food story: ${data.calories.toLocaleString()} calories, ${data.dishes.length} dishes, and a ${data.foodScore} food score.`,
+        files: [file]
+      });
+      setDailyShareFeedback('Shared successfully.', 'success');
+      return;
+    }
+    await saveDailyShareCard(blob);
+    setDailyShareFeedback('Image saved. Add it to your preferred social app.', 'success');
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      setDailyShareFeedback('Sharing canceled.');
+      return;
+    }
+    console.error(error);
+    setDailyShareFeedback('Could not share the image. Try Save image instead.', 'error');
+  }
+}
+
+async function saveDailyShareCard(existingBlob) {
+  try {
+    setDailyShareFeedback('Preparing your image…');
+    const blob = existingBlob instanceof Blob ? existingBlob : await dailyShareCanvasBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mymealmap-${todayKey()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setDailyShareFeedback('Image saved.', 'success');
+  } catch (error) {
+    console.error(error);
+    setDailyShareFeedback('Could not save the image on this device.', 'error');
+  }
 }
 
 function calculateProfileTargets({ height, weight, age, sex, activity, goal }) {
