@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyMealMap Reel Scenes</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { color: #241b14; background: #fffaf2; font-family: Arial, sans-serif; }
+    .scene { position: relative; display: none; width: 100vw; height: 100vh; overflow: hidden; background: radial-gradient(circle at 72% 18%, #ffe2b9 0, transparent 34%), linear-gradient(150deg, #fffdf8 0%, #faecd8 100%); }
+    body[data-scene="1"] .scene-1, body[data-scene="2"] .scene-2, body[data-scene="3"] .scene-3, body[data-scene="4"] .scene-4, body[data-scene="5"] .scene-5, body[data-scene="cover"] .scene-cover, body[data-scene="share"] .scene-share { display: block; }
+    .scene::before, .scene::after { content: ""; position: absolute; width: 900px; height: 900px; border: 28px solid rgba(42, 108, 82, .07); border-radius: 50%; }
+    .scene::before { top: -620px; right: -360px; }
+    .scene::after { bottom: -700px; left: -420px; border-color: rgba(238, 98, 38, .08); }
+    .brand { position: absolute; top: 90px; left: 72px; z-index: 5; display: flex; align-items: center; gap: 22px; }
+    .brand img { width: 92px; height: 92px; }
+    .brand strong { display: block; color: #1e4d3b; font: 700 48px/1 Georgia, serif; letter-spacing: -2px; }
+    .brand small { display: block; margin-top: 7px; color: #8a725c; font-size: 17px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+    .serif { font-family: Georgia, serif; letter-spacing: -3px; }
+    .eyebrow { margin: 0 0 24px; color: #bd7417; font-size: 22px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; }
+    .headline { margin: 0; color: #211912; font-size: 92px; line-height: .98; }
+    .subhead { margin: 34px 0 0; color: #6f6257; font-size: 32px; line-height: 1.35; }
+    .pill { display: inline-flex; align-items: center; padding: 17px 28px; border-radius: 999px; color: #fff; background: #1f5d47; font-size: 22px; font-weight: 900; letter-spacing: 1px; }
+
+    .scene-1 { text-align: center; }
+    .scene-1 .hero-mark { position: relative; z-index: 2; width: 330px; height: 330px; margin-top: 300px; filter: drop-shadow(0 32px 35px rgba(27, 75, 56, .2)); }
+    .scene-1 .wordmark { position: relative; z-index: 2; margin-top: 52px; color: #1e4d3b; font: 700 104px/1 Georgia, serif; letter-spacing: -5px; }
+    .scene-1 .tagline { position: relative; z-index: 2; margin-top: 22px; color: #8a725c; font-size: 24px; font-weight: 900; letter-spacing: 5px; text-transform: uppercase; }
+    .scene-1 .hook { position: absolute; right: 70px; bottom: 190px; left: 70px; z-index: 2; font: 700 74px/1.08 Georgia, serif; }
+
+    .scene-2 .diner-frame { position: absolute; top: 245px; left: 150px; width: 780px; height: 1080px; overflow: hidden; border: 10px solid rgba(255,255,255,.9); border-radius: 72px; background: #f4d3a2; box-shadow: 0 40px 80px rgba(91, 52, 24, .2); }
+    .scene-2 .diner-frame img { width: 100%; height: 100%; object-fit: cover; }
+    .scene-2 .scan-chip { position: absolute; z-index: 4; display: flex; align-items: center; gap: 14px; padding: 18px 24px; border: 2px solid rgba(44, 98, 77, .12); border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 18px 38px rgba(65, 45, 27, .14); color: #1f5d47; font-size: 24px; font-weight: 900; }
+    .scene-2 .chip-one { top: 420px; left: 78px; transform: rotate(-5deg); }
+    .scene-2 .chip-two { top: 1080px; right: 62px; transform: rotate(4deg); color: #d85d22; }
+    .scene-2 .copy { position: absolute; right: 72px; bottom: 180px; left: 72px; text-align: center; }
+    .scene-2 .copy h2 { margin: 0; font: 700 82px/1.02 Georgia, serif; }
+
+    .scene-3 .copy { position: absolute; top: 265px; left: 72px; z-index: 3; }
+    .scene-3 .copy h2 { width: 900px; margin: 0; font: 700 86px/.98 Georgia, serif; }
+    .scene-3 .report-card { position: absolute; top: 690px; left: 55px; width: 970px; overflow: hidden; border: 8px solid rgba(255,255,255,.94); border-radius: 48px; background: #fff; box-shadow: 0 40px 80px rgba(75, 49, 24, .18); transform: rotate(-1.3deg); }
+    .scene-3 .report-card img { display: block; width: 100%; }
+    .scene-3 .stat { position: absolute; right: 86px; bottom: 210px; z-index: 4; padding: 26px 32px; border-radius: 30px; color: #fff; background: linear-gradient(135deg, #f38a09, #ee5d27); box-shadow: 0 22px 45px rgba(222, 91, 26, .27); font-size: 28px; font-weight: 900; }
+
+    .scene-4 .copy { position: absolute; top: 245px; left: 72px; z-index: 5; }
+    .scene-4 .copy h2 { width: 930px; margin: 0; font: 700 82px/.98 Georgia, serif; }
+    .scene-4 .body-wrap { position: absolute; top: 545px; left: 265px; width: 550px; height: 1160px; }
+    .scene-4 .body-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 25px 32px rgba(63, 55, 44, .14)); }
+    .scene-4 .glow { position: absolute; top: 30%; left: 38%; width: 28%; height: 18%; border-radius: 50%; background: radial-gradient(ellipse, rgba(255, 121, 44, .95), rgba(255, 168, 69, .38) 48%, transparent 72%); box-shadow: 0 0 65px rgba(255, 108, 42, .65); mix-blend-mode: screen; }
+    .scene-4 .signal { position: absolute; right: 72px; bottom: 150px; left: 72px; text-align: center; }
+
+    .scene-5 { text-align: center; }
+    .scene-5 .hero-mark { width: 300px; height: 300px; margin-top: 255px; filter: drop-shadow(0 30px 35px rgba(27, 75, 56, .2)); }
+    .scene-5 h2 { margin: 62px auto 0; width: 920px; font: 700 104px/.98 Georgia, serif; letter-spacing: -5px; }
+    .scene-5 .url { display: inline-block; margin-top: 72px; padding: 28px 42px; border-radius: 28px; color: #fff; background: linear-gradient(135deg, #286b52, #164433); box-shadow: 0 22px 44px rgba(26, 74, 55, .22); font-size: 34px; font-weight: 900; }
+    .scene-5 .note { margin-top: 38px; color: #7b6d60; font-size: 24px; }
+
+    .scene-cover .cover-mark { position: absolute; top: 150px; left: 390px; width: 300px; height: 300px; }
+    .scene-cover h1 { position: absolute; top: 510px; right: 70px; left: 70px; margin: 0; text-align: center; font: 700 98px/.98 Georgia, serif; letter-spacing: -5px; }
+    .scene-cover .cover-card { position: absolute; top: 820px; left: 70px; width: 940px; overflow: hidden; border: 7px solid #fff; border-radius: 45px; box-shadow: 0 34px 70px rgba(75, 49, 24, .17); }
+    .scene-cover .cover-card img { display: block; width: 100%; }
+    .scene-cover .cover-pill { position: absolute; right: 0; bottom: 0; left: 0; padding: 42px; text-align: center; color: #fff; background: #1f5d47; font-size: 32px; font-weight: 900; }
+
+    .scene-share { background: radial-gradient(circle at 80% 15%, #ffe0b5 0, transparent 33%), linear-gradient(145deg, #fffdf8, #f9ead5); }
+    .scene-share::before, .scene-share::after { width: 650px; height: 650px; }
+    .scene-share .share-copy { position: absolute; top: 115px; left: 70px; width: 510px; z-index: 3; }
+    .scene-share .share-brand { display: flex; align-items: center; gap: 15px; color: #1e4d3b; font: 700 36px/1 Georgia, serif; }
+    .scene-share .share-brand img { width: 72px; height: 72px; }
+    .scene-share h1 { margin: 55px 0 0; font: 700 69px/.98 Georgia, serif; letter-spacing: -3px; }
+    .scene-share p { margin: 26px 0 0; color: #6f6257; font-size: 24px; line-height: 1.35; }
+    .scene-share .share-report { position: absolute; top: 82px; right: -65px; width: 670px; overflow: hidden; border: 7px solid #fff; border-radius: 40px; box-shadow: 0 30px 65px rgba(75, 49, 24, .18); transform: rotate(2deg); }
+    .scene-share .share-report img { display: block; width: 100%; }
+  </style>
+</head>
+<body>
+  <section class="scene scene-1">
+    <img class="hero-mark" src="../../brand/mymealmap-mark.svg" alt="">
+    <div class="wordmark">MyMealMap</div>
+    <div class="tagline">Your food story, mapped.</div>
+    <div class="hook">See your meals differently.</div>
+  </section>
+
+  <section class="scene scene-2">
+    <div class="brand"><img src="../../brand/mymealmap-mark.svg" alt=""><div><strong>MyMealMap</strong><small>Your food story, mapped.</small></div></div>
+    <div class="diner-frame"><img src="../../illustrations/fitness-diner-loading.jpg" alt=""></div>
+    <div class="scan-chip chip-one">📸 One photo</div>
+    <div class="scan-chip chip-two">✨ Meal mapped</div>
+    <div class="copy"><p class="eyebrow">Start simply</p><h2>Snap or log<br>your meal.</h2></div>
+  </section>
+
+  <section class="scene scene-3">
+    <div class="brand"><img src="../../brand/mymealmap-mark.svg" alt=""><div><strong>MyMealMap</strong><small>Daily food brief</small></div></div>
+    <div class="copy"><p class="eyebrow">Today at a glance</p><h2>See where your calories came from.</h2></div>
+    <div class="report-card"><img src="../calorie-mix-feature.jpg" alt=""></div>
+    <div class="stat">One clear daily view</div>
+  </section>
+
+  <section class="scene scene-4">
+    <div class="brand"><img src="../../brand/mymealmap-mark.svg" alt=""><div><strong>MyMealMap</strong><small>Playful AI insights</small></div></div>
+    <div class="copy"><p class="eyebrow">Beyond counting</p><h2>Discover your food patterns.</h2></div>
+    <div class="body-wrap"><img src="../../illustrations/body-female.png" alt=""><span class="glow"></span></div>
+    <div class="signal"><span class="pill">Wellness insights, not medical advice</span></div>
+  </section>
+
+  <section class="scene scene-5">
+    <img class="hero-mark" src="../../brand/mymealmap-mark.svg" alt="">
+    <h2>Try MyMealMap free.</h2>
+    <div class="url">mymealmap1.netlify.app</div>
+    <div class="note">Snap meals. See patterns. Build your food story.</div>
+  </section>
+
+  <section class="scene scene-cover">
+    <img class="cover-mark" src="../../brand/mymealmap-mark.svg" alt="">
+    <h1>Your food story,<br>mapped.</h1>
+    <div class="cover-card"><img src="../calorie-mix-feature.jpg" alt=""></div>
+    <div class="cover-pill">Try MyMealMap free</div>
+  </section>
+
+  <section class="scene scene-share">
+    <div class="share-copy">
+      <div class="share-brand"><img src="../../brand/mymealmap-mark.svg" alt="">MyMealMap</div>
+      <h1>Your food story, mapped.</h1>
+      <p>Snap meals, understand your daily calorie mix, and discover your food patterns.</p>
+    </div>
+    <div class="share-report"><img src="../calorie-mix-feature.jpg" alt=""></div>
+  </section>
+  <script>document.body.dataset.scene = new URLSearchParams(location.search).get('scene') || '1';</script>
+</body>
+</html>
