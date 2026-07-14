@@ -320,14 +320,6 @@
   align-items: center;
 }
 
-.body-map-connectors { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.body-map-connector path { fill: none; stroke: #b7ac9f; stroke-width: 1.4; stroke-linecap: round; opacity: .46; transition: stroke .2s ease, stroke-width .2s ease, opacity .2s ease; }
-.body-map-connector circle { fill: #fffdf8; stroke: #a99d90; stroke-width: 1.5; transform-box: fill-box; transform-origin: center; transition: fill .2s ease, stroke .2s ease, transform .2s ease; }
-.body-map-connector.has-signal path { stroke: #668673; opacity: .72; }
-.body-map-connector.has-signal circle { fill: #ed8a45; stroke: #fff; }
-.body-map-connector.is-active path { stroke: #dc6e2e; stroke-width: 2.6; opacity: 1; filter: drop-shadow(0 2px 3px rgba(92, 55, 30, .2)); }
-.body-map-connector.is-active circle { fill: #dc6e2e; stroke: #fff; transform: scale(1.45); }
-
 .body-map-column {
   position: relative;
   z-index: 3;
@@ -349,10 +341,94 @@
 .body-map-figure img {
   display: block;
   width: 100%;
-  max-width: 270px;
   max-height: 600px;
   object-fit: contain;
   filter: drop-shadow(0 18px 24px rgba(142, 75, 33, .12));
+  transition: filter .28s ease, opacity .28s ease;
+}
+
+.body-map-visual {
+  position: relative;
+  width: min(100%, 270px);
+}
+
+.body-map-hotspots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.body-map-hotspots span {
+  --hotspot-color: 255, 119, 54;
+  position: absolute;
+  left: var(--hotspot-x);
+  top: var(--hotspot-y);
+  width: var(--hotspot-width);
+  height: var(--hotspot-height);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(var(--hotspot-color), .78) 0%, rgba(var(--hotspot-color), .32) 45%, rgba(var(--hotspot-color), 0) 72%);
+  box-shadow: 0 0 22px rgba(var(--hotspot-color), .5);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.72) rotate(var(--hotspot-rotate, 0deg));
+  transition: opacity .2s ease, transform .32s cubic-bezier(.2, .8, .2, 1);
+}
+
+.body-map-hotspots span.is-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1) rotate(var(--hotspot-rotate, 0deg));
+  animation: body-hotspot-pulse 1.8s ease-in-out infinite;
+}
+
+.body-map-figure.is-inspecting img {
+  filter: saturate(.72) brightness(.78) drop-shadow(0 18px 24px rgba(142, 75, 33, .12));
+  opacity: .82;
+}
+
+.body-map-active-label {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  z-index: 2;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(31, 49, 41, .88);
+  box-shadow: 0 8px 20px rgba(27, 38, 32, .2);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.body-map-active-label.is-active {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+[data-body-hotspot="brain"] { --hotspot-x: 50%; --hotspot-y: 8%; --hotspot-width: 29%; --hotspot-height: 9%; --hotspot-color: 213, 79, 235; }
+[data-body-hotspot="eyes"] { --hotspot-x: 50%; --hotspot-y: 12%; --hotspot-width: 18%; --hotspot-height: 4%; --hotspot-color: 84, 205, 255; }
+[data-body-hotspot="heart"] { --hotspot-x: 55%; --hotspot-y: 28%; --hotspot-width: 20%; --hotspot-height: 12%; --hotspot-color: 255, 55, 84; }
+[data-body-hotspot="liver"] { --hotspot-x: 42%; --hotspot-y: 32%; --hotspot-width: 29%; --hotspot-height: 12%; --hotspot-color: 255, 163, 47; }
+[data-body-hotspot="digestion"] { --hotspot-x: 50%; --hotspot-y: 43%; --hotspot-width: 34%; --hotspot-height: 22%; --hotspot-color: 255, 143, 43; }
+[data-body-hotspot="muscles"] { --hotspot-x: 28%; --hotspot-y: 44%; --hotspot-width: 20%; --hotspot-height: 43%; --hotspot-rotate: 8deg; --hotspot-color: 255, 82, 50; }
+[data-body-hotspot="joints"] { --hotspot-x: 40%; --hotspot-y: 67%; --hotspot-width: 18%; --hotspot-height: 13%; --hotspot-color: 255, 211, 74; }
+[data-body-hotspot="immunity"] { --hotspot-x: 49%; --hotspot-y: 35%; --hotspot-width: 26%; --hotspot-height: 17%; --hotspot-color: 72, 217, 151; }
+[data-body-hotspot="energy"] { --hotspot-x: 50%; --hotspot-y: 52%; --hotspot-width: 52%; --hotspot-height: 48%; --hotspot-color: 255, 196, 48; }
+[data-body-hotspot="skin"] { --hotspot-x: 50%; --hotspot-y: 43%; --hotspot-width: 82%; --hotspot-height: 78%; --hotspot-color: 255, 143, 174; }
+[data-body-hotspot="recovery"] { --hotspot-x: 35%; --hotspot-y: 56%; --hotspot-width: 25%; --hotspot-height: 33%; --hotspot-rotate: 7deg; --hotspot-color: 80, 213, 173; }
+[data-body-hotspot="bones"] { --hotspot-x: 63%; --hotspot-y: 72%; --hotspot-width: 18%; --hotspot-height: 38%; --hotspot-rotate: -4deg; --hotspot-color: 90, 202, 255; }
+
+@keyframes body-hotspot-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.38); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body-map-hotspots span.is-active { animation: none; }
 }
 
 .body-system-card {
@@ -369,6 +445,7 @@
 
 .body-system-card:focus-visible { outline: 2px solid rgba(220, 110, 46, .55); outline-offset: 2px; }
 .body-system-card:hover { border-color: rgba(220, 110, 46, .38); box-shadow: 0 8px 18px rgba(82, 55, 31, .08); }
+.body-system-card.is-active { border-color: rgba(220, 110, 46, .58); background: #fff9f1; box-shadow: 0 10px 24px rgba(125, 70, 31, .13); transform: translateY(-1px); }
 
 .body-system-card-good {
   background: linear-gradient(180deg, #fcfff9, #f6fbef);
@@ -453,10 +530,6 @@
 
   .body-map-layout {
     grid-template-columns: 1fr;
-  }
-
-  .body-map-connectors {
-    display: none;
   }
 
   .body-map-figure {

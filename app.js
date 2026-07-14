@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.11.1';
+const APP_VERSION = 'v1.12.0';
 const APP_BUILD_DATE = '2026-07-14';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -135,7 +135,6 @@ let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
 let authSessionRecoveryPromise = null;
 let profileOnboardingTimer = null;
-let bodyMapConnectorFrame = null;
 let timelineFilters = {
   memberId: 'current',
   search: '',
@@ -414,7 +413,6 @@ function bindEvents() {
   document.getElementById('authSignOutButton')?.addEventListener('click', handleAuthSignOut);
   document.addEventListener('visibilitychange', handleAppResumeSessionCheck);
   window.addEventListener('pageshow', handleAppResumeSessionCheck);
-  window.addEventListener('resize', scheduleBodyMapConnectorRender);
   document.getElementById('cancelMealEdit').addEventListener('click', () => {
     clearAutoEditEstimate();
     document.getElementById('mealModal').classList.add('hidden');
@@ -1989,13 +1987,13 @@ function renderBodyInsightsPage({ todayMeals, calories, calorieGoal, nutrition, 
 
   leftColumn.innerHTML = orderedLeft.map(renderBodySystemCard).join('');
   rightColumn.innerHTML = orderedRight.map(renderBodySystemCard).join('');
-  scheduleBodyMapConnectorRender();
   document.querySelectorAll('.body-system-card[data-body-system]').forEach((card) => {
     const position = card.dataset.bodySystem;
-    card.addEventListener('mouseenter', () => setBodyMapConnectorActive(position, true));
-    card.addEventListener('mouseleave', () => setBodyMapConnectorActive(position, false));
-    card.addEventListener('focusin', () => setBodyMapConnectorActive(position, true));
-    card.addEventListener('focusout', () => setBodyMapConnectorActive(position, false));
+    card.addEventListener('mouseenter', () => setBodyMapSpotlightActive(position, true));
+    card.addEventListener('mouseleave', () => setBodyMapSpotlightActive(position, false));
+    card.addEventListener('focusin', () => setBodyMapSpotlightActive(position, true));
+    card.addEventListener('focusout', () => setBodyMapSpotlightActive(position, false));
+    card.addEventListener('click', () => card.focus({ preventScroll: true }));
   });
 
   const topImpact = [...impacts].sort((left, right) => right.score - left.score)[0];
@@ -2076,65 +2074,20 @@ function renderBodySystemCard(impact) {
   `;
 }
 
-const bodyMapAnchors = {
-  brain: { x: .5, y: .08 },
-  eyes: { x: .5, y: .115 },
-  heart: { x: .545, y: .275 },
-  liver: { x: .425, y: .315 },
-  digestion: { x: .5, y: .415 },
-  muscles: { x: .29, y: .42 },
-  joints: { x: .39, y: .66 },
-  immunity: { x: .49, y: .335 },
-  energy: { x: .5, y: .505 },
-  skin: { x: .73, y: .39 },
-  recovery: { x: .34, y: .56 },
-  bones: { x: .63, y: .73 }
-};
+function setBodyMapSpotlightActive(position, active) {
+  const figure = document.querySelector('.body-map-figure');
+  const hotspot = figure?.querySelector(`[data-body-hotspot="${position}"]`);
+  const card = document.querySelector(`.body-system-card[data-body-system="${position}"]`);
+  const label = document.getElementById('bodyMapActiveLabel');
+  if (!figure || !hotspot) return;
 
-function scheduleBodyMapConnectorRender() {
-  if (bodyMapConnectorFrame) cancelAnimationFrame(bodyMapConnectorFrame);
-  bodyMapConnectorFrame = requestAnimationFrame(() => {
-    bodyMapConnectorFrame = null;
-    renderBodyMapConnectors();
-  });
-}
-
-function renderBodyMapConnectors() {
-  const layout = document.querySelector('.body-map-layout');
-  const svg = document.getElementById('bodyMapConnectors');
-  const image = layout?.querySelector('.body-map-figure img');
-  if (!layout || !svg || !image || window.matchMedia('(max-width: 1100px)').matches) {
-    if (svg) svg.innerHTML = '';
-    return;
+  figure.classList.toggle('is-inspecting', active);
+  hotspot.classList.toggle('is-active', active);
+  card?.classList.toggle('is-active', active);
+  if (label) {
+    label.textContent = active ? card?.querySelector('strong')?.textContent || '' : '';
+    label.classList.toggle('is-active', active);
   }
-  if (!image.complete) {
-    image.addEventListener('load', scheduleBodyMapConnectorRender, { once: true });
-    return;
-  }
-
-  const layoutRect = layout.getBoundingClientRect();
-  const imageRect = image.getBoundingClientRect();
-  svg.setAttribute('viewBox', `0 0 ${layoutRect.width} ${layoutRect.height}`);
-  svg.innerHTML = Array.from(layout.querySelectorAll('.body-system-card[data-body-system]')).map((card) => {
-    const position = card.dataset.bodySystem;
-    const anchor = bodyMapAnchors[position];
-    if (!anchor) return '';
-    const cardRect = card.getBoundingClientRect();
-    const isLeft = card.closest('#bodyMapLeft') !== null;
-    const startX = (isLeft ? cardRect.right : cardRect.left) - layoutRect.left;
-    const startY = cardRect.top - layoutRect.top + cardRect.height / 2;
-    const targetX = imageRect.left - layoutRect.left + imageRect.width * anchor.x;
-    const targetY = imageRect.top - layoutRect.top + imageRect.height * anchor.y;
-    const direction = isLeft ? 1 : -1;
-    const bend = Math.max(34, Math.min(92, Math.abs(targetX - startX) * .42));
-    const path = `M ${startX} ${startY} C ${startX + direction * bend} ${startY}, ${targetX - direction * bend} ${targetY}, ${targetX} ${targetY}`;
-    const signalClass = Number(card.dataset.bodyScore) > 0 ? ' has-signal' : '';
-    return `<g class="body-map-connector${signalClass}" data-body-connector="${escapeAttr(position)}"><path d="${path}"></path><circle cx="${targetX}" cy="${targetY}" r="4"></circle></g>`;
-  }).join('');
-}
-
-function setBodyMapConnectorActive(position, active) {
-  document.querySelector(`.body-map-connector[data-body-connector="${position}"]`)?.classList.toggle('is-active', active);
 }
 
 function buildSecondaryFoodBodyImpacts(todayMeals, totalCalories) {
