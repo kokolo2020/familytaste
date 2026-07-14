@@ -1131,8 +1131,23 @@ function handleAction(action) {
     return;
   }
 
-  if (action === 'share-weekly-replay') {
-    shareWeeklyReplay();
+  if (action === 'open-weekly-video') {
+    openWeeklyVideoModal();
+    return;
+  }
+
+  if (action === 'close-weekly-video') {
+    closeWeeklyVideoModal();
+    return;
+  }
+
+  if (action === 'save-weekly-video') {
+    saveWeeklyReplayVideo();
+    return;
+  }
+
+  if (action === 'share-weekly-video') {
+    shareWeeklyReplayVideo();
     return;
   }
 
@@ -4230,22 +4245,341 @@ function renderWeeklyReplay(replay) {
   }).join('') : '<p class="muted">Log meals on a few days to watch your weekly rhythm appear.</p>';
 }
 
-async function shareWeeklyReplay() {
+const weeklyReplayVideoDuration = 12000;
+let weeklyReplayPreviewFrame = 0;
+let weeklyReplayVideoBlob = null;
+let weeklyReplayVideoBusy = false;
+
+function setWeeklyVideoFeedback(message, tone = '') {
+  const feedback = document.getElementById('weeklyVideoFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `daily-share-feedback${tone ? ` ${tone}` : ''}`;
+}
+
+function setWeeklyVideoBusy(isBusy) {
+  weeklyReplayVideoBusy = isBusy;
+  document.querySelectorAll('#weeklyVideoModal [data-action="save-weekly-video"], #weeklyVideoModal [data-action="share-weekly-video"]').forEach((button) => {
+    button.disabled = isBusy;
+  });
+}
+
+function openWeeklyVideoModal() {
   const replay = buildWeeklyReplayData();
   if (!replay.meals.length) {
-    showAppNotice('Log at least one meal before sharing your replay.', 'warning');
+    showAppNotice('Log at least one meal before creating a replay video.', 'warning');
     return;
   }
-  const text = `My MyMealMap Weekly Replay: ${replay.meals.length} meals across ${replay.days.length} recorded days, ${replay.variety} different foods, and a ${replay.foodScore}/100 food score. I earned “${replay.persona.title}.”`;
+  weeklyReplayVideoBlob = null;
+  setWeeklyVideoFeedback('Preview loops automatically. Creating the video takes about 12 seconds.');
+  document.getElementById('weeklyVideoModal')?.classList.remove('hidden');
+  startWeeklyReplayPreview(replay);
+}
+
+function closeWeeklyVideoModal() {
+  if (weeklyReplayVideoBusy) return;
+  cancelAnimationFrame(weeklyReplayPreviewFrame);
+  document.getElementById('weeklyVideoModal')?.classList.add('hidden');
+  setWeeklyVideoFeedback('');
+}
+
+function weeklyVideoEase(value) {
+  const bounded = Math.max(0, Math.min(1, value));
+  return 1 - Math.pow(1 - bounded, 3);
+}
+
+function drawWeeklyVideoBrand(context, light = true) {
+  context.save();
+  context.translate(48, 55);
+  context.fillStyle = light ? '#f5b642' : '#17604a';
+  context.beginPath();
+  context.arc(25, 25, 25, Math.PI, 0);
+  context.lineTo(45, 44);
+  context.quadraticCurveTo(25, 67, 5, 44);
+  context.closePath();
+  context.fill();
+  context.fillStyle = light ? '#173f32' : '#fff8eb';
+  context.beginPath();
+  context.arc(25, 25, 14, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+  context.fillStyle = light ? '#fffaf0' : '#173f32';
+  context.font = '700 30px Georgia, serif';
+  context.fillText('MyMealMap', 115, 92);
+  context.font = '800 10px Arial, sans-serif';
+  context.letterSpacing = '1px';
+  context.fillText('YOUR FOOD STORY, MAPPED.', 116, 111);
+  context.letterSpacing = '0px';
+}
+
+function drawWeeklyReplayProgress(context, elapsed) {
+  const gap = 8;
+  const width = (624 - (gap * 3)) / 4;
+  for (let index = 0; index < 4; index += 1) {
+    const start = index * 3000;
+    const progress = Math.max(0, Math.min(1, (elapsed - start) / 3000));
+    fillRoundedCanvasRect(context, 48 + (index * (width + gap)), 28, width, 5, 3, 'rgba(255,255,255,.22)');
+    if (progress) fillRoundedCanvasRect(context, 48 + (index * (width + gap)), 28, width * progress, 5, 3, '#f6bd4e');
+  }
+}
+
+function fillWeeklyVideoBackground(context, scene) {
+  const gradient = scene === 1
+    ? context.createLinearGradient(0, 0, 720, 1280)
+    : context.createRadialGradient(600, 120, 20, 500, 350, 900);
+  if (scene === 1) {
+    gradient.addColorStop(0, '#f07a28');
+    gradient.addColorStop(1, '#c64c25');
+  } else if (scene === 2) {
+    gradient.addColorStop(0, '#fffaf0');
+    gradient.addColorStop(1, '#efe4d3');
+  } else {
+    gradient.addColorStop(0, '#2d6845');
+    gradient.addColorStop(1, '#103b30');
+  }
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 720, 1280);
+}
+
+function drawWeeklyReplayVideoFrame(replay, elapsed) {
+  const canvas = document.getElementById('weeklyVideoCanvas');
+  const context = canvas?.getContext('2d');
+  if (!canvas || !context) return;
+  const safeElapsed = Math.max(0, Math.min(weeklyReplayVideoDuration - 1, elapsed));
+  const scene = Math.min(3, Math.floor(safeElapsed / 3000));
+  const localProgress = (safeElapsed % 3000) / 3000;
+  const reveal = weeklyVideoEase(Math.min(localProgress * 2.4, 1));
+  const memberName = getProfileIdentity().firstName || appState.currentMember?.name || 'Your';
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  fillWeeklyVideoBackground(context, scene);
+  context.save();
+  context.globalAlpha = reveal;
+  context.translate(0, (1 - reveal) * 28);
+  drawWeeklyVideoBrand(context, scene !== 2);
+
+  if (scene === 0) {
+    context.fillStyle = '#f5ba49';
+    context.font = '900 18px Arial, sans-serif';
+    context.fillText('YOUR WEEKLY REPLAY', 52, 260);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 86px Georgia, serif';
+    context.fillText(`${memberName}’s week,`, 50, 365);
+    context.fillText('plated.', 50, 455);
+    context.fillStyle = '#cee0d7';
+    context.font = '500 25px Arial, sans-serif';
+    context.fillText(`${replay.days.length} recorded days · ${replay.meals.length} meals`, 52, 510);
+    context.strokeStyle = 'rgba(255,255,255,.13)';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc(590, 900, 255 * reveal, 0, Math.PI * 2);
+    context.stroke();
+    context.font = '110px Arial, sans-serif';
+    context.fillText('🍽️', 290, 900);
+    context.fillStyle = '#f5ba49';
+    context.font = '800 17px Arial, sans-serif';
+    context.fillText('A FOOD STORY MADE FROM YOUR REAL RECORDS', 52, 1165);
+  } else if (scene === 1) {
+    fillRoundedCanvasRect(context, 52, 225, 616, 820, 46, 'rgba(255,255,255,.12)');
+    context.font = '160px Arial, sans-serif';
+    context.textAlign = 'center';
+    context.fillText(replay.persona.emoji, 360, 480);
+    context.fillStyle = '#ffd7b5';
+    context.font = '900 18px Arial, sans-serif';
+    context.fillText('YOUR FOOD CHARACTER', 360, 580);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 60px Georgia, serif';
+    drawCanvasText(context, replay.persona.title, 360, 660, 540, 66, 2);
+    context.fillStyle = '#fff0e4';
+    context.font = '400 24px Arial, sans-serif';
+    drawCanvasText(context, replay.persona.copy, 360, 820, 500, 34, 3);
+    context.textAlign = 'left';
+  } else if (scene === 2) {
+    context.fillStyle = '#b85d2d';
+    context.font = '900 18px Arial, sans-serif';
+    context.fillText('SEVEN-DAY PLAYBACK', 52, 225);
+    context.fillStyle = '#2c2018';
+    context.font = '700 58px Georgia, serif';
+    context.fillText('Your rhythm,', 52, 305);
+    context.fillText('day by day.', 52, 370);
+    const maxCalories = Math.max(...replay.days.map((day) => day.calories), 1);
+    const barWidth = 66;
+    const barGap = 22;
+    replay.days.forEach((day, index) => {
+      const x = 56 + (index * (barWidth + barGap));
+      const targetHeight = Math.max(36, Math.round(day.calories / maxCalories * 390));
+      const barReveal = weeklyVideoEase(Math.max(0, Math.min(1, (localProgress * 2.2) - (index * .09))));
+      const height = targetHeight * barReveal;
+      fillRoundedCanvasRect(context, x, 900 - height, barWidth, height, 13, index === replay.days.length - 1 ? '#17604a' : '#ef7a25');
+      context.fillStyle = '#79685b';
+      context.font = '800 15px Arial, sans-serif';
+      context.textAlign = 'center';
+      context.fillText(replayDayLabel(day), x + (barWidth / 2), 940);
+      context.fillStyle = '#2f483d';
+      context.font = '800 14px Arial, sans-serif';
+      context.fillText(Math.round(day.calories).toLocaleString(), x + (barWidth / 2), 970);
+    });
+    context.textAlign = 'left';
+    fillRoundedCanvasRect(context, 52, 1050, 616, 110, 24, '#173f32');
+    context.fillStyle = '#f8c45c';
+    context.font = '900 15px Arial, sans-serif';
+    context.fillText('BIGGEST PLATE DAY', 82, 1090);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 27px Georgia, serif';
+    context.fillText(replay.standoutDay ? `${replayDayLabel(replay.standoutDay)} · ${Math.round(replay.standoutDay.calories).toLocaleString()} calories` : 'Still taking shape', 82, 1132);
+  } else {
+    context.fillStyle = '#f5ba49';
+    context.font = '900 18px Arial, sans-serif';
+    context.fillText('THE FINAL PLATE', 52, 220);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 62px Georgia, serif';
+    context.fillText('A week worth', 52, 300);
+    context.fillText('remembering.', 52, 370);
+    const stats = [
+      { label: 'FOOD SCORE', value: `${replay.foodScore}/100` },
+      { label: 'DIFFERENT FOODS', value: replay.variety.toString() },
+      { label: 'CALORIES RECORDED', value: replay.calories.toLocaleString() },
+      { label: 'REPEAT FAVORITE', value: replay.repeatFavorite || 'Still emerging' }
+    ];
+    stats.forEach((stat, index) => {
+      const x = 52 + ((index % 2) * 318);
+      const y = 455 + (Math.floor(index / 2) * 210);
+      fillRoundedCanvasRect(context, x, y, 298, 180, 28, 'rgba(255,255,255,.09)');
+      context.fillStyle = '#bcd2c8';
+      context.font = '900 13px Arial, sans-serif';
+      context.fillText(stat.label, x + 24, y + 45);
+      context.fillStyle = '#fffaf0';
+      context.font = index === 3 ? '700 25px Georgia, serif' : '700 42px Georgia, serif';
+      drawCanvasText(context, stat.value, x + 24, y + 98, 250, 34, 2);
+    });
+    context.fillStyle = '#f5ba49';
+    context.font = '900 17px Arial, sans-serif';
+    context.fillText('MAP YOUR NEXT MEAL', 52, 1005);
+    context.fillStyle = '#fffaf0';
+    context.font = '700 35px Georgia, serif';
+    context.fillText('mymealmap1.netlify.app', 52, 1055);
+    context.fillStyle = '#bcd2c8';
+    context.font = '400 18px Arial, sans-serif';
+    context.fillText('Food-pattern insights only · Not medical advice', 52, 1110);
+  }
+  context.restore();
+  drawWeeklyReplayProgress(context, safeElapsed);
+}
+
+function startWeeklyReplayPreview(replay = buildWeeklyReplayData()) {
+  cancelAnimationFrame(weeklyReplayPreviewFrame);
+  const startedAt = performance.now();
+  const render = (now) => {
+    drawWeeklyReplayVideoFrame(replay, (now - startedAt) % weeklyReplayVideoDuration);
+    weeklyReplayPreviewFrame = requestAnimationFrame(render);
+  };
+  weeklyReplayPreviewFrame = requestAnimationFrame(render);
+}
+
+function getWeeklyReplayVideoMimeType() {
+  if (typeof MediaRecorder === 'undefined') return '';
+  return [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+async function createWeeklyReplayVideo() {
+  if (weeklyReplayVideoBlob) return weeklyReplayVideoBlob;
+  if (weeklyReplayVideoBusy) throw new Error('Video generation is already running.');
+  const canvas = document.getElementById('weeklyVideoCanvas');
+  const mimeType = getWeeklyReplayVideoMimeType();
+  if (!canvas?.captureStream || !mimeType) throw new Error('Video export is not supported by this browser.');
+  const replay = buildWeeklyReplayData();
+  cancelAnimationFrame(weeklyReplayPreviewFrame);
+  setWeeklyVideoBusy(true);
+  setWeeklyVideoFeedback('Creating your 12-second replay… Keep this screen open.');
   try {
-    if (navigator.share) {
-      await navigator.share({ title: 'My MyMealMap Weekly Replay', text, url: 'https://mymealmap1.netlify.app/share/' });
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+    const chunks = [];
+    recorder.addEventListener('dataavailable', (event) => {
+      if (event.data?.size) chunks.push(event.data);
+    });
+    const stopped = new Promise((resolve, reject) => {
+      recorder.addEventListener('stop', resolve, { once: true });
+      recorder.addEventListener('error', () => reject(recorder.error || new Error('Video recording failed.')), { once: true });
+    });
+    recorder.start(500);
+    const startedAt = performance.now();
+    await new Promise((resolve) => {
+      const render = (now) => {
+        const elapsed = now - startedAt;
+        drawWeeklyReplayVideoFrame(replay, elapsed);
+        if (elapsed >= weeklyReplayVideoDuration) {
+          resolve();
+          return;
+        }
+        weeklyReplayPreviewFrame = requestAnimationFrame(render);
+      };
+      weeklyReplayPreviewFrame = requestAnimationFrame(render);
+    });
+    recorder.stop();
+    await stopped;
+    stream.getTracks().forEach((track) => track.stop());
+    weeklyReplayVideoBlob = new Blob(chunks, { type: recorder.mimeType || mimeType });
+    setWeeklyVideoFeedback('Your replay video is ready.', 'success');
+    return weeklyReplayVideoBlob;
+  } finally {
+    setWeeklyVideoBusy(false);
+    startWeeklyReplayPreview(replay);
+  }
+}
+
+function weeklyReplayVideoFile(blob) {
+  const isMp4 = blob.type.includes('mp4');
+  return new File([blob], `mymealmap-weekly-replay.${isMp4 ? 'mp4' : 'webm'}`, { type: isMp4 ? 'video/mp4' : 'video/webm' });
+}
+
+async function saveWeeklyReplayVideo(existingBlob) {
+  try {
+    const blob = existingBlob instanceof Blob ? existingBlob : await createWeeklyReplayVideo();
+    const file = weeklyReplayVideoFile(blob);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setWeeklyVideoFeedback('Video saved to this device.', 'success');
+  } catch (error) {
+    console.error(error);
+    setWeeklyVideoFeedback(error.message || 'Could not create the video on this device.', 'error');
+  }
+}
+
+async function shareWeeklyReplayVideo() {
+  try {
+    const blob = await createWeeklyReplayVideo();
+    const file = weeklyReplayVideoFile(blob);
+    const replay = buildWeeklyReplayData();
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        title: 'My MyMealMap Weekly Replay',
+        text: `${replay.persona.title}: ${replay.meals.length} meals, ${replay.variety} different foods, and a ${replay.foodScore}/100 food score.`,
+        files: [file]
+      });
+      setWeeklyVideoFeedback('Replay shared successfully.', 'success');
       return;
     }
-    await navigator.clipboard.writeText(`${text}\nhttps://mymealmap1.netlify.app/share/`);
-    showAppNotice('Replay summary copied. Paste it into your favorite social app.', 'success');
+    await saveWeeklyReplayVideo(blob);
+    setWeeklyVideoFeedback('Video saved. Add it to Facebook, Instagram, Telegram, or WhatsApp.', 'success');
   } catch (error) {
-    if (error?.name !== 'AbortError') showAppNotice('Could not share this replay on this device.', 'warning');
+    if (error?.name === 'AbortError') {
+      setWeeklyVideoFeedback('Sharing canceled.');
+      return;
+    }
+    console.error(error);
+    setWeeklyVideoFeedback(error.message || 'Could not share the replay video.', 'error');
   }
 }
 

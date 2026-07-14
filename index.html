@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260714n" />
+  <link rel="stylesheet" href="style.css?v=20260714o" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -129,6 +129,29 @@
         <footer>
           <button data-action="save-daily-share" type="button">Save image</button>
           <button class="primary-button" data-action="share-daily-card" type="button">Share now</button>
+        </footer>
+      </div>
+    </section>
+
+    <section id="weeklyVideoModal" class="daily-share-modal weekly-video-modal hidden" aria-labelledby="weeklyVideoTitle" aria-modal="true" role="dialog">
+      <div class="daily-share-dialog weekly-video-dialog">
+        <header>
+          <div>
+            <p class="eyebrow">Weekly Replay Video</p>
+            <h2 id="weeklyVideoTitle">Your week in 12 seconds</h2>
+            <p>A vertical food story generated from your latest recorded days.</p>
+          </div>
+          <button data-action="close-weekly-video" type="button" aria-label="Close video preview">×</button>
+        </header>
+        <div class="weekly-video-preview">
+          <canvas id="weeklyVideoCanvas" width="720" height="1280" aria-label="Animated preview of your weekly replay video"></canvas>
+          <span>12 sec · 9:16</span>
+        </div>
+        <p class="weekly-video-privacy">Only your food-story summary is included. Profile measurements and health details stay private.</p>
+        <p id="weeklyVideoFeedback" class="daily-share-feedback" aria-live="polite"></p>
+        <footer>
+          <button data-action="save-weekly-video" type="button">Save video</button>
+          <button class="primary-button" data-action="share-weekly-video" type="button">Create &amp; share</button>
         </footer>
       </div>
     </section>
@@ -471,7 +494,7 @@
                 <p class="eyebrow">Your MyMealMap replay</p>
                 <h3 id="weeklyReplayTitle">Your week,<br>plated.</h3>
                 <p id="weeklyDateRange" class="weekly-date-range">Last 7 days</p>
-                <button class="weekly-replay-share" data-action="share-weekly-replay" type="button">↗ Share this replay</button>
+                <button class="weekly-replay-share" data-action="open-weekly-video" type="button">▶ Create 12-sec video</button>
               </div>
               <div class="weekly-replay-stamp" aria-hidden="true"><span id="weeklyReplayScore">--</span><small>food score</small></div>
             </header>
@@ -859,6 +882,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js?v=20260713c"></script>
-  <script src="app.js?v=20260714o"></script>
+  <script src="app.js?v=20260714p"></script>
 </body>
 </html>
