@@ -208,11 +208,11 @@ let timelineFilters = {
 };
 
 const navItems = [
-  { page: 'dashboard', icon: '🏠', label: 'Home' },
-  { page: 'timeline', icon: '📔', label: 'Diary' },
-  { page: 'snap', icon: '📷', label: 'Scan' },
-  { page: 'body', icon: '🧍', label: 'Body' },
-  { page: 'settings', icon: '•••', label: 'More' }
+  { page: 'dashboard', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-5v6H5a1.5 1.5 0 0 1-1.5-1.5z"/></svg>', label: 'Home' },
+  { page: 'timeline', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11A1.5 1.5 0 0 1 19 5v15.5H7.5A2.5 2.5 0 0 1 5 18V5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M5 18a2.5 2.5 0 0 1 2.5-2.5H19M9 7.5h6M9 11h6"/></svg>', label: 'Diary' },
+  { page: 'snap', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="7" y="8" width="10" height="8" rx="2"/><circle cx="12" cy="12" r="2.2"/></svg>', label: 'Scan' },
+  { page: 'body', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2.5"/><path d="M8.5 21v-6.5L7 12V8.5A2.5 2.5 0 0 1 9.5 6h5A2.5 2.5 0 0 1 17 8.5V12l-1.5 2.5V21M12 12v9"/></svg>', label: 'Body' },
+  { page: 'settings', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>', label: 'More' }
 ];
 
 const mobileItems = [...navItems];
@@ -1071,8 +1071,8 @@ function renderNavigation() {
 function navTemplate(item) {
   return `
     <button class="nav-item" type="button" data-page="${item.page}">
-      <span>${item.icon}</span>
-      <span>${item.label}</span>
+      <span class="nav-icon">${item.icon}</span>
+      <span class="nav-label">${item.label}</span>
     </button>
   `;
 }
