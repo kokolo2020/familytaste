@@ -4202,7 +4202,11 @@ function buildWeeklyReplayData() {
     .sort((left, right) => right.score - left.score)
     .slice(0, 3);
   const persona = buildWeeklyReplayPersona({ meals, days, variety, foodScore, repeatFavorite });
-  return { meals, days, calories: sum(meals, 'calories'), variety, foodScore, repeatFavorite, surpriseFood: surpriseMeal?.food_name || '', standoutDay, lightestDay, highestCalorieMeal, lowestCalorieMeal, healthiestMeal, photoMeals, bodySignals, persona, videoImages: new Map() };
+  const member = appState.currentMember;
+  const savedSex = String(appState.profileMeasurements[member?.id]?.sex || member?.sex || '').trim().toLowerCase();
+  const inferredMale = /\b(dad|papa|father)\b/i.test(member?.name || '');
+  const bodySex = savedSex === 'male' || (!savedSex && inferredMale) ? 'male' : 'female';
+  return { meals, days, calories: sum(meals, 'calories'), variety, foodScore, repeatFavorite, surpriseFood: surpriseMeal?.food_name || '', standoutDay, lightestDay, highestCalorieMeal, lowestCalorieMeal, healthiestMeal, photoMeals, bodySignals, bodySex, persona, videoImages: new Map() };
 }
 
 function buildWeeklyReplayPersona({ meals, days, variety, foodScore }) {
@@ -4321,11 +4325,16 @@ async function prepareWeeklyReplayImages(replay) {
   if (replay.imagesReady) return replay;
   const highlightedMeals = [replay.highestCalorieMeal, replay.lowestCalorieMeal, replay.healthiestMeal, ...replay.photoMeals].filter(Boolean);
   const uniqueMeals = [...new Map(highlightedMeals.map((meal) => [meal.id || meal.photo_url || meal.food_name, meal])).values()];
-  await Promise.all(uniqueMeals.map(async (meal) => {
-    if (!meal.photo_url) return;
-    const image = await loadWeeklyReplayImage(meal.photo_url);
-    if (image) replay.videoImages.set(meal.id || meal.photo_url, image);
-  }));
+  const bodySource = `assets/illustrations/body-${replay.bodySex === 'male' ? 'male' : 'female'}.png`;
+  const [bodyImage] = await Promise.all([
+    loadWeeklyReplayImage(bodySource),
+    ...uniqueMeals.map(async (meal) => {
+      if (!meal.photo_url) return;
+      const image = await loadWeeklyReplayImage(meal.photo_url);
+      if (image) replay.videoImages.set(meal.id || meal.photo_url, image);
+    })
+  ]);
+  replay.bodyImage = bodyImage;
   replay.imagesReady = true;
   return replay;
 }
@@ -4612,46 +4621,71 @@ function drawWeeklyReplayMealCaption(context, meal, x, y, width, color = '#fffaf
   drawCanvasText(context, meal?.food_name || 'Saved meal', x, y, width, 36, 2);
 }
 
-function drawWeeklyReplayBodyFigure(context, signals, reveal) {
-  const centerX = 360;
-  context.save();
-  context.strokeStyle = 'rgba(244,183,67,.95)';
-  context.fillStyle = 'rgba(255,255,255,.1)';
-  context.lineWidth = 20;
-  context.lineCap = 'round';
-  context.beginPath();
-  context.arc(centerX, 375, 58, 0, Math.PI * 2);
-  context.fill();
-  context.stroke();
-  fillRoundedCanvasRect(context, 270, 450, 180, 325, 80, 'rgba(255,255,255,.1)');
-  context.strokeStyle = '#ef7a4a';
-  context.lineWidth = 44;
-  context.beginPath();
-  context.moveTo(292, 500); context.lineTo(225, 700);
-  context.moveTo(428, 500); context.lineTo(495, 700);
-  context.moveTo(315, 750); context.lineTo(290, 1010);
-  context.moveTo(405, 750); context.lineTo(430, 1010);
-  context.stroke();
+function drawWeeklyReplayBodyFigure(context, replay, reveal) {
+  const signals = replay.bodySignals || [];
+  const figure = { x: 225, y: 350, width: 270, height: 570 };
   const positions = {
-    brain: [360, 360], eyes: [360, 382], heart: [390, 515], liver: [330, 585], muscles: [285, 590], digestion: [360, 650], energy: [360, 730], bones: [405, 850], joints: [420, 900], skin: [280, 520], immunity: [330, 690], recovery: [440, 620]
+    brain: [.5, .06], eyes: [.5, .093], heart: [.55, .28], liver: [.42, .32], digestion: [.5, .43],
+    muscles: [.28, .44], joints: [.4, .67], immunity: [.49, .35], energy: [.5, .52], skin: [.5, .43],
+    recovery: [.35, .56], bones: [.63, .72]
   };
-  signals.forEach((signal, index) => {
-    const [x, y] = positions[signal.position] || [360, 620];
-    const pulse = 1 + (Math.sin((reveal * Math.PI * 4) + index) * .08);
-    context.shadowColor = ['#ffd65c', '#64d3a2', '#ff816f'][index % 3];
-    context.shadowBlur = 34 * reveal;
-    context.fillStyle = ['#ffd65c', '#64d3a2', '#ff816f'][index % 3];
+  const colors = ['#f7c64f', '#62d1a2', '#ff7f72'];
+  context.save();
+  const halo = context.createRadialGradient(360, 610, 30, 360, 610, 290);
+  halo.addColorStop(0, 'rgba(255,255,255,.16)');
+  halo.addColorStop(1, 'rgba(255,255,255,0)');
+  context.fillStyle = halo;
+  context.fillRect(90, 330, 540, 620);
+
+  if (replay.bodyImage) {
+    context.globalAlpha = .28 + (.72 * reveal);
+    context.drawImage(replay.bodyImage, figure.x, figure.y, figure.width, figure.height);
+    context.globalAlpha = 1;
+  } else {
+    fillRoundedCanvasRect(context, 292, 455, 136, 350, 68, 'rgba(255,255,255,.16)');
+    context.fillStyle = 'rgba(255,255,255,.22)';
     context.beginPath();
-    context.arc(x, y, (17 + (index * 2)) * pulse * reveal, 0, Math.PI * 2);
+    context.arc(360, 405, 48, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  signals.forEach((signal, index) => {
+    const [xRatio, yRatio] = positions[signal.position] || [.5, .45];
+    const x = figure.x + (figure.width * xRatio);
+    const y = figure.y + (figure.height * yRatio);
+    const color = colors[index % colors.length];
+    const pulse = 1 + (Math.sin((reveal * Math.PI * 4) + index) * .09);
+    context.shadowColor = color;
+    context.shadowBlur = 30 * reveal;
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(x, y, 15 * pulse * reveal, 0, Math.PI * 2);
     context.fill();
     context.shadowBlur = 0;
-    const labelX = index % 2 ? 475 : 55;
+    context.fillStyle = '#173f32';
+    context.font = '900 12px Arial, sans-serif';
+    context.textAlign = 'center';
+    context.fillText(String(index + 1), x, y + 4);
+  });
+
+  signals.forEach((signal, index) => {
+    const y = 950 + (index * 66);
+    fillRoundedCanvasRect(context, 82, y, 556, 54, 18, 'rgba(255,255,255,.1)');
+    context.fillStyle = colors[index % colors.length];
+    context.beginPath();
+    context.arc(109, y + 27, 12, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#173f32';
+    context.font = '900 10px Arial, sans-serif';
+    context.textAlign = 'center';
+    context.fillText(String(index + 1), 109, y + 31);
+    context.textAlign = 'left';
     context.fillStyle = '#fffaf0';
-    context.font = '800 20px Arial, sans-serif';
-    context.fillText(`${signal.icon} ${signal.name}`, labelX, 430 + (index * 150));
+    context.font = '800 18px Arial, sans-serif';
+    context.fillText(`${signal.icon} ${signal.name}`, 132, y + 23);
     context.fillStyle = '#bdd8cc';
-    context.font = '700 15px Arial, sans-serif';
-    context.fillText(`${signal.score}% food signal`, labelX, 458 + (index * 150));
+    context.font = '700 13px Arial, sans-serif';
+    context.fillText(`${signal.score}% food signal`, 132, y + 43);
   });
   context.restore();
 }
@@ -4745,7 +4779,7 @@ function drawWeeklyReplayVideoFrame(replay, elapsed) {
   } else if (scene === 6) {
     context.fillStyle='#f5ba49'; context.font='900 17px Arial, sans-serif'; context.fillText('BODY MAP · FOOD SIGNALS',52,195);
     context.fillStyle='#fffaf0'; context.font='700 53px Georgia, serif'; context.fillText('Where your foods',52,265); context.fillText('showed up.',52,325);
-    drawWeeklyReplayBodyFigure(context,replay.bodySignals,weeklyVideoEase(Math.min(localProgress*2,1)));
+    drawWeeklyReplayBodyFigure(context,replay,weeklyVideoEase(Math.min(localProgress*2,1)));
     context.fillStyle='#bcd6cb'; context.font='500 16px Arial, sans-serif'; context.fillText('Food-pattern highlights only · Not medical results',52,1165);
   } else {
     context.fillStyle='#f5ba49'; context.font='900 17px Arial, sans-serif'; context.fillText('THE FINAL PLATE',52,220);
