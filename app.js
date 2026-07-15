@@ -39,7 +39,7 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.15.0';
+const APP_VERSION = 'v1.15.1';
 const APP_BUILD_DATE = '2026-07-15';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
@@ -747,6 +747,15 @@ function formatAuthError(error) {
 }
 
 async function getFunctionRequestHeaders(headers = {}) {
+  if (activeSessionHydrationPromise) {
+    await activeSessionHydrationPromise;
+  }
+
+  if (appState.auth.status !== 'ready') {
+    const session = await window.familyBitesDb?.getSession?.();
+    if (session) await handleActiveSession(session, { force: true });
+  }
+
   const authHeaders = await window.familyBitesDb?.getAuthHeaders?.();
   if (!authHeaders?.Authorization) throw new Error('Your session expired. Sign in again to continue.');
   return { ...headers, ...authHeaders };

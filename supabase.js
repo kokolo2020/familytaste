@@ -27,7 +27,11 @@
       const session = await this.getSession();
       const accessToken = session?.access_token;
       if (!accessToken) throw new Error('Your session expired. Sign in again to continue.');
-      return { Authorization: `Bearer ${accessToken}` };
+      const authorization = `Bearer ${accessToken}`;
+      return {
+        Authorization: authorization,
+        'X-MyMealMap-Authorization': authorization
+      };
     },
     async sendOtp(email) {
       if (!client) throw new Error('Supabase auth is not configured.');
