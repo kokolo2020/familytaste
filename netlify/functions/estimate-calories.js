@@ -27,6 +27,7 @@ exports.handler = async (event) => {
     const hint = String(body.food_name || '').slice(0, 180);
     const descriptionContext = String(body.description_context || '').slice(0, 500);
     const portion = ['small', 'regular', 'large'].includes(body.portion_size) ? body.portion_size : 'regular';
+    const responseLanguage = body.language === 'km' ? 'Khmer' : 'English';
     const response = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
@@ -40,7 +41,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Extra user context: ${descriptionContext || 'none'}. Portion selected by user: ${portion}. Use the user context to refine ingredients when it matches the photo, such as milk type, sauce, toppings, or preparation details. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also return a short list of likely ingredients and broad meal tags that a user can confirm, such as fried, grilled, sweet drink, high protein, high fiber, processed, creamy, saucy, dessert, plant-based likely, contains dairy, or contains meat. Do not invent hidden ingredients with high confidence. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Extra user context: ${descriptionContext || 'none'}. Portion selected by user: ${portion}. Use the user context to refine ingredients when it matches the photo, such as milk type, sauce, toppings, or preparation details. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also return a short list of likely ingredients and broad meal tags that a user can confirm, such as fried, grilled, sweet drink, high protein, high fiber, processed, creamy, saucy, dessert, plant-based likely, contains dairy, or contains meat. Return all user-facing food names, portions, ingredients, tags, and the note in ${responseLanguage}. Do not invent hidden ingredients with high confidence. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]

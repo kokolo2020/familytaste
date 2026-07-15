@@ -4583,6 +4583,54 @@ h1 span {
   margin-top: 4px;
 }
 
+.settings-language-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-language-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(126, 84, 39, .18);
+  border-radius: 12px;
+  color: #2f281f;
+  background: #fffdf9;
+  font: inherit;
+}
+
+body.language-km,
+body.language-km button,
+body.language-km input,
+body.language-km select,
+body.language-km textarea {
+  font-family: "Noto Sans Khmer", "Inter", sans-serif;
+}
+
+body.language-km h1,
+body.language-km h2,
+body.language-km h3,
+body.language-km h4,
+body.language-km .auth-wordmark strong,
+body.language-km .daily-compass-ring strong {
+  font-family: "Noto Sans Khmer", "Inter", sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+body.language-km .eyebrow {
+  letter-spacing: .04em;
+  line-height: 1.6;
+}
+
+body.language-km .nav-label,
+body.language-km .mobile-nav .nav-label {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
 .settings-member-list {
   display: grid;
   gap: 10px;

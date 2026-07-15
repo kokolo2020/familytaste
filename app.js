@@ -39,8 +39,209 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.15.1';
+const languageStorageKey = 'myMealMap.language';
+const APP_VERSION = 'v1.16.0';
 const APP_BUILD_DATE = '2026-07-15';
+const supportedLanguages = new Set(['en', 'km']);
+let appLanguage = supportedLanguages.has(localStorage.getItem(languageStorageKey))
+  ? localStorage.getItem(languageStorageKey)
+  : 'en';
+const localizedTextNodes = new WeakMap();
+const localizedAttributes = new WeakMap();
+const khmerTranslations = {
+  'Your food story, mapped.': 'រឿងរ៉ាវអាហាររបស់អ្នក ត្រូវបានរៀបចំជាផែនទី។',
+  'Personal meal space': 'កន្លែងអាហារផ្ទាល់ខ្លួន',
+  'Preparing your meal map': 'កំពុងរៀបចំផែនទីអាហាររបស់អ្នក',
+  'Bringing your food story into focus.': 'កំពុងរៀបចំរឿងរ៉ាវអាហាររបស់អ្នកឱ្យកាន់តែច្បាស់។',
+  'Sign in with email': 'ចូលប្រើដោយអ៊ីមែល',
+  'Enter any email and we will send a one-time code.': 'បញ្ចូលអ៊ីមែលរបស់អ្នក ហើយយើងនឹងផ្ញើលេខកូដប្រើតែម្តង។',
+  'Email': 'អ៊ីមែល',
+  'Send code': 'ផ្ញើលេខកូដ',
+  'Check your email': 'ពិនិត្យអ៊ីមែលរបស់អ្នក',
+  'Sign-in code': 'លេខកូដចូលប្រើ',
+  'Verify code': 'ផ្ទៀងផ្ទាត់លេខកូដ',
+  'Resend code': 'ផ្ញើលេខកូដម្តងទៀត',
+  'Use another email': 'ប្រើអ៊ីមែលផ្សេង',
+  'Create your meal map': 'បង្កើតផែនទីអាហាររបស់អ្នក',
+  'Meal map name': 'ឈ្មោះផែនទីអាហារ',
+  'Create meal map': 'បង្កើតផែនទីអាហារ',
+  'Sign out': 'ចាកចេញ',
+  'Home': 'ទំព័រដើម',
+  'Diary': 'កំណត់ត្រាអាហារ',
+  'Scan': 'ស្កេន',
+  'Body': 'រាងកាយ',
+  'More': 'បន្ថែម',
+  'Dashboard': 'ផ្ទាំងសង្ខេប',
+  'Today': 'ថ្ងៃនេះ',
+  'Good morning,': 'អរុណសួស្តី,',
+  'Today’s Food': 'អាហារថ្ងៃនេះ',
+  'Add': 'បន្ថែម',
+  'Your Daily Compass': 'ទិដ្ឋភាពប្រចាំថ្ងៃរបស់អ្នក',
+  'Today, at a glance': 'សេចក្តីសង្ខេបថ្ងៃនេះ',
+  'Ready to begin': 'ត្រៀមចាប់ផ្តើម',
+  'Remaining today': 'នៅសល់ថ្ងៃនេះ',
+  'Food score': 'ពិន្ទុអាហារ',
+  'Variety': 'ភាពចម្រុះ',
+  'Dishes': 'មុខម្ហូប',
+  'average': 'មធ្យម',
+  'foods': 'អាហារ',
+  'today': 'ថ្ងៃនេះ',
+  'Today’s observation': 'ការសង្កេតថ្ងៃនេះ',
+  'Scan next meal': 'ស្កេនអាហារបន្ទាប់',
+  'Share my day': 'ចែករំលែកថ្ងៃរបស់ខ្ញុំ',
+  'Yesterday’s Food Diary': 'កំណត់ត្រាអាហារម្សិលមិញ',
+  'View diary': 'មើលកំណត់ត្រា',
+  'Yesterday': 'ម្សិលមិញ',
+  'Last 7 Days': '៧ ថ្ងៃចុងក្រោយ',
+  'Today’s Summary': 'សេចក្តីសង្ខេបថ្ងៃនេះ',
+  'Calories': 'កាឡូរី',
+  'Steps': 'ជំហាន',
+  'Calorie Progress': 'វឌ្ឍនភាពកាឡូរី',
+  'of daily goal': 'នៃគោលដៅប្រចាំថ្ងៃ',
+  'Tip for You': 'គន្លឹះសម្រាប់អ្នក',
+  'AI Food Insights': 'ការយល់ដឹងអំពីអាហារដោយ AI',
+  'AI Analysis': 'ការវិភាគដោយ AI',
+  'Today’s Nutrition Balance': 'តុល្យភាពអាហារូបត្ថម្ភថ្ងៃនេះ',
+  'Carbohydrates': 'កាបូអ៊ីដ្រាត',
+  'Protein': 'ប្រូតេអ៊ីន',
+  'Fats': 'ខ្លាញ់',
+  'Personalized today': 'ណែនាំផ្ទាល់ខ្លួនសម្រាប់ថ្ងៃនេះ',
+  'AI Recommendations': 'អនុសាសន៍ពី AI',
+  'More food insights': 'ការយល់ដឹងបន្ថែមអំពីអាហារ',
+  'Favorite Foods': 'អាហារដែលចូលចិត្ត',
+  'Snap Food': 'ស្កេនអាហារ',
+  'Food journal': 'កំណត់ហេតុអាហារ',
+  'Add a food photo': 'បន្ថែមរូបថតអាហារ',
+  'Choose where your photo comes from.': 'ជ្រើសរើសប្រភពរូបថតរបស់អ្នក។',
+  'Upload Photo': 'បញ្ចូលរូបថត',
+  'Take Photo': 'ថតរូប',
+  'Food Name': 'ឈ្មោះអាហារ',
+  'Meal Type': 'ប្រភេទអាហារ',
+  'Choose meal type': 'ជ្រើសរើសប្រភេទអាហារ',
+  'Breakfast': 'អាហារពេលព្រឹក',
+  'Brunch': 'អាហារពេលព្រឹកយឺត',
+  'Lunch': 'អាហារថ្ងៃត្រង់',
+  'Dinner': 'អាហារពេលល្ងាច',
+  'Snack': 'អាហារសម្រន់',
+  'Dessert': 'បង្អែម',
+  'Other': 'ផ្សេងៗ',
+  'Date': 'កាលបរិច្ឆេទ',
+  'Time': 'ម៉ោង',
+  'Confidence': 'កម្រិតទុកចិត្ត',
+  'Ingredients': 'គ្រឿងផ្សំ',
+  'Current scan': 'ការស្កេនបច្ចុប្បន្ន',
+  'Possible items': 'ធាតុដែលអាចមាន',
+  'Rescan Food Details': 'ស្កេនព័ត៌មានអាហារម្តងទៀត',
+  'USDA nutrition match': 'ផ្គូផ្គងអាហារូបត្ថម្ភ USDA',
+  'Search USDA foods': 'ស្វែងរកអាហារ USDA',
+  'Body wellness map': 'ផែនទីសុខុមាលភាពរាងកាយ',
+  'Today’s body summary': 'សេចក្តីសង្ខេបរាងកាយថ្ងៃនេះ',
+  'Daily wellness snapshot': 'ទិដ្ឋភាពសុខុមាលភាពប្រចាំថ្ងៃ',
+  'AI wellness map': 'ផែនទីសុខុមាលភាពដោយ AI',
+  'AI Food Impact': 'ឥទ្ធិពលអាហារដោយ AI',
+  'See how your food nourishes your body.': 'មើលថាអាហាររបស់អ្នកជួយចិញ្ចឹមរាងកាយយ៉ាងដូចម្តេច។',
+  'Food ideas from your map': 'គំនិតអាហារពីផែនទីរបស់អ្នក',
+  'What to add next': 'អ្វីគួរបន្ថែមបន្ទាប់',
+  'Useful AI': 'AI ដែលមានប្រយោជន៍',
+  'Next best actions': 'សកម្មភាពល្អបន្ទាប់',
+  'Food diary': 'កំណត់ត្រាអាហារ',
+  'Food log': 'បញ្ជីអាហារ',
+  'Total meals': 'អាហារសរុប',
+  'Average health score': 'ពិន្ទុសុខភាពមធ្យម',
+  'Member': 'សមាជិក',
+  'Search': 'ស្វែងរក',
+  'Meal type': 'ប្រភេទអាហារ',
+  'All': 'ទាំងអស់',
+  'All time': 'គ្រប់ពេល',
+  'Last 7 days': '៧ ថ្ងៃចុងក្រោយ',
+  'Last 30 days': '៣០ ថ្ងៃចុងក្រោយ',
+  'Health': 'សុខភាព',
+  'Actions': 'សកម្មភាព',
+  'Profile': 'ប្រវត្តិរូប',
+  'Your profile': 'ប្រវត្តិរូបរបស់អ្នក',
+  'Personal tools': 'ឧបករណ៍ផ្ទាល់ខ្លួន',
+  'Language': 'ភាសា',
+  'App language': 'ភាសាកម្មវិធី',
+  'Choose the language used across MyMealMap.': 'ជ្រើសរើសភាសាដែលប្រើក្នុង MyMealMap។',
+  'English': 'អង់គ្លេស',
+  'Khmer': 'ខ្មែរ',
+  'Discover': 'ស្វែងយល់',
+  'Explore what’s next': 'ស្វែងយល់អ្វីបន្ទាប់',
+  'Account': 'គណនី',
+  'Profile & goals': 'ប្រវត្តិរូប និងគោលដៅ',
+  'Navigation': 'ការរុករក',
+  'Quick links': 'តំណរហ័ស',
+  'Recipes': 'រូបមន្តអាហារ',
+  'Workouts': 'លំហាត់ប្រាណ',
+  'Body Map': 'ផែនទីរាងកាយ',
+  'Weekly Replay': 'សង្ខេបប្រចាំសប្តាហ៍',
+  'Favorites': 'ចំណូលចិត្ត',
+  'Data': 'ទិន្នន័យ',
+  'Clear all local data': 'សម្អាតទិន្នន័យក្នុងឧបករណ៍ទាំងអស់',
+  'Clear All Data': 'សម្អាតទិន្នន័យទាំងអស់',
+  'Release': 'កំណែចេញផ្សាយ',
+  'Build date:': 'កាលបរិច្ឆេទបង្កើត:',
+  'Open today’s food diary': 'បើកកំណត់ត្រាអាហារថ្ងៃនេះ',
+  'Mobile navigation': 'ការរុករកលើទូរស័ព្ទ',
+  'Food or restaurant': 'អាហារ ឬភោជនីយដ្ឋាន',
+  'Enter the code from your email': 'បញ្ចូលលេខកូដពីអ៊ីមែលរបស់អ្នក',
+  'you@example.com': 'you@example.com'
+};
+
+function translatePhrase(value) {
+  const source = String(value || '');
+  return appLanguage === 'km' ? (khmerTranslations[source] || source) : source;
+}
+
+function localizedNumber(value) {
+  return Number(value || 0).toLocaleString(appLanguage === 'km' ? 'km-KH' : 'en');
+}
+
+function applyLanguageToDocument(root = document.body) {
+  if (!root) return;
+  document.documentElement.lang = appLanguage === 'km' ? 'km' : 'en';
+  document.body?.classList.toggle('language-km', appLanguage === 'km');
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest('script, style, canvas, [data-no-translate]')) return NodeFilter.FILTER_REJECT;
+      return node.nodeValue?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }
+  });
+
+  let node = walker.nextNode();
+  while (node) {
+    if (!localizedTextNodes.has(node)) localizedTextNodes.set(node, node.nodeValue);
+    const original = localizedTextNodes.get(node);
+    const trimmed = original.trim();
+    const translated = translatePhrase(trimmed);
+    node.nodeValue = original.replace(trimmed, translated);
+    node = walker.nextNode();
+  }
+
+  root.querySelectorAll?.('[placeholder], [aria-label], [title], [data-title], [data-kicker]').forEach((element) => {
+    if (!localizedAttributes.has(element)) localizedAttributes.set(element, {});
+    const originals = localizedAttributes.get(element);
+    ['placeholder', 'aria-label', 'title', 'data-title', 'data-kicker'].forEach((attribute) => {
+      if (!element.hasAttribute(attribute)) return;
+      if (!(attribute in originals)) originals[attribute] = element.getAttribute(attribute);
+      element.setAttribute(attribute, translatePhrase(originals[attribute]));
+    });
+  });
+}
+
+function setAppLanguage(language) {
+  appLanguage = supportedLanguages.has(language) ? language : 'en';
+  localStorage.setItem(languageStorageKey, appLanguage);
+  renderNavigation();
+  renderAuthState();
+  if (appState.auth.status === 'ready') {
+    renderAll();
+    showPage(appState.currentPage || 'dashboard');
+  }
+  applyLanguageToDocument();
+}
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
 const snapTagCatalog = [
@@ -298,6 +499,17 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
   setMealFormDateTimeDefaults();
   renderAuthState();
+  applyLanguageToDocument();
+  let localizationPassQueued = false;
+  const localizationObserver = new MutationObserver(() => {
+    if (localizationPassQueued) return;
+    localizationPassQueued = true;
+    queueMicrotask(() => {
+      localizationPassQueued = false;
+      applyLanguageToDocument();
+    });
+  });
+  localizationObserver.observe(document.getElementById('app'), { childList: true, subtree: true });
   bootstrapAuth();
 });
 
@@ -457,6 +669,10 @@ function bindEvents() {
     if (usdaFoodTarget) {
       selectUsdaFood(Number(usdaFoodTarget.dataset.usdaFoodId));
     }
+  });
+
+  document.body.addEventListener('change', (event) => {
+    if (event.target.id === 'appLanguageSelect') setAppLanguage(event.target.value);
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveSnapScan);
@@ -684,6 +900,7 @@ function renderAuthState() {
         landing.classList.add('hidden');
       }
     }
+    applyLanguageToDocument();
     return;
   }
 
@@ -711,6 +928,7 @@ function renderAuthState() {
       familyNameInput.value = buildSuggestedMealMapName(appState.auth.user?.email || appState.auth.pendingEmail || '');
     }
   }
+  applyLanguageToDocument();
 }
 
 function buildSuggestedMealMapName(email = '') {
@@ -1154,13 +1372,14 @@ function renderProfiles() {
 function renderNavigation() {
   document.getElementById('desktopNav').innerHTML = navItems.map(navTemplate).join('');
   document.getElementById('mobileNav').innerHTML = mobileItems.map(navTemplate).join('');
+  applyLanguageToDocument();
 }
 
 function navTemplate(item) {
   return `
     <button class="nav-item" type="button" data-page="${item.page}">
       <span class="nav-icon">${item.icon}</span>
-      <span class="nav-label">${item.label}</span>
+      <span class="nav-label">${translatePhrase(item.label)}</span>
     </button>
   `;
 }
@@ -1770,8 +1989,8 @@ function showPage(pageName) {
     item.classList.toggle('active', item.dataset.page === activeNavPage);
   });
 
-  document.getElementById('pageTitle').textContent = page?.dataset.title || 'MyMealMap';
-  document.getElementById('activeKicker').textContent = page?.dataset.kicker || 'MyMealMap';
+  document.getElementById('pageTitle').textContent = translatePhrase(page?.dataset.title || 'MyMealMap');
+  document.getElementById('activeKicker').textContent = translatePhrase(page?.dataset.kicker || 'MyMealMap');
   saveUiState();
   renderAll();
 }
@@ -2268,6 +2487,7 @@ function renderAll() {
   renderSettings();
   renderSnapAnalysis();
   updateMealPreview();
+  applyLanguageToDocument();
 }
 
 function updateProfileUi() {
@@ -2288,8 +2508,12 @@ function renderDashboard() {
   const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
   const goal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
 
-  document.getElementById('dashboardMealCount').textContent = `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
-  document.getElementById('dashboardCalorieCount').textContent = `${calories.toLocaleString()} cal`;
+  document.getElementById('dashboardMealCount').textContent = appLanguage === 'km'
+    ? `${localizedNumber(todayMeals.length)} មុខម្ហូប`
+    : `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
+  document.getElementById('dashboardCalorieCount').textContent = appLanguage === 'km'
+    ? `${localizedNumber(calories)} កាឡូរី`
+    : `${calories.toLocaleString()} cal`;
   setText('bioCalories', calories.toLocaleString());
 
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
@@ -2308,8 +2532,12 @@ function renderDashboardHistory(memberMeals, yesterdayMeals) {
     : yesterdayMeals;
   const isWeek = dashboardHistoryRange === 'week';
   const historyCalories = sum(historyMeals, 'calories');
-  document.getElementById('foodHistoryTitle').textContent = isWeek ? 'Last 7 Days Food Diary' : 'Yesterday’s Food Diary';
-  document.getElementById('yesterdayDiarySummary').textContent = `${historyMeals.length} meal${historyMeals.length === 1 ? '' : 's'} · ${historyCalories.toLocaleString()} cal`;
+  document.getElementById('foodHistoryTitle').textContent = appLanguage === 'km'
+    ? (isWeek ? 'កំណត់ត្រាអាហារ ៧ ថ្ងៃចុងក្រោយ' : 'កំណត់ត្រាអាហារម្សិលមិញ')
+    : (isWeek ? 'Last 7 Days Food Diary' : 'Yesterday’s Food Diary');
+  document.getElementById('yesterdayDiarySummary').textContent = appLanguage === 'km'
+    ? `${localizedNumber(historyMeals.length)} មុខម្ហូប · ${localizedNumber(historyCalories)} កាឡូរី`
+    : `${historyMeals.length} meal${historyMeals.length === 1 ? '' : 's'} · ${historyCalories.toLocaleString()} cal`;
   document.querySelectorAll('[data-history-range]').forEach((button) => {
     button.classList.toggle('active', button.dataset.historyRange === dashboardHistoryRange);
   });
@@ -2344,28 +2572,44 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
   const averageFoodScore = mealScores.length
     ? Math.round(mealScores.reduce((total, score) => total + score, 0) / mealScores.length)
     : null;
-  const compassInsight = !mealCount
-    ? 'Log your first meal to reveal your daily pattern.'
-    : isOverGoal
-      ? `Today is ${overGoalCalories.toLocaleString()} calories above your target. A simpler next choice can steady the day.`
-      : averageFoodScore >= 75
-        ? 'Your food choices are scoring well today. Keep the same rhythm for your next meal.'
-        : mealCount > 1 && mealVariety <= 1
-          ? 'Today is repeating one food. A different ingredient or food group would add variety.'
-          : `${remainingCalories.toLocaleString()} calories remain, with room to make the next meal count.`;
+  const compassInsight = appLanguage === 'km'
+    ? (!mealCount
+      ? 'កត់ត្រាអាហារដំបូង ដើម្បីមើលទម្រង់អាហារប្រចាំថ្ងៃរបស់អ្នក។'
+      : isOverGoal
+        ? `ថ្ងៃនេះលើសគោលដៅ ${localizedNumber(overGoalCalories)} កាឡូរី។ ជម្រើសសាមញ្ញជាងមុនអាចជួយរកតុល្យភាពបាន។`
+        : averageFoodScore >= 75
+          ? 'ជម្រើសអាហាររបស់អ្នកទទួលបានពិន្ទុល្អថ្ងៃនេះ។ បន្តទម្រង់ដដែលសម្រាប់អាហារបន្ទាប់។'
+          : mealCount > 1 && mealVariety <= 1
+            ? 'អាហារថ្ងៃនេះមិនសូវចម្រុះ។ សាកល្បងគ្រឿងផ្សំ ឬក្រុមអាហារផ្សេង។'
+            : `នៅសល់ ${localizedNumber(remainingCalories)} កាឡូរីសម្រាប់ថ្ងៃនេះ។`)
+    : (!mealCount
+      ? 'Log your first meal to reveal your daily pattern.'
+      : isOverGoal
+        ? `Today is ${overGoalCalories.toLocaleString()} calories above your target. A simpler next choice can steady the day.`
+        : averageFoodScore >= 75
+          ? 'Your food choices are scoring well today. Keep the same rhythm for your next meal.'
+          : mealCount > 1 && mealVariety <= 1
+            ? 'Today is repeating one food. A different ingredient or food group would add variety.'
+            : `${remainingCalories.toLocaleString()} calories remain, with room to make the next meal count.`);
 
   setText('dailyCompassCalories', calories.toLocaleString());
   setText('dailyCompassGoal', calorieGoal.toLocaleString());
-  setText('dailyCompassRemaining', `${(isOverGoal ? overGoalCalories : remainingCalories).toLocaleString()} cal`);
-  setText('dailyCompassRemainingLabel', isOverGoal ? 'Above today’s target' : 'Remaining today');
+  setText('dailyCompassRemaining', appLanguage === 'km'
+    ? `${localizedNumber(isOverGoal ? overGoalCalories : remainingCalories)} កាឡូរី`
+    : `${(isOverGoal ? overGoalCalories : remainingCalories).toLocaleString()} cal`);
+  setText('dailyCompassRemainingLabel', appLanguage === 'km'
+    ? (isOverGoal ? 'លើសគោលដៅថ្ងៃនេះ' : 'នៅសល់ថ្ងៃនេះ')
+    : (isOverGoal ? 'Above today’s target' : 'Remaining today'));
   setText('dailyCompassProgressCopy', !mealCount
-    ? 'Your first meal starts today’s map.'
-    : `${rawProgress}% of your daily target logged.`);
+    ? (appLanguage === 'km' ? 'អាហារដំបូងរបស់អ្នកនឹងចាប់ផ្តើមផែនទីថ្ងៃនេះ។' : 'Your first meal starts today’s map.')
+    : (appLanguage === 'km' ? `បានកត់ត្រា ${rawProgress}% នៃគោលដៅប្រចាំថ្ងៃ។` : `${rawProgress}% of your daily target logged.`));
   setText('dailyCompassFoodScore', averageFoodScore === null ? '--' : averageFoodScore);
   setText('dailyCompassVariety', mealVariety);
   setText('dailyCompassDishes', mealCount);
   setText('dailyCompassInsight', compassInsight);
-  setText('dailyCompassStatus', !mealCount ? 'Ready to begin' : isOverGoal ? 'Target passed' : compassProgress >= 75 ? 'Nearly there' : 'In progress');
+  setText('dailyCompassStatus', appLanguage === 'km'
+    ? (!mealCount ? 'ត្រៀមចាប់ផ្តើម' : isOverGoal ? 'លើសគោលដៅ' : compassProgress >= 75 ? 'ជិតដល់ហើយ' : 'កំពុងដំណើរការ')
+    : (!mealCount ? 'Ready to begin' : isOverGoal ? 'Target passed' : compassProgress >= 75 ? 'Nearly there' : 'In progress'));
   const compassBar = document.getElementById('dailyCompassBar');
   if (compassBar) compassBar.style.width = `${compassProgress}%`;
   const compassRing = document.querySelector('.daily-compass-ring');
@@ -2373,8 +2617,8 @@ function renderHealthInsights(memberMeals, todayMeals, calories, calorieGoal) {
   const compass = document.getElementById('dailyCompass');
   if (compass) compass.classList.toggle('is-over-goal', isOverGoal);
 
-  setText('dashboardDate', new Intl.DateTimeFormat('en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
-  setText('dashboardMemberName', appState.currentMember?.name || 'there');
+  setText('dashboardDate', new Intl.DateTimeFormat(appLanguage === 'km' ? 'km-KH' : 'en', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date()));
+  setText('dashboardMemberName', appState.currentMember?.name || (appLanguage === 'km' ? 'អ្នក' : 'there'));
   setText('summaryCalories', calories.toLocaleString());
   const currentWeight = getMemberWeight(appState.currentMember);
   setText('summaryWeight', currentWeight !== null && currentWeight !== undefined ? Number(currentWeight).toLocaleString() : '--');
@@ -6112,7 +6356,8 @@ async function requestAiCalorieEstimate({
         image_url: imageUrl,
         food_name: foodName,
         description_context: buildEstimateDescription({ restaurantName, mealType, notes, scanIngredients, scanTags }),
-        portion_size: 'regular'
+        portion_size: 'regular',
+        language: appLanguage
       })
     });
     const rawResponse = await response.text();
@@ -6995,6 +7240,19 @@ function renderSettings() {
   const signedInEmail = appState.auth.user?.email || 'Not signed in';
   const familyName = appState.auth.membership?.family_name || 'Private meal space';
   el.innerHTML = `
+    <div class="settings-section settings-language-card">
+      <p class="eyebrow">Language</p>
+      <h3>App language</h3>
+      <p>Choose the language used across MyMealMap.</p>
+      <label class="settings-language-field" for="appLanguageSelect">
+        <span>Language</span>
+        <select id="appLanguageSelect">
+          <option value="en" ${appLanguage === 'en' ? 'selected' : ''}>English</option>
+          <option value="km" ${appLanguage === 'km' ? 'selected' : ''}>Khmer</option>
+        </select>
+      </label>
+    </div>
+
     <div class="settings-section">
       <p class="eyebrow">Discover</p>
       <h3>Explore what’s next</h3>
@@ -7058,6 +7316,7 @@ function renderSettings() {
       <p>Build date: ${APP_BUILD_DATE}</p>
     </div>
   `;
+  applyLanguageToDocument(el);
 }
 
 function renderRecipes() {
