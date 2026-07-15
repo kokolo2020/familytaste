@@ -712,10 +712,9 @@
 .daily-compass-insight p { display: grid; gap: 2px; margin: 0; }
 .daily-compass-insight strong { color: #fff; font-size: 9px; }
 .daily-compass-insight p span { color: #c8dbd0; font-size: 9px; line-height: 1.4; }
-.daily-compass-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1.35fr 1fr 1fr 1.08fr 1.15fr; gap: 7px; margin-top: 11px; }
+.daily-compass-actions { position: relative; z-index: 1; display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; margin-top: 11px; }
 .daily-compass-actions button { min-height: 36px; padding: 7px 9px; border: 1px solid rgba(255,255,255,.14); border-radius: 9px; color: #eef7f1; background: rgba(255,255,255,.08); font-size: 9px; font-weight: 850; }
 .daily-compass-actions .daily-compass-primary { border-color: #f4a421; color: #26391d; background: #f4b337; box-shadow: 0 7px 16px rgba(9,34,24,.16); }
-.daily-compass-actions .daily-compass-replay { border-color: rgba(244,179,55,.55); color: #ffd77e; background: rgba(244,179,55,.12); }
 .daily-compass-actions .daily-compass-share { color: #154332; background: #f7efe0; }
 .daily-compass.is-over-goal .daily-compass-status { color: #ffe6d2; background: rgba(184,74,35,.35); }
 .daily-compass.is-over-goal .daily-compass-ring { background: radial-gradient(circle, #164735 0 55%, transparent 57%), conic-gradient(#ef7546 var(--compass-progress), rgba(255,255,255,.14) 0); }
