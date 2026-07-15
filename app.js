@@ -1151,6 +1151,26 @@ function handleAction(action) {
     return;
   }
 
+  if (action === 'open-food-map-report') {
+    openFoodMapReportModal();
+    return;
+  }
+
+  if (action === 'close-food-map-report') {
+    closeFoodMapReportModal();
+    return;
+  }
+
+  if (action === 'download-food-map-report') {
+    downloadFoodMapReport();
+    return;
+  }
+
+  if (action === 'share-food-map-report') {
+    shareFoodMapReport();
+    return;
+  }
+
   if (action === 'home') {
     if (appState.auth.status !== 'ready') return;
     showPage('dashboard');
@@ -6881,6 +6901,7 @@ function renderSettings() {
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
         <button class="settings-nav-btn" data-page="body">🧍 Body Map</button>
         <button class="settings-nav-btn" data-page="weekly">▶ Weekly Replay</button>
+        <button class="settings-nav-btn" data-action="open-food-map-report">Food Map PDF</button>
         <button class="settings-nav-btn" data-page="timeline">📔 Diary</button>
         <button class="settings-nav-btn" data-page="favorites">❤️ Favorites</button>
         <button class="settings-nav-btn" data-page="profile">👤 Profile</button>

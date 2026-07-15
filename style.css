@@ -5566,3 +5566,148 @@ h1 span {
   #page-dashboard .dashboard-add-button { display: none; }
   #page-dashboard .today-food-totals { margin-top: 5px; font-size: 12px; }
 }
+
+.weekly-replay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.weekly-replay-actions .weekly-replay-share {
+  margin-top: 0;
+}
+
+.weekly-report-pdf-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, .38);
+  border-radius: 999px;
+  color: #184a39;
+  background: #fff9ed;
+  box-shadow: 0 8px 18px rgba(36, 61, 47, .12);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.food-map-report-dialog {
+  width: min(980px, 100%);
+}
+
+.food-map-report-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.food-map-report-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid #e8ded1;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.food-map-report-toolbar input {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  accent-color: #175642;
+}
+
+.food-map-report-toolbar span {
+  display: grid;
+  gap: 2px;
+}
+
+.food-map-report-toolbar strong {
+  color: #34271e;
+  font-size: 11px;
+}
+
+.food-map-report-toolbar small {
+  color: #8a7d71;
+  font-size: 9px;
+}
+
+.food-map-report-preview {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 24%);
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #e7ded2, #f2ebe2);
+  scroll-snap-type: x mandatory;
+}
+
+.food-map-report-preview article {
+  display: grid;
+  gap: 7px;
+  scroll-snap-align: start;
+}
+
+.food-map-report-preview img {
+  width: 100%;
+  border: 1px solid rgba(82, 62, 43, .13);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 30px rgba(53, 38, 24, .17);
+}
+
+.food-map-report-preview span {
+  color: #6d6055;
+  font-size: 9px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.food-map-report-preview .report-preview-loading {
+  grid-column: 1 / -1;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: #6d6055;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.food-map-report-note {
+  margin: 12px 2px 0;
+  color: #817469;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .weekly-replay-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .weekly-replay-actions button {
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 9px;
+  }
+
+  .food-map-report-dialog {
+    padding: 14px;
+  }
+
+  .food-map-report-toolbar {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .food-map-report-preview {
+    grid-auto-columns: 72%;
+    padding: 12px;
+  }
+}
