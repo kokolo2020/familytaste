@@ -5402,7 +5402,7 @@ h1 span {
   #page-dashboard .daily-compass-metrics { gap: 5px; }
   #page-dashboard .daily-compass-metrics button { padding: 8px; }
   #page-dashboard .daily-compass-actions { grid-template-columns: 1fr 1fr; gap: 5px; }
-  #page-dashboard .daily-compass-actions button { min-height: 34px; padding: 6px 5px; font-size: 8px; }
+  #page-dashboard .daily-compass-actions button { min-height: 40px; padding: 7px 6px; font-size: 10px; }
   .daily-share-modal { align-items: start; padding: 8px; }
   .daily-share-dialog { max-height: calc(100svh - 16px); padding: 14px; border-radius: 20px; }
   .daily-share-dialog > header h2 { font-size: 24px; }
@@ -5430,7 +5430,7 @@ h1 span {
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-signal-line { gap: 5px; margin-bottom: 4px; }
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-calorie-pill { padding: 6px 8px; font-size: 11px; }
   #page-dashboard .dashboard-meal-list .meal-score-pill { padding: 5px 7px; }
-  #page-dashboard .dashboard-meal-list .meal-score-pill small { max-width: 58px; font-size: 7px; }
+  #page-dashboard .dashboard-meal-list .meal-score-pill small { max-width: 64px; font-size: 9px; }
   #page-dashboard .dashboard-meal-list .meal-score-pill b { font-size: 11px; }
   #page-dashboard .dashboard-meal-list .dashboard-food-card .meal-extra-name { font-size: 14px; }
   #page-dashboard .dashboard-meal-list .meal-health-pill { margin-bottom: 6px; padding: 6px 11px; font-size: 12px; }
@@ -5444,29 +5444,29 @@ h1 span {
   #page-dashboard .dashboard-meal-list .meal-health-swap,
   #page-dashboard .dashboard-meal-list .meal-extra-copy { font-size: 11px; line-height: 1.35; }
   #page-dashboard .dashboard-meal-list .meal-actions { gap: 10px; margin-top: 8px; }
-  #page-dashboard .dashboard-meal-list .meal-actions summary { width: 22px; height: 22px; font-size: 18px; }
+  #page-dashboard .dashboard-meal-list .meal-actions summary { width: 34px; height: 34px; font-size: 20px; }
   #page-dashboard .dashboard-meal-list .meal-action-menu { right: 2px; padding: 3px; }
   #page-dashboard .dashboard-meal-list .meal-actions button { padding: 8px 12px; font-size: 12px; }
   #page-dashboard .daily-summary { padding: 8px; border-radius: 8px; }
   #page-dashboard .daily-summary .section-title { margin-bottom: 5px; }
   #page-dashboard .daily-summary .section-title h3,
-  #page-dashboard .nutrition-panel .section-title h3 { font-size: 9px; }
+  #page-dashboard .nutrition-panel .section-title h3 { font-size: 13px; }
   #page-dashboard .summary-grid { grid-template-columns: repeat(4, 1fr); gap: 3px; }
   #page-dashboard .summary-grid article { min-height: 68px; padding: 5px 1px; border-radius: 6px; }
   #page-dashboard .summary-grid article > span { font-size: 14px; }
-  #page-dashboard .summary-grid strong { margin-top: 2px; font-size: 10px; }
-  #page-dashboard .summary-grid small { font-size: 5px; }
+  #page-dashboard .summary-grid strong { margin-top: 2px; font-size: 12px; }
+  #page-dashboard .summary-grid small { font-size: 8px; }
   #page-dashboard .calorie-overview { grid-template-columns: 1fr 42px; gap: 4px; margin-top: 7px; padding-top: 7px; }
   #page-dashboard .calorie-copy { gap: 3px; }
-  #page-dashboard .calorie-copy > span { font-size: 7px; }
-  #page-dashboard .calorie-copy > strong { font-size: 9px; }
-  #page-dashboard .calorie-copy > small { font-size: 5px; }
+  #page-dashboard .calorie-copy > span { font-size: 9px; }
+  #page-dashboard .calorie-copy > strong { font-size: 11px; }
+  #page-dashboard .calorie-copy > small { font-size: 8px; }
   #page-dashboard .calorie-copy > i { height: 4px; }
   #page-dashboard .calorie-ring { width: 40px; height: 40px; }
-  #page-dashboard .calorie-ring strong { font-size: 9px; }
-  #page-dashboard .calorie-ring small { font-size: 5px; }
+  #page-dashboard .calorie-ring strong { font-size: 10px; }
+  #page-dashboard .calorie-ring small { font-size: 7px; }
   #page-dashboard .tip-card { gap: 4px; margin-top: 7px; padding: 6px; }
-  #page-dashboard .tip-card p { font-size: 5.5px; }
+  #page-dashboard .tip-card p { font-size: 9px; }
   #page-dashboard .body-impact-panel { padding: 10px; border-radius: 10px; }
   #page-dashboard .body-impact-panel .section-title h3 { font-size: 14px; }
   #page-dashboard .panel-subtitle { margin: 4px 0 10px; font-size: 9px; }
@@ -5481,22 +5481,22 @@ h1 span {
   #page-dashboard .ai-insight-list { gap: 6px; }
   #page-dashboard .ai-insight-list p { padding-left: 11px; font-size: 9px; line-height: 1.4; }
   #page-dashboard .ai-insight-list p::before { top: 6px; width: 4px; height: 4px; }
-  #page-dashboard .body-impact-note { margin-top: 6px; padding: 6px 7px; border-radius: 6px; font-size: 7px; line-height: 1.35; }
+  #page-dashboard .body-impact-note { margin-top: 6px; padding: 7px 8px; border-radius: 6px; font-size: 9px; line-height: 1.4; }
   #page-dashboard .nutrition-panel { padding: 8px; border-radius: 8px; }
   #page-dashboard .nutrition-layout { grid-template-columns: 1fr 46px; gap: 4px; }
   #page-dashboard .macro-list { gap: 6px; }
-  #page-dashboard .macro-list > div { grid-template-columns: 48px 1fr 18px; gap: 3px; font-size: 5px; }
+  #page-dashboard .macro-list > div { grid-template-columns: 58px 1fr 24px; gap: 4px; font-size: 8px; }
   #page-dashboard .macro-list i { height: 4px; }
   #page-dashboard .nutrition-donut { width: 44px; height: 44px; }
   #page-dashboard .nutrition-donut strong { font-size: 10px; }
-  #page-dashboard .nutrition-donut small { font-size: 5px; }
-  #page-dashboard .analysis-note { margin-top: 6px; padding-top: 5px; font-size: 5px; }
+  #page-dashboard .nutrition-donut small { font-size: 7px; }
+  #page-dashboard .analysis-note { margin-top: 6px; padding-top: 5px; font-size: 8px; line-height: 1.4; }
   .usda-search-row,
   .usda-selected-food { grid-template-columns: 1fr; }
   .usda-food-option { grid-template-columns: 1fr; }
   .usda-food-option span:last-child { justify-items: start; text-align: left; }
   .usda-macro-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mobile-nav .nav-item { font-size: 9px; }
+  .mobile-nav .nav-item { font-size: 10px; }
   .mobile-nav .nav-item[data-page="snap"] { width: 66px; height: 66px; margin: -24px auto 0; border: 5px solid #fff; border-radius: 50%; color: #fff; background: #ff6716; }
 }
 
@@ -5694,7 +5694,7 @@ h1 span {
   .weekly-replay-actions button {
     min-width: 0;
     padding-inline: 10px;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .food-map-report-dialog {

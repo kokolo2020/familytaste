@@ -23,6 +23,12 @@
       if (error) throw error;
       return data?.session || null;
     },
+    async getAuthHeaders() {
+      const session = await this.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) throw new Error('Your session expired. Sign in again to continue.');
+      return { Authorization: `Bearer ${accessToken}` };
+    },
     async sendOtp(email) {
       if (!client) throw new Error('Supabase auth is not configured.');
       const { error } = await client.auth.signInWithOtp({
@@ -131,6 +137,22 @@
       if (error) throw error;
       return data || [];
     },
+    async saveMember(member) {
+      if (!client || !this.familyId) return member;
+      const payload = {
+        family_id: this.familyId,
+        name: member.name,
+        avatar: member.avatar || '👤',
+        role: member.role || 'Profile'
+      };
+      const { data, error } = await client
+        .from('members')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
     async getMeals() {
       if (!client || !this.familyId) return [];
       const { data, error } = await client
@@ -202,7 +224,7 @@
       return data;
     },
     async updateMeal(mealId, fields) {
-      if (!client) return null;
+      if (!client || !this.familyId) return null;
       const payload = { ...fields };
       if ('notes' in payload) {
         payload.description = payload.notes || null;
@@ -212,13 +234,14 @@
         .from('food_entries')
         .update(payload)
         .eq('id', mealId)
+        .eq('family_id', this.familyId)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     async updateSnapScan(scanId, fields) {
-      if (!client) return null;
+      if (!client || !this.familyId) return null;
       const payload = { ...fields };
       if ('linked_meal_id' in payload && !payload.linked_meal_id) {
         payload.linked_meal_id = null;
@@ -227,25 +250,28 @@
         .from('snap_scans')
         .update(payload)
         .eq('id', scanId)
+        .eq('family_id', this.familyId)
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     async deleteMeal(mealId) {
-      if (!client) return;
+      if (!client || !this.familyId) return;
       const { error } = await client
         .from('food_entries')
         .delete()
-        .eq('id', mealId);
+        .eq('id', mealId)
+        .eq('family_id', this.familyId);
       if (error) throw error;
     },
     async deleteSnapScan(scanId) {
-      if (!client) return;
+      if (!client || !this.familyId) return;
       const { error } = await client
         .from('snap_scans')
         .delete()
-        .eq('id', scanId);
+        .eq('id', scanId)
+        .eq('family_id', this.familyId);
       if (error) throw error;
     },
     async getFavorites() {
@@ -298,15 +324,25 @@
       return data;
     },
     async updateMember(memberId, fields) {
-      if (!client) return null;
+      if (!client || !this.familyId) return null;
       const { data, error } = await client
         .from('members')
         .update(fields)
         .eq('id', memberId)
+        .eq('family_id', this.familyId)
         .select()
         .single();
       if (error) throw error;
       return data;
+    },
+    async deleteMember(memberId) {
+      if (!client || !this.familyId) return;
+      const { error } = await client
+        .from('members')
+        .delete()
+        .eq('id', memberId)
+        .eq('family_id', this.familyId);
+      if (error) throw error;
     }
   };
 

@@ -1,9 +1,13 @@
 const OPENAI_URL = 'https://api.openai.com/v1/responses';
+const { requireAuthenticatedUser } = require('./lib/auth');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method not allowed.' });
   }
+
+  const auth = await requireAuthenticatedUser(event);
+  if (auth.error) return json(auth.error.statusCode, { error: auth.error.message });
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -15,6 +19,9 @@ exports.handler = async (event) => {
     const imageUrl = body.image_url;
     if (!imageUrl || (!imageUrl.startsWith('data:image/') && !imageUrl.startsWith('https://'))) {
       return json(400, { error: 'Please add a food photo first.' });
+    }
+    if (imageUrl.length > 6_000_000) {
+      return json(413, { error: 'That photo is too large. Choose a smaller image and try again.' });
     }
 
     const hint = String(body.food_name || '').slice(0, 180);

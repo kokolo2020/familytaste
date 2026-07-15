@@ -1,4 +1,5 @@
 const https = require('node:https');
+const { requireAuthenticatedUser } = require('./lib/auth');
 
 const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 
@@ -15,6 +16,9 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') {
     return json(405, { error: 'Method not allowed.' });
   }
+
+  const auth = await requireAuthenticatedUser(event);
+  if (auth.error) return json(auth.error.statusCode, { error: auth.error.message });
 
   const query = String(event.queryStringParameters?.query || '').trim().slice(0, 120);
   if (query.length < 2) {
@@ -137,7 +141,7 @@ function json(statusCode, body) {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=300'
+      'Cache-Control': 'no-store'
     },
     body: JSON.stringify(body)
   };

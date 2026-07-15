@@ -39,8 +39,8 @@ const legacyUiStateStorageKey = 'familyBites.uiState.v1';
 const uiStateStorageKeyPrefix = 'familyBites.uiState.v2';
 const sessionNoticeStorageKey = 'familyBites.sessionNotices';
 const dailySummaryIntroStorageKey = 'familyBites.dailySummaryIntro';
-const APP_VERSION = 'v1.14.3';
-const APP_BUILD_DATE = '2026-07-14';
+const APP_VERSION = 'v1.15.0';
+const APP_BUILD_DATE = '2026-07-15';
 const seededDefaultMemberIds = new Set(['dad', 'rithyna', 'me']);
 const seededDefaultMemberNames = new Set(['dad', 'rithyna', 'my profile']);
 const snapTagCatalog = [
@@ -196,7 +196,10 @@ let snapScanDraft = createEmptySnapScanDraft();
 let lastSnapEstimateSignature = '';
 let latestSnapPhotoScanToken = 0;
 let snapPhotoScanTimer = null;
+let snapSaveInFlight = false;
 let authSessionRecoveryPromise = null;
+let activeSessionHydrationPromise = null;
+let activeSessionHydrationUserId = '';
 let profileOnboardingTimer = null;
 let bodySuggestionOffsets = {};
 let timelineFilters = {
@@ -743,6 +746,12 @@ function formatAuthError(error) {
   return String(error?.message || 'Sign-in is unavailable right now. Please try again.');
 }
 
+async function getFunctionRequestHeaders(headers = {}) {
+  const authHeaders = await window.familyBitesDb?.getAuthHeaders?.();
+  if (!authHeaders?.Authorization) throw new Error('Your session expired. Sign in again to continue.');
+  return { ...headers, ...authHeaders };
+}
+
 function readPendingOtpEmail() {
   return String(
     sessionStorage.getItem(pendingOtpEmailStorageKey)
@@ -834,7 +843,21 @@ async function handleActiveSession(session, options = {}) {
     return;
   }
 
-  await handleAuthenticatedSession(session);
+  if (activeSessionHydrationPromise && activeSessionHydrationUserId === nextUserId) {
+    return activeSessionHydrationPromise;
+  }
+  if (activeSessionHydrationPromise) {
+    await activeSessionHydrationPromise.catch(() => {});
+  }
+
+  activeSessionHydrationUserId = nextUserId;
+  activeSessionHydrationPromise = handleAuthenticatedSession(session).finally(() => {
+    if (activeSessionHydrationUserId === nextUserId) {
+      activeSessionHydrationPromise = null;
+      activeSessionHydrationUserId = '';
+    }
+  });
+  return activeSessionHydrationPromise;
 }
 
 async function confirmSignedOutState() {
@@ -918,29 +941,34 @@ async function hydrateFamilyData() {
 
   try {
     appState.familyId = window.familyBitesDb.familyId;
-    const [members, meals, snapScans, favorites] = (await Promise.allSettled([
+    const [membersResult, mealsResult, snapScansResult, favoritesResult] = await Promise.allSettled([
       window.familyBitesDb.getMembers(),
       window.familyBitesDb.getMeals(),
       window.familyBitesDb.getSnapScans(),
       window.familyBitesDb.getFavorites()
-    ])).map((result) => {
-      if (result.status === 'rejected') {
-        console.warn('One Supabase table failed to load.', result.reason);
-        return [];
-      }
-      return result.value;
+    ]);
+
+    [membersResult, mealsResult, snapScansResult, favoritesResult].forEach((result) => {
+      if (result.status === 'rejected') console.warn('One Supabase table failed to load.', result.reason);
     });
 
-    if (members.length) {
-      const normalizedMembers = members.map(normalizeMember);
-      appState.members = mergeMembers(normalizedMembers, appState.members);
+    if (membersResult.status === 'fulfilled') {
+      const normalizedMembers = membersResult.value.map(normalizeMember);
+      const pendingMembers = appState.members.filter((member) => member.id === 'add' || isPendingLocalRecord(member));
+      appState.members = mergeMembers(normalizedMembers, pendingMembers);
       applyStoredProfilePhotos();
       mergeProfileMeasurementsFromMembers(normalizedMembers);
     }
-    if (meals.length) appState.meals = mergeRecords(meals.map(normalizeMeal), appState.meals);
-    if (snapScans.length) appState.snapScans = mergeRecords(snapScans.map(normalizeSnapScan), appState.snapScans);
-    if (favorites.length) appState.favorites = favorites;
+    if (mealsResult.status === 'fulfilled') {
+      appState.meals = mergeRemoteRecords(mealsResult.value.map(normalizeMeal), appState.meals);
+    }
+    if (snapScansResult.status === 'fulfilled') {
+      appState.snapScans = mergeRemoteRecords(snapScansResult.value.map(normalizeSnapScan), appState.snapScans);
+    }
+    if (favoritesResult.status === 'fulfilled') appState.favorites = favoritesResult.value;
 
+    await backfillLocalMembersToSupabase();
+    await backfillLocalMealsToSupabase();
     await backfillLocalSnapScansToSupabase();
 
     try {
@@ -949,10 +977,10 @@ async function hydrateFamilyData() {
         if (!appState.bioLogs[log.member_id]) appState.bioLogs[log.member_id] = {};
         const existingLog = appState.bioLogs[log.member_id][log.log_date] || {};
         appState.bioLogs[log.member_id][log.log_date] = {
+          ...existingLog,
           weight_kg: log.weight_kg,
           steps: log.steps,
-          sugar_level: log.sugar_level,
-          ...existingLog
+          sugar_level: log.sugar_level
         };
       });
     } catch (bioError) {
@@ -967,9 +995,60 @@ async function hydrateFamilyData() {
   saveStoredAppData();
 }
 
+async function backfillLocalMembersToSupabase() {
+  if (!window.familyBitesDb?.isConfigured || !appState.familyId) return;
+  const pendingMembers = appState.members.filter((member) => member.id !== 'add' && isPendingLocalRecord(member));
+  for (const pendingMember of pendingMembers) {
+    try {
+      const previousId = pendingMember.id;
+      const savedMember = normalizeMember(await window.familyBitesDb.saveMember(pendingMember));
+      appState.members = appState.members.map((member) => member.id === previousId ? savedMember : member);
+      appState.meals.forEach((meal) => {
+        if (meal.member_id === previousId) meal.member_id = savedMember.id;
+      });
+      appState.snapScans.forEach((scan) => {
+        if (scan.member_id === previousId) scan.member_id = savedMember.id;
+      });
+      if (appState.profileMeasurements[previousId]) {
+        appState.profileMeasurements[savedMember.id] = appState.profileMeasurements[previousId];
+        delete appState.profileMeasurements[previousId];
+      }
+      ['bioLogs', 'workoutHistory', 'savedWorkouts'].forEach((stateKey) => {
+        if (!appState[stateKey][previousId]) return;
+        appState[stateKey][savedMember.id] = appState[stateKey][previousId];
+        delete appState[stateKey][previousId];
+      });
+      if (appState.currentMember?.id === previousId) appState.currentMember = savedMember;
+    } catch (error) {
+      console.warn('Pending local profile backfill failed.', error);
+    }
+  }
+}
+
+async function backfillLocalMealsToSupabase() {
+  if (!window.familyBitesDb?.isConfigured || !appState.familyId) return;
+  const pendingMeals = appState.meals.filter(isPendingLocalRecord);
+  for (const pendingMeal of pendingMeals) {
+    try {
+      let photoUrl = pendingMeal.photo_url || '';
+      if (photoUrl.startsWith('data:')) {
+        const uploadedUrl = await window.familyBitesDb.uploadMealPhoto(photoUrl);
+        if (uploadedUrl) photoUrl = uploadedUrl;
+      }
+      const savedMeal = normalizeMeal(await window.familyBitesDb.saveMeal({ ...pendingMeal, photo_url: photoUrl }));
+      appState.meals = appState.meals.map((meal) => meal.id === pendingMeal.id ? savedMeal : meal);
+      appState.snapScans.forEach((scan) => {
+        if (scan.linked_meal_id === pendingMeal.id) scan.linked_meal_id = savedMeal.id;
+      });
+    } catch (error) {
+      console.warn('Pending local meal backfill failed.', error);
+    }
+  }
+}
+
 async function backfillLocalSnapScansToSupabase() {
   if (!window.familyBitesDb?.isConfigured || !appState.familyId) return;
-  const pendingScans = appState.snapScans.filter((scan) => !looksLikeUuid(scan.id));
+  const pendingScans = appState.snapScans.filter(isPendingLocalRecord);
   if (!pendingScans.length) return;
 
   let changed = false;
@@ -1983,7 +2062,8 @@ async function searchUsdaFoods(options = {}) {
   renderUsdaNutrition();
 
   try {
-    const response = await fetch(`/.netlify/functions/usda-foods?query=${encodeURIComponent(query)}`);
+    const headers = await getFunctionRequestHeaders();
+    const response = await fetch(`/.netlify/functions/usda-foods?query=${encodeURIComponent(query)}`, { headers });
     const result = await response.json();
     if (requestId !== snapScanDraft.usda.requestId) return;
     if (!response.ok) throw new Error(result?.error || 'USDA search is unavailable.');
@@ -3337,19 +3417,21 @@ async function handleSaveMealEdit() {
 }
 
 async function persistNewMeal(meal) {
-  appState.meals.unshift(meal);
+  const pendingMeal = normalizeMeal({ ...meal, _sync_status: 'pending' });
+  appState.meals.unshift(pendingMeal);
   saveStoredAppData();
   renderAll();
-  let finalMeal = meal;
+  let finalMeal = pendingMeal;
   if (window.familyBitesDb?.isConfigured) {
     try {
-      const savedMeal = await window.familyBitesDb.saveMeal(meal);
+      const savedMeal = await window.familyBitesDb.saveMeal(pendingMeal);
       finalMeal = normalizeMeal(savedMeal);
-      appState.meals = appState.meals.map((item) => item.id === meal.id ? finalMeal : item);
+      appState.meals = appState.meals.map((item) => item.id === pendingMeal.id ? finalMeal : item);
       saveStoredAppData();
       renderAll();
     } catch (error) {
       console.warn('Meal saved locally but Supabase write failed.', error);
+      showAppNotice('Meal saved on this device and will sync when the connection returns.', 'warning');
     }
   }
   return finalMeal;
@@ -3360,16 +3442,18 @@ async function handleDeleteMeal(mealId) {
   if (!meal) return;
   if (!confirm(`Delete "${meal.food_name}"?`)) return;
 
-  appState.meals = appState.meals.filter((item) => item.id !== mealId);
-  saveStoredAppData();
-  renderAll();
-  if (window.familyBitesDb?.isConfigured) {
+  if (window.familyBitesDb?.isConfigured && looksLikeUuid(mealId)) {
     try {
       await window.familyBitesDb.deleteMeal(mealId);
     } catch (error) {
-      console.warn('Meal deleted locally but Supabase delete failed.', error);
+      console.warn('Meal delete failed.', error);
+      showAppNotice('Could not delete this meal. Check your connection and try again.', 'error');
+      return;
     }
   }
+  appState.meals = appState.meals.filter((item) => item.id !== mealId);
+  saveStoredAppData();
+  renderAll();
 }
 
 async function handleLogAgain(foodName) {
@@ -5611,77 +5695,96 @@ async function saveSnapScan(event) {
   event.preventDefault();
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   if (!photoUrl) return;
-  if (snapEstimateNeedsRefresh()) {
-    await applyAiCalorieEstimate({ preserveFoodName: true });
-  }
-  let savedPhotoUrl = photoUrl;
-  if (window.familyBitesDb?.isConfigured && photoUrl.startsWith('data:')) {
-    try {
-      const uploadedUrl = await window.familyBitesDb.uploadScanPhoto(photoUrl);
-      if (uploadedUrl) savedPhotoUrl = uploadedUrl;
-    } catch (uploadError) {
-      console.warn('Scan photo upload failed, keeping local copy.', uploadError);
-    }
+  if (snapSaveInFlight) return;
+  snapSaveInFlight = true;
+  const submitButton = event.currentTarget?.querySelector('button[type="submit"]');
+  const submitLabel = submitButton?.textContent || '';
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Saving meal...';
   }
 
-  const mealType = document.getElementById('mealType').value;
-  const mealDate = document.getElementById('mealDate').value;
-  const mealTime = document.getElementById('mealTime').value;
-  const finalMealType = mealType || inferMealTypeFromTimestamp(buildMealTimestamp(mealDate, mealTime));
-  const baseNotes = document.getElementById('notes').value.trim();
-  const usdaNutrition = getSelectedUsdaNutrition();
-  const meal = await persistNewMeal({
-    id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
-    family_id: appState.familyId,
-    member_id: appState.currentMember.id,
-    food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
-    restaurant_name: '',
-    location_name: '',
-    price: null,
-    calories: numberOrNull(document.getElementById('calories').value),
-    protein_g: usdaNutrition?.protein_g ?? null,
-    carbs_g: usdaNutrition?.carbs_g ?? null,
-    fat_g: usdaNutrition?.fat_g ?? null,
-    notes: notesWithMealType(baseNotes || snapScanDraft.note || '', finalMealType, {
-      scanIngredients: snapScanDraft.ingredients,
-      scanTags: snapScanDraft.tags,
-      usdaFdcId: usdaNutrition?.fdc_id,
-      usdaGrams: usdaNutrition?.grams
-    }),
-    photo_url: savedPhotoUrl,
-    eaten_at: buildMealTimestamp(mealDate, mealTime)
-  });
-  const scan = normalizeSnapScan({
-    id: crypto.randomUUID ? crypto.randomUUID() : `scan-${Date.now()}`,
-    family_id: appState.familyId,
-    member_id: appState.currentMember.id,
-    food_name: meal.food_name,
-    calories: numberOrNull(document.getElementById('calories').value),
-    notes: notesWithMealType(baseNotes, finalMealType),
-    photo_url: savedPhotoUrl,
-    ingredients: [...snapScanDraft.ingredients],
-    tags: [...snapScanDraft.tags],
-    confidence: snapScanDraft.confidence,
-    ai_note: snapScanDraft.note,
-    foods: [...snapScanDraft.foods],
-    created_at: meal.eaten_at,
-    linked_meal_id: meal.id
-  });
+  try {
+    if (snapEstimateNeedsRefresh()) {
+      await applyAiCalorieEstimate({ preserveFoodName: true });
+    }
+    let savedPhotoUrl = photoUrl;
+    if (window.familyBitesDb?.isConfigured && photoUrl.startsWith('data:')) {
+      try {
+        const uploadedUrl = await window.familyBitesDb.uploadScanPhoto(photoUrl);
+        if (uploadedUrl) savedPhotoUrl = uploadedUrl;
+      } catch (uploadError) {
+        console.warn('Scan photo upload failed, keeping local copy.', uploadError);
+      }
+    }
 
-  appState.snapScans.unshift(scan);
-  saveStoredAppData();
-  renderAll();
-  if (window.familyBitesDb?.isConfigured) {
-    try {
-      const savedScan = await window.familyBitesDb.saveSnapScan(scan);
-      appState.snapScans = appState.snapScans.map((item) => item.id === scan.id ? normalizeSnapScan(savedScan) : item);
-      saveStoredAppData();
-      renderAll();
-    } catch (error) {
-      console.warn('Scan saved locally but Supabase write failed.', error);
+    const mealType = document.getElementById('mealType').value;
+    const mealDate = document.getElementById('mealDate').value;
+    const mealTime = document.getElementById('mealTime').value;
+    const finalMealType = mealType || inferMealTypeFromTimestamp(buildMealTimestamp(mealDate, mealTime));
+    const baseNotes = document.getElementById('notes').value.trim();
+    const usdaNutrition = getSelectedUsdaNutrition();
+    const meal = await persistNewMeal({
+      id: crypto.randomUUID ? crypto.randomUUID() : `meal-${Date.now()}`,
+      family_id: appState.familyId,
+      member_id: appState.currentMember.id,
+      food_name: document.getElementById('foodName').value.trim() || (snapScanDraft.foods?.[0]?.name || ''),
+      restaurant_name: '',
+      location_name: '',
+      price: null,
+      calories: numberOrNull(document.getElementById('calories').value),
+      protein_g: usdaNutrition?.protein_g ?? null,
+      carbs_g: usdaNutrition?.carbs_g ?? null,
+      fat_g: usdaNutrition?.fat_g ?? null,
+      notes: notesWithMealType(baseNotes || snapScanDraft.note || '', finalMealType, {
+        scanIngredients: snapScanDraft.ingredients,
+        scanTags: snapScanDraft.tags,
+        usdaFdcId: usdaNutrition?.fdc_id,
+        usdaGrams: usdaNutrition?.grams
+      }),
+      photo_url: savedPhotoUrl,
+      eaten_at: buildMealTimestamp(mealDate, mealTime)
+    });
+    const scan = normalizeSnapScan({
+      id: crypto.randomUUID ? crypto.randomUUID() : `scan-${Date.now()}`,
+      family_id: appState.familyId,
+      member_id: appState.currentMember.id,
+      food_name: meal.food_name,
+      calories: numberOrNull(document.getElementById('calories').value),
+      notes: notesWithMealType(baseNotes, finalMealType),
+      photo_url: savedPhotoUrl,
+      ingredients: [...snapScanDraft.ingredients],
+      tags: [...snapScanDraft.tags],
+      confidence: snapScanDraft.confidence,
+      ai_note: snapScanDraft.note,
+      foods: [...snapScanDraft.foods],
+      created_at: meal.eaten_at,
+      linked_meal_id: meal.id,
+      _sync_status: 'pending'
+    });
+
+    appState.snapScans.unshift(scan);
+    saveStoredAppData();
+    renderAll();
+    if (window.familyBitesDb?.isConfigured) {
+      try {
+        const savedScan = await window.familyBitesDb.saveSnapScan(scan);
+        appState.snapScans = appState.snapScans.map((item) => item.id === scan.id ? normalizeSnapScan(savedScan) : item);
+        saveStoredAppData();
+        renderAll();
+      } catch (error) {
+        console.warn('Scan saved locally but Supabase write failed.', error);
+        showAppNotice('Scan saved on this device and will sync when the connection returns.', 'warning');
+      }
+    }
+    resetSnapWorkspace();
+  } finally {
+    snapSaveInFlight = false;
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = submitLabel;
     }
   }
-  resetSnapWorkspace();
 }
 
 function inferMealTypeFromTimestamp(value) {
@@ -5736,16 +5839,18 @@ async function handleDeleteSnapScan(scanId) {
   const scan = appState.snapScans.find((item) => item.id === scanId);
   if (!scan) return;
   if (!confirm(`Delete scan "${buildSnapDisplayName(scan)}"?`)) return;
-  appState.snapScans = appState.snapScans.filter((item) => item.id !== scanId);
-  saveStoredAppData();
-  renderAll();
-  if (window.familyBitesDb?.isConfigured) {
+  if (window.familyBitesDb?.isConfigured && looksLikeUuid(scanId)) {
     try {
       await window.familyBitesDb.deleteSnapScan(scanId);
     } catch (error) {
-      console.warn('Scan deleted locally but Supabase delete failed.', error);
+      console.warn('Scan delete failed.', error);
+      showAppNotice('Could not delete this scan. Check your connection and try again.', 'error');
+      return;
     }
   }
+  appState.snapScans = appState.snapScans.filter((item) => item.id !== scanId);
+  saveStoredAppData();
+  renderAll();
 }
 
 function updateMealPreview() {
@@ -5990,9 +6095,10 @@ async function requestAiCalorieEstimate({
   statusElement.textContent = 'AI is comparing the photo with your updated meal details…';
 
   try {
+    const headers = await getFunctionRequestHeaders({ 'Content-Type': 'application/json' });
     const response = await fetch('/.netlify/functions/estimate-calories', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         image_url: imageUrl,
         food_name: foodName,
@@ -6312,6 +6418,15 @@ function mergeRecords(primary, fallback) {
   });
 }
 
+function isPendingLocalRecord(record) {
+  const id = String(record?.id || '');
+  return Boolean(record && (record._sync_status === 'pending' || /^(member|meal|scan)-\d{10,}$/.test(id)));
+}
+
+function mergeRemoteRecords(remoteRecords, localRecords) {
+  return mergeRecords(remoteRecords, localRecords.filter(isPendingLocalRecord));
+}
+
 function getStoredProfilePhotos() {
   return getStoredJson(profilePhotoStorageKey, {});
 }
@@ -6584,7 +6699,8 @@ async function handleConfirmAddMember() {
     name,
     avatar,
     role: role || 'Profile',
-    photo: ''
+    photo: '',
+    _sync_status: 'pending'
   };
 
   const addIndex = appState.members.findIndex((m) => m.id === 'add');
@@ -6601,19 +6717,19 @@ async function handleConfirmAddMember() {
 
   if (window.familyBitesDb?.isConfigured && appState.familyId) {
     try {
-      const { data } = await window.familyBitesDb.client
-        .from('members')
-        .insert({ family_id: appState.familyId, name: newMember.name, avatar: newMember.avatar, role: newMember.role })
-        .select()
-        .single();
-      if (data) newMember.id = data.id;
+      const savedMember = normalizeMember(await window.familyBitesDb.saveMember(newMember));
+      appState.members = appState.members.map((member) => member.id === newMember.id ? savedMember : member);
+      saveStoredAppData();
+      renderProfiles();
+      renderSettings();
     } catch (error) {
       console.warn('Member saved locally but Supabase write failed.', error);
+      showAppNotice('Profile saved on this device and will sync when the connection returns.', 'warning');
     }
   }
 }
 
-function removeMember(memberId) {
+async function removeMember(memberId) {
   const member = appState.members.find((m) => m.id === memberId);
   if (!member) return;
   if (member.id === appState.currentMember?.id) {
@@ -6621,8 +6737,20 @@ function removeMember(memberId) {
     return;
   }
   if (!confirm(`Remove ${member.name} from this app?`)) return;
+  if (window.familyBitesDb?.isConfigured && appState.familyId && looksLikeUuid(memberId)) {
+    try {
+      await window.familyBitesDb.deleteMember(memberId);
+    } catch (error) {
+      console.warn('Profile delete failed.', error);
+      showAppNotice('Could not remove this profile. Check your connection and try again.', 'error');
+      return;
+    }
+  }
   appState.members = appState.members.filter((m) => m.id !== memberId);
   appState.meals = appState.meals.filter((m) => m.member_id !== memberId);
+  appState.snapScans = appState.snapScans.filter((scan) => scan.member_id !== memberId);
+  delete appState.profileMeasurements[memberId];
+  delete appState.bioLogs[memberId];
   saveStoredAppData();
   renderProfiles();
   renderSettings();
