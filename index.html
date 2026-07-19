@@ -311,9 +311,36 @@
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <div class="calorie-scanner wide">
-                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories</button>
-                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories.</small>
+                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Insight</button>
+                <small id="calorieEstimate">Add a photo and AI will estimate the visible food, calories, and nutrient insight.</small>
               </div>
+              <section id="mealInsightSection" class="insight-panel scan-insight-panel wide hidden" aria-live="polite">
+                <div class="section-title scan-insight-header">
+                  <div>
+                    <p class="eyebrow">AI nutrient estimate</p>
+                    <h3>Insight</h3>
+                  </div>
+                  <span class="sparkle">✦</span>
+                </div>
+                <p id="mealInsightSummary">Scan a dish to see estimated vitamins, minerals, and nutrient highlights.</p>
+                <div id="mealInsightHighlightList" class="insight-chip-row"></div>
+                <div class="scan-insight-macro-grid">
+                  <article><span>Protein</span><strong id="insightProtein">0g</strong></article>
+                  <article><span>Carbs</span><strong id="insightCarbs">0g</strong></article>
+                  <article><span>Fat</span><strong id="insightFat">0g</strong></article>
+                  <article><span>Fiber</span><strong id="insightFiber">0g</strong></article>
+                </div>
+                <div class="scan-insight-columns">
+                  <div>
+                    <h4>Vitamins</h4>
+                    <div id="mealVitaminList" class="scan-insight-list"></div>
+                  </div>
+                  <div>
+                    <h4>Minerals</h4>
+                    <div id="mealMineralList" class="scan-insight-list"></div>
+                  </div>
+                </div>
+              </section>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>

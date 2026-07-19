@@ -1382,6 +1382,23 @@ h1 span {
 .calorie-scanner .estimate-error { color: #a43a28; font-weight: 750; }
 .calorie-scanner button:disabled { opacity: .65; cursor: wait; }
 
+.scan-insight-panel { display: grid; gap: 12px; padding: 16px; background: linear-gradient(135deg, rgba(255, 249, 238, .95), rgba(247, 252, 243, .95)); }
+.scan-insight-header { align-items: start; margin-bottom: 0; }
+.scan-insight-header .eyebrow { margin-bottom: 4px; }
+.scan-insight-macro-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.scan-insight-macro-grid article { min-width: 0; padding: 10px; border: 1px solid #efe2d1; border-radius: 10px; background: rgba(255,255,255,.88); }
+.scan-insight-macro-grid span { display: block; margin-bottom: 4px; color: #8b7a69; font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .04em; }
+.scan-insight-macro-grid strong { color: #3a2617; font-size: 15px; }
+.insight-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.insight-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 999px; color: #6a4a1f; background: #fff1d6; font-size: 11px; font-weight: 850; }
+.scan-insight-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.scan-insight-columns h4 { margin: 0 0 8px; color: #39271c; font-size: 13px; }
+.scan-insight-list { display: grid; gap: 8px; }
+.scan-insight-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
+.scan-insight-item strong { display: block; color: #312218; font-size: 13px; }
+.scan-insight-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
+.meal-insight-snippet { display: block; margin-top: 6px; color: #7d684f; font-size: 10px; line-height: 1.45; }
+
 .glass-form label {
   display: grid;
   gap: 8px;
@@ -2593,6 +2610,13 @@ h1 span {
   #page-dashboard .macro-list { gap: 6px; }
   #page-dashboard .macro-list > div { grid-template-columns: 48px 1fr 18px; gap: 3px; font-size: 5px; }
   #page-dashboard .macro-list i { height: 4px; }
+  .nutrition-highlights { gap: 3px; margin-top: 6px; }
+  .nutrition-highlights article { padding: 5px 4px; border-radius: 6px; }
+  .nutrition-highlights span { margin-bottom: 2px; font-size: 4.5px; }
+  .nutrition-highlights strong { font-size: 6px; }
+  .nutrition-insight { margin-top: 5px; font-size: 5px; }
+  .scan-insight-macro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scan-insight-columns { grid-template-columns: 1fr; }
   #page-dashboard .nutrition-donut { width: 44px; height: 44px; }
   #page-dashboard .nutrition-donut strong { font-size: 10px; }
   #page-dashboard .nutrition-donut small { font-size: 5px; }
