@@ -1856,12 +1856,31 @@ h1 span {
 .profile-target-results span { color: var(--muted); font-size: 9px; font-weight: 800; }
 .profile-target-results strong { margin-top: 4px; color: #d76717; font-size: 20px; }
 .profile-target-results small { color: var(--muted); font-size: 8px; }
+.profile-nutrient-breakdown {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  margin: 8px 0;
+  padding: 16px;
+  border: 1px solid #eadfd4;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 249, 238, .96), rgba(245, 251, 241, .96));
+}
+.profile-nutrient-breakdown h4 { margin: 2px 0 0; font-size: 18px; }
+.profile-nutrient-breakdown h5 { margin: 0 0 8px; color: #39271c; font-size: 13px; }
+.profile-nutrient-summary { margin: 0; color: #6f6253; line-height: 1.45; }
+.profile-nutrient-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.profile-nutrient-list { display: grid; gap: 8px; }
+.profile-nutrient-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
+.profile-nutrient-item strong { display: block; color: #312218; font-size: 13px; }
+.profile-nutrient-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
 
 @media (max-width: 520px) {
   .profile-detail { align-items: flex-start; flex-direction: column; padding: 16px; }
   .profile-detail > div:last-child { width: 100%; }
   .profile-measurement-grid { grid-template-columns: 1fr; }
   .profile-target-results { grid-template-columns: repeat(3, 1fr); }
+  .profile-nutrient-columns { grid-template-columns: 1fr; }
 }
 
 .meal-actions {

@@ -1628,7 +1628,78 @@ function renderProfile() {
   document.getElementById('profileCalorieTarget').textContent = measurements.target_calories ? Number(measurements.target_calories).toLocaleString() : '—';
   document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
   document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
+  renderProfileNutrientBreakdown(member.id);
   renderAvatarPicker(member);
+}
+
+function renderProfileNutrientBreakdown(memberId) {
+  const summary = document.getElementById('profileNutrientSummary');
+  const vitaminList = document.getElementById('profileVitaminList');
+  const mineralList = document.getElementById('profileMineralList');
+  if (!summary || !vitaminList || !mineralList) return;
+
+  const meals = (appState.meals || [])
+    .filter((meal) => !memberId || meal.member_id === memberId)
+    .slice()
+    .sort((a, b) => new Date(b.eaten_at || b.created_at || 0).getTime() - new Date(a.eaten_at || a.created_at || 0).getTime())
+    .slice(0, 12);
+
+  const nutrientMap = {
+    vitamins: new Map(),
+    minerals: new Map()
+  };
+  let insightMealCount = 0;
+
+  meals.forEach((meal) => {
+    const insight = getMealInsight(meal);
+    if (!insight) return;
+    insightMealCount += 1;
+    ['vitamins', 'minerals'].forEach((group) => {
+      (insight[group] || []).forEach((item) => {
+        const key = String(item.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!nutrientMap[group].has(key)) {
+          nutrientMap[group].set(key, {
+            name: item.name,
+            amount: item.amount || '',
+            benefit: item.benefit || '',
+            count: 0
+          });
+        }
+        nutrientMap[group].get(key).count += 1;
+      });
+    });
+  });
+
+  const rankItems = (map) => Array.from(map.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 6);
+
+  const vitamins = rankItems(nutrientMap.vitamins);
+  const minerals = rankItems(nutrientMap.minerals);
+
+  if (!insightMealCount) {
+    summary.textContent = 'Scan and save meals to see real vitamins and minerals here.';
+    vitaminList.innerHTML = '<p class="muted">No vitamin breakdown yet.</p>';
+    mineralList.innerHTML = '<p class="muted">No mineral breakdown yet.</p>';
+    return;
+  }
+
+  summary.textContent = insightMealCount === 1
+    ? 'Based on your latest AI-scanned meal.'
+    : `Based on ${insightMealCount} recent AI-scanned meals for this profile.`;
+  vitaminList.innerHTML = renderProfileNutrientItems(vitamins, 'No vitamin breakdown yet.');
+  mineralList.innerHTML = renderProfileNutrientItems(minerals, 'No mineral breakdown yet.');
+}
+
+function renderProfileNutrientItems(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return items.map((item) => `
+    <article class="profile-nutrient-item">
+      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
+      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+    </article>
+  `).join('');
 }
 
 async function handleSaveProfileMeasurements() {

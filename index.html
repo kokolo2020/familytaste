@@ -522,6 +522,23 @@
                 <button class="primary-button" id="saveProfileMeasurements" type="button">Save &amp; Calculate</button>
                 <small>General estimates for adults. Medical conditions and pregnancy require professional guidance.</small>
               </section>
+              <section class="profile-nutrient-breakdown" aria-labelledby="profileNutrientBreakdownTitle">
+                <div>
+                  <p class="eyebrow">AI nutrient estimate</p>
+                  <h4 id="profileNutrientBreakdownTitle">Vitamin breakdown</h4>
+                </div>
+                <p id="profileNutrientSummary" class="profile-nutrient-summary">Scan and save meals to see real vitamins and minerals here.</p>
+                <div class="profile-nutrient-columns">
+                  <div>
+                    <h5>Top vitamins</h5>
+                    <div id="profileVitaminList" class="profile-nutrient-list"></div>
+                  </div>
+                  <div>
+                    <h5>Top minerals</h5>
+                    <div id="profileMineralList" class="profile-nutrient-list"></div>
+                  </div>
+                </div>
+              </section>
               <div class="avatar-picker-wrap">
                 <strong>Choose Avatar</strong>
                 <div id="avatarPicker" class="avatar-picker" aria-label="Choose profile avatar"></div>
@@ -588,8 +605,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260719b"></script>
-  <script src="app.js?v=20260719a"></script>
+  <script src="supabase.js?v=20260719c"></script>
+  <script src="app.js?v=20260719c"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">
