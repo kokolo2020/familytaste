@@ -244,11 +244,24 @@
               <div class="section-title"><h3>Today’s Nutrition Balance</h3></div>
               <div class="nutrition-layout">
                 <div class="macro-list">
-                  <div><span>Carbohydrates</span><i><em style="width:55%"></em></i><b>55%</b></div>
-                  <div><span>Protein</span><i><em style="width:20%"></em></i><b>20%</b></div>
-                  <div><span>Fats</span><i><em style="width:25%"></em></i><b>25%</b></div>
+                  <div><span>Carbohydrates</span><i><em id="carbMacroBar" style="width:0%"></em></i><b id="carbMacroValue">0%</b></div>
+                  <div><span>Protein</span><i><em id="proteinMacroBar" style="width:0%"></em></i><b id="proteinMacroValue">0%</b></div>
+                  <div><span>Fats</span><i><em id="fatMacroBar" style="width:0%"></em></i><b id="fatMacroValue">0%</b></div>
                 </div>
                 <div class="nutrition-donut"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
+              </div>
+              <div class="dashboard-nutrient-insight">
+                <p id="nutritionInsight" class="nutrition-insight">Scan meals to see today’s vitamin and mineral estimate here.</p>
+                <div class="dashboard-nutrient-columns">
+                  <div>
+                    <h4>Top vitamins</h4>
+                    <div id="dashboardVitaminList" class="dashboard-nutrient-list"></div>
+                  </div>
+                  <div>
+                    <h4>Top minerals</h4>
+                    <div id="dashboardMineralList" class="dashboard-nutrient-list"></div>
+                  </div>
+                </div>
               </div>
               <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
             </section>

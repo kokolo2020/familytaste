@@ -66,6 +66,14 @@
 .macro-list i { height: 7px; overflow: hidden; border-radius: 99px; background: #f1ece5; }.macro-list em { display: block; height: 100%; border-radius: inherit; background: #ffb52e; }.macro-list > div:nth-child(2) em { background:#87c75e }.macro-list > div:nth-child(3) em { background:#f25b35 }.macro-list b { text-align: right; }
 .nutrition-donut { --ring-progress: 360deg; background: radial-gradient(circle at center,#fff 54%,transparent 56%),conic-gradient(#89c95d 0 20%,#f25732 20% 45%,#ffb32f 45% 100%); }
 .analysis-note { margin: 16px 0 0; padding-top: 13px; border-top: 1px solid #f1e7da; color: var(--muted); font-size: 10px; }
+.dashboard-nutrient-insight { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1e7da; }
+.dashboard-nutrient-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.dashboard-nutrient-columns h4 { margin: 0 0 8px; color: #39271c; font-size: 13px; }
+.dashboard-nutrient-list { display: grid; gap: 8px; }
+.dashboard-nutrient-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
+.dashboard-nutrient-item strong { display: block; color: #312218; font-size: 13px; }
+.dashboard-nutrient-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
+.nutrition-insight { color: #6d6259; font-size: 11px; }
 
 .health-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .health-stat-card { position: relative; min-height: 150px; padding: 18px; overflow: hidden; border: 1px solid rgba(52, 74, 63, .09); border-radius: 20px; background: #fff; }
@@ -2610,6 +2618,14 @@ h1 span {
   #page-dashboard .macro-list { gap: 6px; }
   #page-dashboard .macro-list > div { grid-template-columns: 48px 1fr 18px; gap: 3px; font-size: 5px; }
   #page-dashboard .macro-list i { height: 4px; }
+  .dashboard-nutrient-insight { margin-top: 6px; padding-top: 5px; }
+  .dashboard-nutrient-columns { grid-template-columns: 1fr; gap: 6px; margin-top: 6px; }
+  .dashboard-nutrient-columns h4 { margin-bottom: 4px; font-size: 6px; }
+  .dashboard-nutrient-list { gap: 4px; }
+  .dashboard-nutrient-item { padding: 5px; border-radius: 6px; }
+  .dashboard-nutrient-item strong { font-size: 6px; }
+  .dashboard-nutrient-item small { margin-top: 2px; font-size: 5px; }
+  .nutrition-insight { font-size: 5px; }
   .nutrition-highlights { gap: 3px; margin-top: 6px; }
   .nutrition-highlights article { padding: 5px 4px; border-radius: 6px; }
   .nutrition-highlights span { margin-bottom: 2px; font-size: 4.5px; }

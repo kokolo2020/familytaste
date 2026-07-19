@@ -623,6 +623,7 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('glucoseStatus', !glucose ? 'Add reading' : glucose < 70 ? 'Below range' : glucose <= 140 ? 'In range' : 'Above range');
   setText('nutritionBalance', nutrition);
   setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
+  renderDashboardNutrition(todayMeals, calories);
 
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
   const impactList = document.getElementById('bodyImpactList');
@@ -653,6 +654,143 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
     <article class="recommendation-item">
       <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
     </article>`).join('');
+}
+
+function renderDashboardNutrition(todayMeals, calories) {
+  const macroEstimate = estimateMealMacros(todayMeals, calories);
+  Object.entries(macroEstimate.percentages).forEach(([name, value]) => {
+    const bar = document.getElementById(`${name}MacroBar`);
+    if (bar) bar.style.width = `${value}%`;
+    setText(`${name}MacroValue`, `${value}%`);
+  });
+
+  const donut = document.querySelector('#page-dashboard .nutrition-donut');
+  if (donut) {
+    donut.style.background = todayMeals.length
+      ? `radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#ffb32f 0 ${macroEstimate.percentages.carb}%, #89c95d ${macroEstimate.percentages.carb}% ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}%, #f25732 ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}% 100%)`
+      : 'radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#f0e8dc 0 100%)';
+  }
+
+  const dailyInsight = aggregateDailyScanInsight(todayMeals);
+  setText('nutritionInsight', dailyInsight.summary);
+  const vitaminList = document.getElementById('dashboardVitaminList');
+  const mineralList = document.getElementById('dashboardMineralList');
+  if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
+  if (mineralList) mineralList.innerHTML = renderDashboardNutrientItems(dailyInsight.minerals, 'No mineral estimates yet.');
+}
+
+function estimateMealMacros(todayMeals, calories) {
+  if (!todayMeals.length || !calories) {
+    return {
+      percentages: { carb: 0, protein: 0, fat: 0 }
+    };
+  }
+
+  const macroTotals = todayMeals.reduce((totals, meal) => {
+    const savedInsight = getMealInsight(meal);
+    if (savedInsight?.macros) {
+      totals.carb += Number(savedInsight.macros.carbs_g) || 0;
+      totals.protein += Number(savedInsight.macros.protein_g) || 0;
+      totals.fat += Number(savedInsight.macros.fat_g) || 0;
+      return totals;
+    }
+    const estimate = estimateMealMacroShare(meal);
+    totals.carb += estimate.carb * 10;
+    totals.protein += estimate.protein * 10;
+    totals.fat += estimate.fat * 10;
+    return totals;
+  }, { carb: 0, protein: 0, fat: 0 });
+
+  const total = macroTotals.carb + macroTotals.protein + macroTotals.fat || 1;
+  const carb = Math.round(macroTotals.carb / total * 100);
+  const protein = Math.round(macroTotals.protein / total * 100);
+  return {
+    percentages: {
+      carb,
+      protein,
+      fat: Math.max(0, 100 - carb - protein)
+    }
+  };
+}
+
+function estimateMealMacroShare(meal) {
+  const text = foodSearchText(meal);
+  const scores = { carb: 1.5, protein: 1.1, fat: 0.9 };
+  const applyBoost = (words, boost) => {
+    if (words.some((word) => text.includes(word))) {
+      scores.carb += boost.carb || 0;
+      scores.protein += boost.protein || 0;
+      scores.fat += boost.fat || 0;
+    }
+  };
+
+  applyBoost(['rice', 'bread', 'toast', 'pasta', 'spaghetti', 'noodle', 'oat', 'cereal', 'potato', 'corn', 'wrap', 'pizza', 'bun'], { carb: 1.9, protein: 0.3, fat: 0.3 });
+  applyBoost(['chicken', 'beef', 'pork', 'steak', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'shrimp', 'yogurt', 'milk', 'protein'], { carb: 0.2, protein: 2.2, fat: 0.5 });
+  applyBoost(['avocado', 'olive', 'cheese', 'butter', 'cream', 'coconut', 'nuts', 'peanut', 'almond', 'walnut'], { carb: 0.2, protein: 0.3, fat: 2.2 });
+  applyBoost(['fried', 'crispy', 'bacon', 'sausage', 'dessert', 'cake', 'cookie', 'ice cream', 'donut', 'pastry'], { carb: 0.9, protein: 0.1, fat: 1.8 });
+  applyBoost(['salad', 'vegetable', 'broccoli', 'spinach', 'greens', 'tomato', 'cucumber', 'fruit', 'apple', 'banana', 'berry', 'orange', 'mango'], { carb: 0.7, protein: 0.2, fat: 0.1 });
+  return scores;
+}
+
+function aggregateDailyScanInsight(todayMeals) {
+  const nutrientBuckets = {
+    vitamins: new Map(),
+    minerals: new Map()
+  };
+  let mealsWithInsight = 0;
+  let summarySource = '';
+
+  todayMeals.forEach((meal) => {
+    const insight = getMealInsight(meal);
+    if (!insight) return;
+    mealsWithInsight += 1;
+    if (!summarySource && insight.summary) summarySource = insight.summary;
+    ['vitamins', 'minerals'].forEach((group) => {
+      (insight[group] || []).forEach((item) => {
+        const key = String(item.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!nutrientBuckets[group].has(key)) {
+          nutrientBuckets[group].set(key, {
+            name: item.name,
+            amount: item.amount,
+            benefit: item.benefit,
+            count: 0
+          });
+        }
+        nutrientBuckets[group].get(key).count += 1;
+      });
+    });
+  });
+
+  const sortItems = (map) => Array.from(map.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 4);
+
+  if (!mealsWithInsight) {
+    return {
+      summary: 'Scan a meal photo to unlock today’s vitamin and mineral estimate on the dashboard.',
+      vitamins: [],
+      minerals: []
+    };
+  }
+
+  return {
+    summary: mealsWithInsight === 1
+      ? (summarySource || 'Today’s scan suggests a useful mix of vitamins and minerals.')
+      : `Combined from ${mealsWithInsight} scanned meals today. Vitamins and minerals below are the strongest repeated estimates.`,
+    vitamins: sortItems(nutrientBuckets.vitamins),
+    minerals: sortItems(nutrientBuckets.minerals)
+  };
+}
+
+function renderDashboardNutrientItems(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return items.map((item) => `
+    <article class="dashboard-nutrient-item">
+      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
+      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+    </article>
+  `).join('');
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
