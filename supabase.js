@@ -399,7 +399,7 @@ window.addEventListener('load', () => {
     mealSortPatch.async = false;
     mealSortPatch.onload = () => {
       const breakdownPatch = document.createElement('script');
-      breakdownPatch.src = 'nutrition-breakdown-patch.js?v=20260719b';
+      breakdownPatch.src = 'nutrition-breakdown-patch.js?v=20260719c';
       breakdownPatch.async = false;
       document.body.appendChild(breakdownPatch);
     };

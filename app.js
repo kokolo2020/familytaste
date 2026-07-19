@@ -26,6 +26,7 @@ const appState = {
   bioLogs: {},
   profileMeasurements: {}
 };
+window.appState = appState;
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
@@ -1277,6 +1278,7 @@ function getMealInsight(meal) {
     return null;
   }
 }
+window.getMealInsight = getMealInsight;
 
 function mealInsightSnippet(meal) {
   const insight = getMealInsight(meal);
