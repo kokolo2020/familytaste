@@ -95,13 +95,10 @@
 .impact-callout:nth-child(odd)::after { left:100%; }.impact-callout:nth-child(even)::after { right:100%; }
 .impact-callout-title { display:block; color:inherit; font-size:10px; font-weight:900; line-height:1.25; }
 .impact-callout strong { display:block; margin:3px 0; font-size:19px; line-height:1; }
-<<<<<<< HEAD
 .impact-food-mini-list { display: grid; gap: 4px; margin: 0 0 6px; }
 .impact-food-mini { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px; }
 .impact-food-mini-name { overflow: hidden; color: #5f544a; font-size: 8px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .impact-food-mini-score { display: inline-flex; align-items: center; padding: 2px 5px; border-radius: 999px; font-size: 8px; font-weight: 850; line-height: 1; white-space: nowrap; }
-=======
->>>>>>> 422ca59 (Place body impact callouts around anatomy)
 .impact-callout p { margin:0; color:#61574e; font-size:8.5px; line-height:1.35; }
 .impact-brain { top:4%; left:0; color:#a83c9c; }.impact-heart { top:10%; right:0; color:#d94343; }
 .impact-muscles { top:39%; left:0; color:#e37a12; }.impact-digestion { top:43%; right:0; color:#d9900e; }
@@ -256,11 +253,8 @@
   .human-figure { inset: 10px 25% 0; }.human-figure img { max-height: 415px; }
   .impact-callout { width: 29%; min-height: 104px; padding: 8px; }
   .impact-callout-title { font-size: 9px; }.impact-callout strong { font-size: 17px; }.impact-callout p { font-size: 7.8px; }
-<<<<<<< HEAD
   .impact-food-mini-name { font-size: 7px; }
   .impact-food-mini-score { padding: 1px 4px; font-size: 6px; }
-=======
->>>>>>> 422ca59 (Place body impact callouts around anatomy)
   .body-pulse { display: none; }
   #page-dashboard .bio-grid { grid-template-columns: 1fr; }
   .calorie-overview, .nutrition-layout { grid-template-columns: 1fr 92px; gap: 10px; }
