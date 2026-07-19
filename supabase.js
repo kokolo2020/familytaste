@@ -397,6 +397,12 @@ window.addEventListener('load', () => {
     const mealSortPatch = document.createElement('script');
     mealSortPatch.src = 'meal-sort-patch.js?v=1';
     mealSortPatch.async = false;
+    mealSortPatch.onload = () => {
+      const breakdownPatch = document.createElement('script');
+      breakdownPatch.src = 'nutrition-breakdown-patch.js?v=20260719b';
+      breakdownPatch.async = false;
+      document.body.appendChild(breakdownPatch);
+    };
     document.body.appendChild(mealSortPatch);
   };
   document.body.appendChild(mealDatePatch);
