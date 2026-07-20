@@ -121,7 +121,22 @@ exports.handler = async (event) => {
 
     const result = await response.json();
     if (!response.ok) {
-      console.error('OpenAI calorie estimate failed', response.status, result?.error?.message);
+      const upstreamMessage = String(result?.error?.message || '');
+      const normalizedMessage = upstreamMessage.toLowerCase();
+      console.error('OpenAI calorie estimate failed', response.status, upstreamMessage);
+
+      if (
+        response.status === 429
+        || normalizedMessage.includes('usage')
+        || normalizedMessage.includes('quota')
+        || normalizedMessage.includes('rate limit')
+        || normalizedMessage.includes('billing')
+      ) {
+        return json(503, {
+          error: 'AI scan limit reached right now. OpenAI usage or billing needs to be refreshed before scanning works again.'
+        });
+      }
+
       return json(502, { error: 'The AI estimate is temporarily unavailable.' });
     }
 

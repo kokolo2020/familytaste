@@ -2232,7 +2232,10 @@ async function applyAiCalorieEstimate() {
   } catch (error) {
     currentScanInsight = null;
     renderScanInsight(null);
-    status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
+    const message = String(error.message || '');
+    status.textContent = /usage|quota|billing|rate limit/i.test(message)
+      ? 'AI scan limit reached. The OpenAI account behind this app needs more usage or billing before scans can run again.'
+      : (message || 'AI scan is unavailable. Enter calories manually and try again later.');
     status.classList.add('estimate-error');
     document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
   } finally {
