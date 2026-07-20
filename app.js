@@ -26,7 +26,6 @@ const appState = {
   bioLogs: {},
   profileMeasurements: {}
 };
-window.appState = appState;
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
@@ -55,50 +54,12 @@ const menuItems = [
   { id: 'brunch', name: 'Family Brunch', detail: 'Pancakes, fruit, and eggs', emoji: '🥞', photo: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=82' }
 ];
 
-const insightNutrientMeta = {
-  vitamin_a_mcg: { label: 'Vitamin A', focus: 'Eye health', support: 'Supports vision and immune defense.' },
-  vitamin_c_mg: { label: 'Vitamin C', focus: 'Skin & immunity', support: 'Helps collagen, skin repair, and immune support.' },
-  vitamin_d_mcg: { label: 'Vitamin D', focus: 'Bones & immunity', support: 'Supports bone health and immune balance.' },
-  vitamin_e_mg: { label: 'Vitamin E', focus: 'Cells & skin', support: 'Protects cells and supports skin health.' },
-  vitamin_k_mcg: { label: 'Vitamin K', focus: 'Blood & bones', support: 'Important for clotting and bone support.' },
-  vitamin_b12_mcg: { label: 'Vitamin B12', focus: 'Nerve function', support: 'Helps nerve function and red blood cell production.' },
-  vitamin_b6_mg: { label: 'Vitamin B6', focus: 'Brain & sleep', support: 'Supports brain signaling and nutrient metabolism.' },
-  folate_mcg: { label: 'Folate (B9)', focus: 'Cell health', support: 'Important for cell growth and DNA building.' },
-  calcium_mg: { label: 'Calcium', focus: 'Bones & teeth', support: 'Supports bones, teeth, and muscle function.' },
-  iron_mg: { label: 'Iron', focus: 'Blood & energy', support: 'Helps oxygen transport and daily energy.' },
-  magnesium_mg: { label: 'Magnesium', focus: 'Muscles & nerves', support: 'Supports muscles, nerves, and relaxation.' },
-  potassium_mg: { label: 'Potassium', focus: 'Heart & muscles', support: 'Helps fluid balance, nerves, and heart rhythm.' },
-  zinc_mg: { label: 'Zinc', focus: 'Immunity & healing', support: 'Supports immune defense and wound healing.' },
-  selenium_mcg: { label: 'Selenium', focus: 'Cells & thyroid', support: 'Supports antioxidant defense and thyroid function.' },
-  omega3_g: { label: 'Omega-3', focus: 'Heart & brain', support: 'Supports heart, brain, and cell membrane health.' }
-};
-
-const insightNutrientOrder = [
-  'potassium_mg',
-  'calcium_mg',
-  'folate_mcg',
-  'magnesium_mg',
-  'vitamin_c_mg',
-  'vitamin_k_mcg',
-  'vitamin_e_mg',
-  'iron_mg',
-  'vitamin_b6_mg',
-  'zinc_mg',
-  'vitamin_a_mcg',
-  'vitamin_d_mcg',
-  'vitamin_b12_mcg',
-  'selenium_mcg',
-  'omega3_g'
-];
-
 let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
-let currentScanInsight = null;
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
-  { page: 'insights', icon: '✨', label: 'Insights' },
   { page: 'order', icon: '🧑‍🍳', label: 'Chef Menu' },
   { page: 'snap', icon: '📷', label: 'Snap Food' },
   { page: 'favorites', icon: '❤️', label: 'Favorites' },
@@ -114,7 +75,7 @@ const mobileItems = [
   { page: 'dashboard', icon: '⌂', label: 'Home' },
   { page: 'timeline', icon: '♜', label: 'Meals' },
   { page: 'snap', icon: '📷', label: 'Snap Food' },
-  { page: 'insights', icon: '✦', label: 'Insights' },
+  { page: 'chat', icon: '◌', label: 'Chat' },
   { page: 'settings', icon: '•••', label: 'More' }
 ];
 
@@ -554,7 +515,6 @@ function showPage(pageName) {
 
 function renderAll() {
   renderDashboard();
-  renderInsightsPage();
   renderMeals();
   renderFavorites();
   renderOrderMenu();
@@ -662,7 +622,6 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('glucoseStatus', !glucose ? 'Add reading' : glucose < 70 ? 'Below range' : glucose <= 140 ? 'In range' : 'Above range');
   setText('nutritionBalance', nutrition);
   setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
-  renderDashboardNutrition(todayMeals, calories);
 
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
   const impactList = document.getElementById('bodyImpactList');
@@ -693,332 +652,6 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
     <article class="recommendation-item">
       <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
     </article>`).join('');
-}
-
-function renderDashboardNutrition(todayMeals, calories) {
-  const macroEstimate = estimateMealMacros(todayMeals, calories);
-  Object.entries(macroEstimate.percentages).forEach(([name, value]) => {
-    const bar = document.getElementById(`${name}MacroBar`);
-    if (bar) bar.style.width = `${value}%`;
-    setText(`${name}MacroValue`, `${value}%`);
-  });
-
-  const donut = document.querySelector('#page-dashboard .nutrition-donut');
-  if (donut) {
-    donut.style.background = todayMeals.length
-      ? `radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#ffb32f 0 ${macroEstimate.percentages.carb}%, #89c95d ${macroEstimate.percentages.carb}% ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}%, #f25732 ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}% 100%)`
-      : 'radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#f0e8dc 0 100%)';
-  }
-
-  const dailyInsight = aggregateDailyScanInsight(todayMeals);
-  setText('nutritionInsight', dailyInsight.summary);
-  const vitaminList = document.getElementById('dashboardVitaminList');
-  const mineralList = document.getElementById('dashboardMineralList');
-  if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
-  if (mineralList) mineralList.innerHTML = renderDashboardNutrientItems(dailyInsight.minerals, 'No mineral estimates yet.');
-}
-
-function estimateMealMacros(todayMeals, calories) {
-  if (!todayMeals.length || !calories) {
-    return {
-      percentages: { carb: 0, protein: 0, fat: 0 }
-    };
-  }
-
-  const macroTotals = todayMeals.reduce((totals, meal) => {
-    const savedInsight = getMealInsight(meal);
-    if (savedInsight?.macros) {
-      totals.carb += Number(savedInsight.macros.carbs_g) || 0;
-      totals.protein += Number(savedInsight.macros.protein_g) || 0;
-      totals.fat += Number(savedInsight.macros.fat_g) || 0;
-      return totals;
-    }
-    const estimate = estimateMealMacroShare(meal);
-    totals.carb += estimate.carb * 10;
-    totals.protein += estimate.protein * 10;
-    totals.fat += estimate.fat * 10;
-    return totals;
-  }, { carb: 0, protein: 0, fat: 0 });
-
-  const total = macroTotals.carb + macroTotals.protein + macroTotals.fat || 1;
-  const carb = Math.round(macroTotals.carb / total * 100);
-  const protein = Math.round(macroTotals.protein / total * 100);
-  return {
-    percentages: {
-      carb,
-      protein,
-      fat: Math.max(0, 100 - carb - protein)
-    }
-  };
-}
-
-function estimateMealMacroShare(meal) {
-  const text = foodSearchText(meal);
-  const scores = { carb: 1.5, protein: 1.1, fat: 0.9 };
-  const applyBoost = (words, boost) => {
-    if (words.some((word) => text.includes(word))) {
-      scores.carb += boost.carb || 0;
-      scores.protein += boost.protein || 0;
-      scores.fat += boost.fat || 0;
-    }
-  };
-
-  applyBoost(['rice', 'bread', 'toast', 'pasta', 'spaghetti', 'noodle', 'oat', 'cereal', 'potato', 'corn', 'wrap', 'pizza', 'bun'], { carb: 1.9, protein: 0.3, fat: 0.3 });
-  applyBoost(['chicken', 'beef', 'pork', 'steak', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'shrimp', 'yogurt', 'milk', 'protein'], { carb: 0.2, protein: 2.2, fat: 0.5 });
-  applyBoost(['avocado', 'olive', 'cheese', 'butter', 'cream', 'coconut', 'nuts', 'peanut', 'almond', 'walnut'], { carb: 0.2, protein: 0.3, fat: 2.2 });
-  applyBoost(['fried', 'crispy', 'bacon', 'sausage', 'dessert', 'cake', 'cookie', 'ice cream', 'donut', 'pastry'], { carb: 0.9, protein: 0.1, fat: 1.8 });
-  applyBoost(['salad', 'vegetable', 'broccoli', 'spinach', 'greens', 'tomato', 'cucumber', 'fruit', 'apple', 'banana', 'berry', 'orange', 'mango'], { carb: 0.7, protein: 0.2, fat: 0.1 });
-  return scores;
-}
-
-function aggregateDailyScanInsight(todayMeals) {
-  const nutrientBuckets = {
-    vitamins: new Map(),
-    minerals: new Map()
-  };
-  let mealsWithInsight = 0;
-  let summarySource = '';
-
-  todayMeals.forEach((meal) => {
-    const insight = getMealInsight(meal);
-    if (!insight) return;
-    mealsWithInsight += 1;
-    if (!summarySource && insight.summary) summarySource = insight.summary;
-    ['vitamins', 'minerals'].forEach((group) => {
-      (insight[group] || []).forEach((item) => {
-        const key = String(item.name || '').trim().toLowerCase();
-        if (!key) return;
-        if (!nutrientBuckets[group].has(key)) {
-          nutrientBuckets[group].set(key, {
-            name: item.name,
-            amount: item.amount,
-            benefit: item.benefit,
-            count: 0
-          });
-        }
-        nutrientBuckets[group].get(key).count += 1;
-      });
-    });
-  });
-
-  const sortItems = (map) => Array.from(map.values())
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 4);
-
-  if (!mealsWithInsight) {
-    return {
-      summary: 'Scan a meal photo to unlock today’s vitamin and mineral estimate on the dashboard.',
-      vitamins: [],
-      minerals: []
-    };
-  }
-
-  return {
-    summary: mealsWithInsight === 1
-      ? (summarySource || 'Today’s scan suggests a useful mix of vitamins and minerals.')
-      : `Combined from ${mealsWithInsight} scanned meals today. Vitamins and minerals below are the strongest repeated estimates.`,
-    vitamins: sortItems(nutrientBuckets.vitamins),
-    minerals: sortItems(nutrientBuckets.minerals)
-  };
-}
-
-function renderDashboardNutrientItems(items, emptyMessage) {
-  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
-  return items.map((item) => `
-    <article class="dashboard-nutrient-item">
-      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
-    </article>
-  `).join('');
-}
-
-function renderInsightsPage() {
-  const member = appState.currentMember;
-  const dayStatus = document.getElementById('insightsDayStatus');
-  const coverageCards = document.getElementById('insightsCoverageCards');
-  const mealHistory = document.getElementById('insightsMealHistory');
-  const footnote = document.getElementById('insightsFootnote');
-  if (!member || !dayStatus || !coverageCards || !mealHistory || !footnote) return;
-
-  const todayMeals = getMemberMeals().filter(isToday);
-  const calories = sum(todayMeals, 'calories');
-  const profile = getInsightProfile(member);
-  const engine = window.MyMealMapNutrition;
-
-  if (!engine?.summarizeMeals) {
-    dayStatus.textContent = 'Nutrition insights are loading.';
-    coverageCards.innerHTML = '<p class="muted">Micronutrient analysis is not available right now.</p>';
-    mealHistory.innerHTML = '<p class="muted">Meal insights will appear after scanning a meal.</p>';
-    return;
-  }
-
-  const summary = engine.summarizeMeals(todayMeals, profile);
-  const rows = buildInsightCoverageRows(summary);
-  const scannedMeals = todayMeals.filter((meal) => getMealInsight(meal));
-
-  dayStatus.textContent = todayMeals.length
-    ? `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'} logged today · ${calories.toLocaleString()} cal`
-    : 'No meals logged yet today.';
-  coverageCards.innerHTML = rows.length
-    ? rows.map(renderInsightCoverageCard).join('')
-    : '<p class="muted">Scan a meal to start today’s micronutrient picture.</p>';
-  mealHistory.innerHTML = renderInsightMealHistory(todayMeals, scannedMeals.length);
-  footnote.textContent = `${engine.DISCLAIMER} Daily totals are approximate and depend on visible ingredients, portion size, and your profile.`;
-}
-
-function getInsightProfile(member) {
-  const measurements = appState.profileMeasurements[member?.id] || {};
-  const inferredSex = String(member?.name || '').toLowerCase().includes('dad')
-    || String(member?.name || '').toLowerCase().includes('papa')
-    ? 'male'
-    : 'female';
-  return {
-    age: Number(measurements.age) || 35,
-    sex: measurements.sex || inferredSex,
-    weightKg: Number(measurements.weight_kg ?? member?.weight_kg) || 70,
-    heightCm: Number(measurements.height_cm ?? member?.height_cm) || 170,
-    activityLevel: mapInsightActivityLevel(Number(measurements.activity) || 1.55)
-  };
-}
-
-function mapInsightActivityLevel(activityValue) {
-  if (activityValue <= 1.25) return 'low';
-  if (activityValue >= 1.7) return 'high';
-  return 'moderate';
-}
-
-function buildInsightCoverageRows(summary) {
-  return insightNutrientOrder
-    .filter((key) => summary.targets[key] > 0)
-    .map((key) => {
-      const meta = insightNutrientMeta[key] || {};
-      const target = Number(summary.targets[key]) || 0;
-      const eaten = Number(summary.totals[key]) || 0;
-      const percent = Math.max(0, Math.round(Number(summary.coverage[key]) || 0));
-      const remaining = Math.max(target - eaten, 0);
-      return {
-        key,
-        label: meta.label || window.MyMealMapNutrition?.NUTRIENT_LABELS?.[key] || key,
-        focus: meta.focus || 'Daily support',
-        support: meta.support || 'Estimated support based on today’s meals.',
-        target,
-        eaten,
-        percent,
-        remaining,
-        unit: nutrientUnitForKey(key),
-        status: insightStatusFromPercent(percent)
-      };
-    })
-    .sort((left, right) => left.percent - right.percent || right.remaining - left.remaining);
-}
-
-function insightStatusFromPercent(percent) {
-  if (percent >= 100) return 'covered';
-  if (percent >= 60) return 'progress';
-  if (percent >= 25) return 'warning';
-  return 'critical';
-}
-
-function nutrientUnitForKey(key) {
-  if (key.endsWith('_mcg')) return 'mcg';
-  if (key.endsWith('_mg')) return 'mg';
-  if (key.endsWith('_g')) return 'g';
-  return '';
-}
-
-function formatInsightNutrient(value, unit) {
-  const amount = Number(value) || 0;
-  const decimals = unit === 'g'
-    ? (amount < 10 ? 1 : 0)
-    : amount < 10
-      ? 1
-      : 0;
-  return `${amount.toLocaleString(undefined, {
-    minimumFractionDigits: amount && decimals ? decimals : 0,
-    maximumFractionDigits: decimals
-  })} ${unit}`.trim();
-}
-
-function renderInsightCoverageCard(item) {
-  return `
-    <article class="insight-coverage-card insight-status-${escapeAttr(item.status)}">
-      <div class="insight-card-top">
-        <div>
-          <strong>${escapeHtml(item.label)}</strong>
-          <small>${escapeHtml(item.focus)}</small>
-        </div>
-        <span class="insight-percent-pill">${escapeHtml(`${item.percent}% complete`)}</span>
-      </div>
-      <div class="insight-amount-row">
-        <strong>${escapeHtml(formatInsightNutrient(item.eaten, item.unit))}</strong>
-        <span>of ${escapeHtml(formatInsightNutrient(item.target, item.unit))}</span>
-      </div>
-      <p>${escapeHtml(item.support)}</p>
-      <div class="insight-progress-track" aria-hidden="true">
-        <span class="insight-progress-fill" style="width:${Math.min(item.percent, 100)}%"></span>
-      </div>
-      <div class="insight-card-footer">
-        <span class="insight-missing-pill">${escapeHtml(item.remaining > 0 ? `${formatInsightNutrient(item.remaining, item.unit)} still to go` : 'Covered today')}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderInsightMealHistory(todayMeals, scannedMealCount) {
-  if (!todayMeals.length) {
-    return '<p class="muted">Today’s scanned meals will appear here once you save them.</p>';
-  }
-
-  return todayMeals.map((meal, index) => {
-    const insight = getMealInsight(meal);
-    const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(meal.eaten_at));
-    const mealType = getMealType(meal);
-    const summary = insight?.summary || (scannedMealCount
-      ? 'This meal was saved without AI micronutrient detail.'
-      : 'Scan and save a meal photo to store vitamin and mineral detail here.');
-    const macroMarkup = insight?.macros ? `
-      <div class="insight-meal-macros">
-        <span>Protein <strong>${escapeHtml(`${Number(insight.macros.protein_g || 0)}g`)}</strong></span>
-        <span>Carbs <strong>${escapeHtml(`${Number(insight.macros.carbs_g || 0)}g`)}</strong></span>
-        <span>Fat <strong>${escapeHtml(`${Number(insight.macros.fat_g || 0)}g`)}</strong></span>
-        <span>Fiber <strong>${escapeHtml(`${Number(insight.macros.fiber_g || 0)}g`)}</strong></span>
-      </div>
-    ` : '';
-    const highlightMarkup = insight?.highlights?.length
-      ? `<div class="insight-chip-row">${insight.highlights.map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`).join('')}</div>`
-      : '';
-
-    return `
-      <details class="insight-meal-card" ${index === 0 ? 'open' : ''}>
-        <summary>
-          <div>
-            <strong>${escapeHtml(meal.food_name)}</strong>
-            <small>${escapeHtml(`${mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal'} · ${Number(meal.calories || 0).toLocaleString()} cal`)}</small>
-          </div>
-          <span>${escapeHtml(time)}</span>
-        </summary>
-        <div class="insight-meal-body">
-          <p class="insight-meal-summary">${escapeHtml(summary)}</p>
-          ${highlightMarkup}
-          ${macroMarkup}
-          <div class="insight-meal-columns">
-            <div>
-              <h4>Vitamins</h4>
-              <div class="scan-insight-list">${renderMicronutrientList(insight?.vitamins || [], 'No vitamin estimate saved for this meal.')}</div>
-            </div>
-            <div>
-              <h4>Minerals</h4>
-              <div class="scan-insight-list">${renderMicronutrientList(insight?.minerals || [], 'No mineral estimate saved for this meal.')}</div>
-            </div>
-          </div>
-          <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
-            <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
-            <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
-          </div>
-        </div>
-      </details>
-    `;
-  }).join('');
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
@@ -1174,7 +807,6 @@ function mergeDateKeepTime(originalIso, dateValue) {
 }
 
 async function handleSaveMealEdit() {
-  const meal = editingMealId ? appState.meals.find((item) => item.id === editingMealId) : null;
   const foodName = document.getElementById('editFoodName').value.trim();
   if (!foodName) {
     document.getElementById('editFoodName').focus();
@@ -1192,12 +824,13 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
-    notes: notesWithMealType(document.getElementById('editNotes').value, mealType, meal?.notes, false)
+    notes: notesWithMealType(document.getElementById('editNotes').value, mealType)
   };
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
+    const meal = appState.meals.find((item) => item.id === editingMealId);
     if (!meal) return;
     Object.assign(meal, fields);
     meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
@@ -1429,7 +1062,6 @@ function mealTemplate(meal, withActions = false) {
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
-  const insightSnippet = mealInsightSnippet(meal);
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
@@ -1439,8 +1071,7 @@ function mealTemplate(meal, withActions = false) {
           <h4>${escapeHtml(meal.food_name)}</h4>
           <span class="meal-score-badge meal-score-${scoreTone}" title="Estimated nutrition score ${score.toFixed(1)} out of 10">${mealScoreIcon(score)} ${score.toFixed(1)}</span>
         </div>
-        <p>${escapeHtml(mealDisplayMeta(meal))}</p>
-        ${insightSnippet ? `<small class="meal-insight-snippet">${escapeHtml(insightSnippet)}</small>` : ''}${actions}
+        <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -1457,64 +1088,16 @@ function mealDisplayMeta(meal) {
 }
 
 function getMealType(meal) {
-  return extractMealTag(meal?.notes, 'meal_type').toLowerCase();
+  return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || '';
 }
 
 function notesWithoutMealType(notes) {
-  return removeMealTag(removeMealTag(notes, 'meal_type'), 'ai_insight');
+  return String(notes || '').replace(/\s*\[\[meal_type:[^\]]+\]\]\s*/ig, ' ').trim();
 }
 
-function notesWithMealType(notes, mealType, existingNotes = '', includeCurrentInsight = true) {
+function notesWithMealType(notes, mealType) {
   const cleanNotes = notesWithoutMealType(notes);
-  const normalizedMealType = String(mealType || '').trim().toLowerCase();
-  const encodedInsight = includeCurrentInsight && currentScanInsight
-    ? encodeMealInsight(currentScanInsight)
-    : extractMealTag(existingNotes, 'ai_insight');
-  let value = cleanNotes;
-  if (normalizedMealType) value = `${value}${value ? ' ' : ''}[[meal_type:${normalizedMealType}]]`;
-  if (encodedInsight) value = `${value}${value ? ' ' : ''}[[ai_insight:${encodedInsight}]]`;
-  return value.trim();
-}
-
-function extractMealTag(notes, tag) {
-  const escapedTag = String(tag).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return String(notes || '').match(new RegExp(`\\[\\[${escapedTag}:([\\s\\S]*?)\\]\\]`, 'i'))?.[1] || '';
-}
-
-function removeMealTag(notes, tag) {
-  const escapedTag = String(tag).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return String(notes || '').replace(new RegExp(`\\s*\\[\\[${escapedTag}:[\\s\\S]*?\\]\\]\\s*`, 'ig'), ' ').trim();
-}
-
-function encodeMealInsight(insight) {
-  try {
-    return encodeURIComponent(JSON.stringify(insight));
-  } catch (error) {
-    console.warn('Could not encode meal insight metadata.', error);
-    return '';
-  }
-}
-
-function getMealInsight(meal) {
-  const rawInsight = extractMealTag(meal?.notes, 'ai_insight');
-  if (!rawInsight) return null;
-  try {
-    return JSON.parse(decodeURIComponent(rawInsight));
-  } catch (error) {
-    console.warn('Could not decode saved meal insight metadata.', error);
-    return null;
-  }
-}
-window.getMealInsight = getMealInsight;
-
-function mealInsightSnippet(meal) {
-  const insight = getMealInsight(meal);
-  if (!insight) return '';
-  const topNutrients = [
-    ...(insight.vitamins || []).slice(0, 2).map((item) => `${item.name} ${item.amount}`),
-    ...(insight.minerals || []).slice(0, 1).map((item) => `${item.name} ${item.amount}`)
-  ].filter(Boolean);
-  return topNutrients.length ? `Insight: ${topNutrients.join(' · ')}` : insight.summary || '';
+  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${mealType}]]`;
 }
 
 function renderFavorites() {
@@ -1857,78 +1440,7 @@ function renderProfile() {
   document.getElementById('profileCalorieTarget').textContent = measurements.target_calories ? Number(measurements.target_calories).toLocaleString() : '—';
   document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
   document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
-  renderProfileNutrientBreakdown(member.id);
   renderAvatarPicker(member);
-}
-
-function renderProfileNutrientBreakdown(memberId) {
-  const summary = document.getElementById('profileNutrientSummary');
-  const vitaminList = document.getElementById('profileVitaminList');
-  const mineralList = document.getElementById('profileMineralList');
-  if (!summary || !vitaminList || !mineralList) return;
-
-  const meals = (appState.meals || [])
-    .filter((meal) => !memberId || meal.member_id === memberId)
-    .slice()
-    .sort((a, b) => new Date(b.eaten_at || b.created_at || 0).getTime() - new Date(a.eaten_at || a.created_at || 0).getTime())
-    .slice(0, 12);
-
-  const nutrientMap = {
-    vitamins: new Map(),
-    minerals: new Map()
-  };
-  let insightMealCount = 0;
-
-  meals.forEach((meal) => {
-    const insight = getMealInsight(meal);
-    if (!insight) return;
-    insightMealCount += 1;
-    ['vitamins', 'minerals'].forEach((group) => {
-      (insight[group] || []).forEach((item) => {
-        const key = String(item.name || '').trim().toLowerCase();
-        if (!key) return;
-        if (!nutrientMap[group].has(key)) {
-          nutrientMap[group].set(key, {
-            name: item.name,
-            amount: item.amount || '',
-            benefit: item.benefit || '',
-            count: 0
-          });
-        }
-        nutrientMap[group].get(key).count += 1;
-      });
-    });
-  });
-
-  const rankItems = (map) => Array.from(map.values())
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 6);
-
-  const vitamins = rankItems(nutrientMap.vitamins);
-  const minerals = rankItems(nutrientMap.minerals);
-
-  if (!insightMealCount) {
-    summary.textContent = 'Scan and save meals to see real vitamins and minerals here.';
-    vitaminList.innerHTML = '<p class="muted">No vitamin breakdown yet.</p>';
-    mineralList.innerHTML = '<p class="muted">No mineral breakdown yet.</p>';
-    return;
-  }
-
-  summary.textContent = insightMealCount === 1
-    ? 'Based on your latest AI-scanned meal.'
-    : `Based on ${insightMealCount} recent AI-scanned meals for this profile.`;
-  vitaminList.innerHTML = renderProfileNutrientItems(vitamins, 'No vitamin breakdown yet.');
-  mineralList.innerHTML = renderProfileNutrientItems(minerals, 'No mineral breakdown yet.');
-}
-
-function renderProfileNutrientItems(items, emptyMessage) {
-  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
-  return items.map((item) => `
-    <article class="profile-nutrient-item">
-      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
-    </article>
-  `).join('');
 }
 
 async function handleSaveProfileMeasurements() {
@@ -2143,8 +1655,6 @@ async function handlePhotoChange(event) {
   event.target.value = '';
   document.getElementById('foodName').value = '';
   document.getElementById('calories').value = '';
-  currentScanInsight = null;
-  renderScanInsight(null);
   updateMealPreview();
 
   try {
@@ -2155,7 +1665,7 @@ async function handlePhotoChange(event) {
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
     document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories and nutrients…';
+    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories…';
     updateMealPreview();
     await applyAiCalorieEstimate();
   } catch (error) {
@@ -2179,9 +1689,7 @@ function resetPhotoPreview() {
   document.getElementById('photoHint').textContent = 'Choose where your photo comes from.';
   const estimateStatus = document.getElementById('calorieEstimate');
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
-  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food, calories, and nutrient insight.';
-  currentScanInsight = null;
-  renderScanInsight(null);
+  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food and calories.';
 }
 
 async function applyAiCalorieEstimate() {
@@ -2198,7 +1706,7 @@ async function applyAiCalorieEstimate() {
   button.disabled = true;
   button.textContent = 'Scanning…';
   status.classList.remove('estimate-success', 'estimate-error');
-  status.textContent = 'AI is identifying the food and estimating calories, vitamins, and nutrients…';
+  status.textContent = 'AI is identifying the food and estimating portions…';
 
   try {
     const response = await fetch('/.netlify/functions/estimate-calories', {
@@ -2222,90 +1730,19 @@ async function applyAiCalorieEstimate() {
     if (estimate.foods?.length) {
       foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
     }
-    currentScanInsight = normalizeScanInsight(estimate.insight);
-    renderScanInsight(currentScanInsight);
     const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
     status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
     status.classList.add('estimate-success');
-    document.getElementById('photoHint').textContent = 'AI Insight is ready.';
+    document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
     updateMealPreview();
   } catch (error) {
-    currentScanInsight = null;
-    renderScanInsight(null);
-    const message = String(error.message || '');
-    status.textContent = /usage|quota|billing|rate limit/i.test(message)
-      ? 'AI scan limit reached. The OpenAI account behind this app needs more usage or billing before scans can run again.'
-      : (message || 'AI scan is unavailable. Enter calories manually and try again later.');
+    status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
     status.classList.add('estimate-error');
     document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
   } finally {
     button.disabled = false;
     button.textContent = originalLabel;
   }
-}
-
-function normalizeScanInsight(insight) {
-  if (!insight || typeof insight !== 'object') return null;
-  return {
-    summary: String(insight.summary || 'AI estimated vitamins and nutrients for this dish.'),
-    highlights: Array.isArray(insight.highlights) ? insight.highlights.slice(0, 4).map((item) => String(item)) : [],
-    macros: {
-      protein_g: Math.max(0, Math.round(Number(insight.macros?.protein_g) || 0)),
-      carbs_g: Math.max(0, Math.round(Number(insight.macros?.carbs_g) || 0)),
-      fat_g: Math.max(0, Math.round(Number(insight.macros?.fat_g) || 0)),
-      fiber_g: Math.max(0, Math.round(Number(insight.macros?.fiber_g) || 0)),
-      sugar_g: Math.max(0, Math.round(Number(insight.macros?.sugar_g) || 0))
-    },
-    vitamins: Array.isArray(insight.vitamins) ? insight.vitamins.slice(0, 4).map(normalizeMicronutrient) : [],
-    minerals: Array.isArray(insight.minerals) ? insight.minerals.slice(0, 4).map(normalizeMicronutrient) : []
-  };
-}
-
-function normalizeMicronutrient(item) {
-  return {
-    name: String(item?.name || 'Nutrient'),
-    amount: String(item?.amount || ''),
-    benefit: String(item?.benefit || '')
-  };
-}
-
-function renderScanInsight(insight) {
-  const section = document.getElementById('mealInsightSection');
-  if (!section) return;
-  if (!insight) {
-    section.classList.add('hidden');
-    document.getElementById('mealInsightSummary').textContent = 'Scan a dish to see estimated vitamins, minerals, and nutrient highlights.';
-    document.getElementById('mealInsightHighlightList').innerHTML = '';
-    document.getElementById('mealVitaminList').innerHTML = '';
-    document.getElementById('mealMineralList').innerHTML = '';
-    document.getElementById('insightProtein').textContent = '0g';
-    document.getElementById('insightCarbs').textContent = '0g';
-    document.getElementById('insightFat').textContent = '0g';
-    document.getElementById('insightFiber').textContent = '0g';
-    return;
-  }
-
-  section.classList.remove('hidden');
-  document.getElementById('mealInsightSummary').textContent = insight.summary;
-  document.getElementById('insightProtein').textContent = `${insight.macros.protein_g}g`;
-  document.getElementById('insightCarbs').textContent = `${insight.macros.carbs_g}g`;
-  document.getElementById('insightFat').textContent = `${insight.macros.fat_g}g`;
-  document.getElementById('insightFiber').textContent = `${insight.macros.fiber_g}g`;
-  document.getElementById('mealInsightHighlightList').innerHTML = insight.highlights
-    .map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`)
-    .join('');
-  document.getElementById('mealVitaminList').innerHTML = renderMicronutrientList(insight.vitamins, 'No vitamin estimate yet.');
-  document.getElementById('mealMineralList').innerHTML = renderMicronutrientList(insight.minerals, 'No mineral estimate yet.');
-}
-
-function renderMicronutrientList(items, emptyMessage) {
-  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
-  return items.map((item) => `
-    <article class="scan-insight-item">
-      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
-    </article>
-  `).join('');
 }
 
 async function handleProfilePhotoChange(event) {
@@ -2769,7 +2206,6 @@ function renderSettings() {
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
-        <button class="settings-nav-btn" data-page="insights">✨ Insights</button>
         <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
         <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
         <button class="settings-nav-btn" data-page="timeline">📅 Timeline</button>

@@ -7,7 +7,6 @@
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
-  const productionAppUrl = window.FAMILYBITES_APP_URL || 'https://mymealmap1.netlify.app/';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
@@ -22,14 +21,11 @@
 }) : null;
 
   function authRedirectUrl() {
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    if (isLocalhost) return `${window.location.origin}${window.location.pathname}`;
-    return productionAppUrl;
+  return 'https://familytaste.netlify.app/';
   }
 
-  function directGoogleAuthUrl() {
-    const redirectTo = encodeURIComponent(authRedirectUrl());
-    return `${url}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}&prompt=select_account`;
+  function authRedirectUrl() {
+    return `${window.location.origin}${window.location.pathname}`;
   }
 
   function requireContext(db) {
@@ -109,25 +105,15 @@
       return data?.subscription || null;
     },
     async signInWithGoogle() {
-      const fallbackUrl = directGoogleAuthUrl();
-      if (!client) {
-        window.location.assign(fallbackUrl);
-        return true;
-      }
-      try {
-        const { data, error } = await client.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: authRedirectUrl(),
-            queryParams: { prompt: 'select_account' },
-            skipBrowserRedirect: true
-          }
-        });
-        if (error) throw error;
-        window.location.assign(data?.url || fallbackUrl);
-      } catch (_error) {
-        window.location.assign(fallbackUrl);
-      }
+      if (!client) return null;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: authRedirectUrl(),
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (error) throw error;
       return true;
     },
     async signOut() {
@@ -411,12 +397,6 @@ window.addEventListener('load', () => {
     const mealSortPatch = document.createElement('script');
     mealSortPatch.src = 'meal-sort-patch.js?v=1';
     mealSortPatch.async = false;
-    mealSortPatch.onload = () => {
-      const breakdownPatch = document.createElement('script');
-      breakdownPatch.src = 'nutrition-breakdown-patch.js?v=20260719c';
-      breakdownPatch.async = false;
-      document.body.appendChild(breakdownPatch);
-    };
     document.body.appendChild(mealSortPatch);
   };
   document.body.appendChild(mealDatePatch);

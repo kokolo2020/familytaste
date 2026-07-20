@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260720b" />
-  <link rel="stylesheet" href="simple-landing.css?v=20260719a" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="simple-landing.css" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -241,30 +241,14 @@
             </section>
 
             <section class="nutrition-panel dashboard-card">
-              <div class="section-title">
-                <h3>Today’s Nutrition Balance</h3>
-                <button class="text-button nutrition-open-insights" data-page="insights" type="button">Open insights</button>
-              </div>
+              <div class="section-title"><h3>Today’s Nutrition Balance</h3></div>
               <div class="nutrition-layout">
                 <div class="macro-list">
-                  <div><span>Carbohydrates</span><i><em id="carbMacroBar" style="width:0%"></em></i><b id="carbMacroValue">0%</b></div>
-                  <div><span>Protein</span><i><em id="proteinMacroBar" style="width:0%"></em></i><b id="proteinMacroValue">0%</b></div>
-                  <div><span>Fats</span><i><em id="fatMacroBar" style="width:0%"></em></i><b id="fatMacroValue">0%</b></div>
+                  <div><span>Carbohydrates</span><i><em style="width:55%"></em></i><b>55%</b></div>
+                  <div><span>Protein</span><i><em style="width:20%"></em></i><b>20%</b></div>
+                  <div><span>Fats</span><i><em style="width:25%"></em></i><b>25%</b></div>
                 </div>
                 <div class="nutrition-donut"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
-              </div>
-              <div class="dashboard-nutrient-insight">
-                <p id="nutritionInsight" class="nutrition-insight">Scan meals to see today’s vitamin and mineral estimate here.</p>
-                <div class="dashboard-nutrient-columns">
-                  <div>
-                    <h4>Top vitamins</h4>
-                    <div id="dashboardVitaminList" class="dashboard-nutrient-list"></div>
-                  </div>
-                  <div>
-                    <h4>Top minerals</h4>
-                    <div id="dashboardMineralList" class="dashboard-nutrient-list"></div>
-                  </div>
-                </div>
               </div>
               <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
             </section>
@@ -291,40 +275,6 @@
           <div class="dashboard-legacy-values" aria-hidden="true">
             <span id="todayCalories">0</span><span id="todayMeals">0</span><span id="todaySpend">$0</span>
             <span id="mealSummary"></span><span id="calorieGoalLabel"></span><i id="calorieProgress"></i>
-          </div>
-        </section>
-
-        <section id="page-insights" class="page" data-title="Insights" data-kicker="Micronutrients">
-          <div class="insights-shell">
-            <header class="insights-hero">
-              <div>
-                <p class="eyebrow">Today</p>
-                <h3>Daily Micronutrient Picture</h3>
-                <p id="insightsDayStatus" class="insights-copy">No meals logged yet today.</p>
-              </div>
-              <button class="primary-button compact-button" data-page="snap" type="button">Scan meal</button>
-            </header>
-
-            <section class="insights-card">
-              <div class="section-title insights-section-title">
-                <div>
-                  <h3>Daily nutrient breakdown</h3>
-                  <p class="insights-copy">A compact daily view of what you may have covered and what is still missing.</p>
-                </div>
-              </div>
-              <div id="insightsCoverageCards" class="insights-coverage-grid"></div>
-              <p id="insightsFootnote" class="analysis-note">AI nutrition estimates are for reference only and are not medical advice.</p>
-            </section>
-
-            <section class="insights-card">
-              <div class="section-title insights-section-title">
-                <div>
-                  <h3>Scanned meals today</h3>
-                  <p class="insights-copy">Each saved meal keeps its own AI vitamin and mineral breakdown.</p>
-                </div>
-              </div>
-              <div id="insightsMealHistory" class="insights-meal-history"></div>
-            </section>
           </div>
         </section>
 
@@ -361,36 +311,9 @@
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
               <div class="calorie-scanner wide">
-                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Insight</button>
-                <small id="calorieEstimate">Add a photo and AI will estimate the visible food, calories, and nutrient insight.</small>
+                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories</button>
+                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories.</small>
               </div>
-              <section id="mealInsightSection" class="insight-panel scan-insight-panel wide hidden" aria-live="polite">
-                <div class="section-title scan-insight-header">
-                  <div>
-                    <p class="eyebrow">AI nutrient estimate</p>
-                    <h3>Insight</h3>
-                  </div>
-                  <span class="sparkle">✦</span>
-                </div>
-                <p id="mealInsightSummary">Scan a dish to see estimated vitamins, minerals, and nutrient highlights.</p>
-                <div id="mealInsightHighlightList" class="insight-chip-row"></div>
-                <div class="scan-insight-macro-grid">
-                  <article><span>Protein</span><strong id="insightProtein">0g</strong></article>
-                  <article><span>Carbs</span><strong id="insightCarbs">0g</strong></article>
-                  <article><span>Fat</span><strong id="insightFat">0g</strong></article>
-                  <article><span>Fiber</span><strong id="insightFiber">0g</strong></article>
-                </div>
-                <div class="scan-insight-columns">
-                  <div>
-                    <h4>Vitamins</h4>
-                    <div id="mealVitaminList" class="scan-insight-list"></div>
-                  </div>
-                  <div>
-                    <h4>Minerals</h4>
-                    <div id="mealMineralList" class="scan-insight-list"></div>
-                  </div>
-                </div>
-              </section>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>
@@ -559,23 +482,6 @@
                 <button class="primary-button" id="saveProfileMeasurements" type="button">Save &amp; Calculate</button>
                 <small>General estimates for adults. Medical conditions and pregnancy require professional guidance.</small>
               </section>
-              <section class="profile-nutrient-breakdown" aria-labelledby="profileNutrientBreakdownTitle">
-                <div>
-                  <p class="eyebrow">AI nutrient estimate</p>
-                  <h4 id="profileNutrientBreakdownTitle">Vitamin breakdown</h4>
-                </div>
-                <p id="profileNutrientSummary" class="profile-nutrient-summary">Scan and save meals to see real vitamins and minerals here.</p>
-                <div class="profile-nutrient-columns">
-                  <div>
-                    <h5>Top vitamins</h5>
-                    <div id="profileVitaminList" class="profile-nutrient-list"></div>
-                  </div>
-                  <div>
-                    <h5>Top minerals</h5>
-                    <div id="profileMineralList" class="profile-nutrient-list"></div>
-                  </div>
-                </div>
-              </section>
               <div class="avatar-picker-wrap">
                 <strong>Choose Avatar</strong>
                 <div id="avatarPicker" class="avatar-picker" aria-label="Choose profile avatar"></div>
@@ -642,9 +548,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260720e"></script>
-  <script src="nutrition-engine.js?v=20260720a"></script>
-  <script src="app.js?v=20260720b"></script>
+  <script src="supabase.js"></script>
+  <script src="app.js"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">

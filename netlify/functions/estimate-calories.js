@@ -32,7 +32,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also estimate likely macros plus the most relevant vitamins and minerals for this dish. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]
@@ -61,58 +61,9 @@ exports.handler = async (event) => {
                 },
                 total_calories: { type: 'integer', minimum: 0, maximum: 10000 },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
-                note: { type: 'string' },
-                insight: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    summary: { type: 'string' },
-                    highlights: { type: 'array', items: { type: 'string' }, maxItems: 4 },
-                    macros: {
-                      type: 'object',
-                      additionalProperties: false,
-                      properties: {
-                        protein_g: { type: 'number', minimum: 0, maximum: 1000 },
-                        carbs_g: { type: 'number', minimum: 0, maximum: 1000 },
-                        fat_g: { type: 'number', minimum: 0, maximum: 1000 },
-                        fiber_g: { type: 'number', minimum: 0, maximum: 1000 },
-                        sugar_g: { type: 'number', minimum: 0, maximum: 1000 }
-                      },
-                      required: ['protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
-                    },
-                    vitamins: {
-                      type: 'array',
-                      maxItems: 4,
-                      items: {
-                        type: 'object',
-                        additionalProperties: false,
-                        properties: {
-                          name: { type: 'string' },
-                          amount: { type: 'string' },
-                          benefit: { type: 'string' }
-                        },
-                        required: ['name', 'amount', 'benefit']
-                      }
-                    },
-                    minerals: {
-                      type: 'array',
-                      maxItems: 4,
-                      items: {
-                        type: 'object',
-                        additionalProperties: false,
-                        properties: {
-                          name: { type: 'string' },
-                          amount: { type: 'string' },
-                          benefit: { type: 'string' }
-                        },
-                        required: ['name', 'amount', 'benefit']
-                      }
-                    }
-                  },
-                  required: ['summary', 'highlights', 'macros', 'vitamins', 'minerals']
-                }
+                note: { type: 'string' }
               },
-              required: ['foods', 'total_calories', 'confidence', 'note', 'insight']
+              required: ['foods', 'total_calories', 'confidence', 'note']
             }
           }
         }
@@ -121,22 +72,7 @@ exports.handler = async (event) => {
 
     const result = await response.json();
     if (!response.ok) {
-      const upstreamMessage = String(result?.error?.message || '');
-      const normalizedMessage = upstreamMessage.toLowerCase();
-      console.error('OpenAI calorie estimate failed', response.status, upstreamMessage);
-
-      if (
-        response.status === 429
-        || normalizedMessage.includes('usage')
-        || normalizedMessage.includes('quota')
-        || normalizedMessage.includes('rate limit')
-        || normalizedMessage.includes('billing')
-      ) {
-        return json(503, {
-          error: 'AI scan limit reached right now. OpenAI usage or billing needs to be refreshed before scanning works again.'
-        });
-      }
-
+      console.error('OpenAI calorie estimate failed', response.status, result?.error?.message);
       return json(502, { error: 'The AI estimate is temporarily unavailable.' });
     }
 
