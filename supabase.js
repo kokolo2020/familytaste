@@ -27,6 +27,11 @@
     return productionAppUrl;
   }
 
+  function directGoogleAuthUrl() {
+    const redirectTo = encodeURIComponent(authRedirectUrl());
+    return `${url}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}&prompt=select_account`;
+  }
+
   function requireContext(db) {
     if (!db.authContext?.familyId) throw new Error('Google sign-in is required before loading family data.');
     return db.authContext;
@@ -104,18 +109,25 @@
       return data?.subscription || null;
     },
     async signInWithGoogle() {
-      if (!client) return null;
-      const { data, error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: authRedirectUrl(),
-          queryParams: { prompt: 'select_account' },
-          skipBrowserRedirect: true
-        }
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error('Google sign-in URL could not be created.');
-      window.location.assign(data.url);
+      const fallbackUrl = directGoogleAuthUrl();
+      if (!client) {
+        window.location.assign(fallbackUrl);
+        return true;
+      }
+      try {
+        const { data, error } = await client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: authRedirectUrl(),
+            queryParams: { prompt: 'select_account' },
+            skipBrowserRedirect: true
+          }
+        });
+        if (error) throw error;
+        window.location.assign(data?.url || fallbackUrl);
+      } catch (_error) {
+        window.location.assign(fallbackUrl);
+      }
       return true;
     },
     async signOut() {
