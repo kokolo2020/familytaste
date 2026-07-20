@@ -1007,18 +1007,19 @@ async function handleSaveMealEdit() {
     calories: numberOrNull(document.getElementById('editCalories').value),
     notes: notesWithMealType(document.getElementById('editNotes').value, mealType, meal?.notes)
   };
+  const nutritionFields = buildMealNutritionStorage({ ...meal, ...fields });
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
     if (!meal) return;
-    Object.assign(meal, fields);
+    Object.assign(meal, fields, nutritionFields);
     meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
     saveStoredAppData();
     renderAll();
     if (window.familyBitesDb?.isConfigured) {
       try {
-        await window.familyBitesDb.updateMeal(meal.id, { ...fields, eaten_at: meal.eaten_at });
+        await window.familyBitesDb.updateMeal(meal.id, { ...fields, ...nutritionFields, eaten_at: meal.eaten_at });
       } catch (error) {
         console.warn('Meal updated locally but Supabase write failed.', error);
       }
@@ -1082,7 +1083,8 @@ async function handleLogAgain(foodName) {
     calories: source.calories ?? null,
     notes: source.notes || '',
     photo_url: source.photo_url || '',
-    eaten_at: new Date().toISOString()
+    eaten_at: new Date().toISOString(),
+    ...buildMealNutritionStorage(source, { ignoreCurrentScan: true })
   });
 }
 
@@ -1306,6 +1308,20 @@ function notesWithMealType(notes, mealType, existingNotes = '') {
   return value.trim();
 }
 
+function getMealStoredIngredients(meal) {
+  if (Array.isArray(meal?.likely_ingredients) && meal.likely_ingredients.length) {
+    return uniqueScanLabels(meal.likely_ingredients).map(titleCaseScanLabel);
+  }
+  return extractDelimitedMealTag(meal?.notes, 'scan_ingredients').map(titleCaseScanLabel);
+}
+
+function getMealStoredTags(meal) {
+  if (Array.isArray(meal?.ai_tags) && meal.ai_tags.length) {
+    return uniqueScanLabels(meal.ai_tags).map(titleCaseScanLabel);
+  }
+  return extractDelimitedMealTag(meal?.notes, 'scan_tags').map(titleCaseScanLabel);
+}
+
 function extractDelimitedMealTag(notes, tag) {
   return extractMealTag(notes, tag)
     .split('|')
@@ -1333,6 +1349,16 @@ function encodeMealInsight(insight) {
 }
 
 function getMealInsight(meal) {
+  if (meal?.ai_insight && typeof meal.ai_insight === 'object') {
+    return normalizeScanInsight(meal.ai_insight);
+  }
+  if (typeof meal?.ai_insight === 'string' && meal.ai_insight.trim()) {
+    try {
+      return normalizeScanInsight(JSON.parse(meal.ai_insight));
+    } catch (error) {
+      console.warn('Could not parse ai_insight column for meal.', error);
+    }
+  }
   const rawInsight = extractMealTag(meal?.notes, 'ai_insight');
   if (!rawInsight) return null;
   try {
@@ -1343,6 +1369,33 @@ function getMealInsight(meal) {
   }
 }
 window.getMealInsight = getMealInsight;
+
+function buildMealNutritionStorage(sourceMeal = {}, options = {}) {
+  const ignoreCurrentScan = Boolean(options.ignoreCurrentScan);
+  const insight = ignoreCurrentScan ? getMealInsight(sourceMeal) : (currentScanInsight || getMealInsight(sourceMeal));
+  const normalizedInsight = insight ? normalizeScanInsight(insight) : null;
+  const ingredients = ignoreCurrentScan
+    ? getMealStoredIngredients(sourceMeal)
+    : (currentScanIngredients.length ? currentScanIngredients : getMealStoredIngredients(sourceMeal));
+  const tags = ignoreCurrentScan
+    ? getMealStoredTags(sourceMeal)
+    : (currentScanTags.length ? currentScanTags : getMealStoredTags(sourceMeal));
+  const fallbackScore = sourceMeal?.food_name ? clampScore(Math.round(getMealNutritionScore(sourceMeal) * 10)) : null;
+
+  return {
+    protein_g: normalizedInsight ? normalizedInsight.macros.protein_g : numberOrNull(sourceMeal?.protein_g),
+    carbs_g: normalizedInsight ? normalizedInsight.macros.carbs_g : numberOrNull(sourceMeal?.carbs_g),
+    fat_g: normalizedInsight ? normalizedInsight.macros.fat_g : numberOrNull(sourceMeal?.fat_g),
+    fiber_g: normalizedInsight ? normalizedInsight.macros.fiber_g : numberOrNull(sourceMeal?.fiber_g),
+    sugar_g: normalizedInsight ? normalizedInsight.macros.sugar_g : numberOrNull(sourceMeal?.sugar_g),
+    ai_health_score: Number.isFinite(Number(sourceMeal?.ai_health_score))
+      ? clampScore(Number(sourceMeal.ai_health_score))
+      : fallbackScore,
+    ai_tags: tags,
+    likely_ingredients: ingredients,
+    ai_insight: normalizedInsight
+  };
+}
 
 function mealInsightSnippet(meal) {
   const insight = getMealInsight(meal);
@@ -1865,6 +1918,7 @@ async function saveMeal(event) {
     photo_url: photoUrl,
     eaten_at: new Date().toISOString()
   };
+  Object.assign(meal, buildMealNutritionStorage(meal));
 
   if (!meal.food_name) return;
 
@@ -2533,6 +2587,9 @@ function normalizeMeal(meal) {
     food_name: meal.food_name || meal.name || 'Meal',
     notes: meal.notes || meal.description || '',
     photo_url: meal.photo_url || '',
+    ai_tags: Array.isArray(meal.ai_tags) ? meal.ai_tags : getMealStoredTags(meal),
+    likely_ingredients: Array.isArray(meal.likely_ingredients) ? meal.likely_ingredients : getMealStoredIngredients(meal),
+    ai_insight: meal.ai_insight || getMealInsight(meal),
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };
 }

@@ -301,6 +301,15 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
+        protein_g: meal.protein_g ?? null,
+        carbs_g: meal.carbs_g ?? null,
+        fat_g: meal.fat_g ?? null,
+        fiber_g: meal.fiber_g ?? null,
+        sugar_g: meal.sugar_g ?? null,
+        ai_health_score: meal.ai_health_score ?? null,
+        ai_tags: Array.isArray(meal.ai_tags) ? meal.ai_tags : [],
+        likely_ingredients: Array.isArray(meal.likely_ingredients) ? meal.likely_ingredients : [],
+        ai_insight: meal.ai_insight || null,
         description: meal.notes || null,
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
@@ -319,6 +328,12 @@
       if ('notes' in payload) {
         payload.description = payload.notes || null;
         delete payload.notes;
+      }
+      if ('ai_tags' in payload) {
+        payload.ai_tags = Array.isArray(payload.ai_tags) ? payload.ai_tags : [];
+      }
+      if ('likely_ingredients' in payload) {
+        payload.likely_ingredients = Array.isArray(payload.likely_ingredients) ? payload.likely_ingredients : [];
       }
 
       let query = client
