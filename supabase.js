@@ -7,6 +7,7 @@
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+  const productionAppUrl = window.FAMILYBITES_APP_URL || 'https://mymealmap1.netlify.app/';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
@@ -21,11 +22,9 @@
 }) : null;
 
   function authRedirectUrl() {
-  return 'https://familytaste.netlify.app/';
-  }
-
-  function authRedirectUrl() {
-    return `${window.location.origin}${window.location.pathname}`;
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocalhost) return `${window.location.origin}${window.location.pathname}`;
+    return productionAppUrl;
   }
 
   function requireContext(db) {
