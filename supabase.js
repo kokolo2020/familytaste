@@ -105,14 +105,17 @@
     },
     async signInWithGoogle() {
       if (!client) return null;
-      const { error } = await client.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: authRedirectUrl(),
-          queryParams: { prompt: 'select_account' }
+          queryParams: { prompt: 'select_account' },
+          skipBrowserRedirect: true
         }
       });
       if (error) throw error;
+      if (!data?.url) throw new Error('Google sign-in URL could not be created.');
+      window.location.assign(data.url);
       return true;
     },
     async signOut() {
