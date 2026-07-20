@@ -609,7 +609,6 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('summaryCalorieGoal', `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
   setText('summaryRingCalories', calories.toLocaleString());
   setText('nutritionDonutCalories', calories.toLocaleString());
-  renderTodayMacros(todayMeals, calories);
   setText('summaryTip', mealCount
     ? `You’re ${progress}% of the way to your daily calorie goal.`
     : 'Log your first meal to start your daily analysis.');
@@ -653,101 +652,6 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
     <article class="recommendation-item">
       <span>${item.icon}</span><div><strong>${item.title}</strong><p>${item.copy}</p></div>
     </article>`).join('');
-}
-
-function renderTodayMacros(todayMeals, calories) {
-  const mealCount = todayMeals.length;
-  const macroEstimate = estimateMealMacros(todayMeals, calories);
-  Object.entries(macroEstimate.percentages).forEach(([name, value]) => {
-    const bar = document.getElementById(`${name}MacroBar`);
-    if (bar) bar.style.width = `${value}%`;
-    setText(`${name}MacroValue`, `${value}%`);
-  });
-  const donut = document.getElementById('nutritionDonut');
-  if (donut) {
-    donut.classList.toggle('empty', !mealCount);
-    donut.style.background = mealCount
-      ? `radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#ffb32f 0 ${macroEstimate.percentages.carb}%, #89c95d ${macroEstimate.percentages.carb}% ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}%, #f25732 ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}% 100%)`
-      : '';
-  }
-  setText('macroDominant', macroEstimate.dominantLabel);
-  setText('macroProteinGrams', `${macroEstimate.grams.protein}g`);
-  setText('macroGramSummary', `${macroEstimate.grams.carb}g / ${macroEstimate.grams.protein}g / ${macroEstimate.grams.fat}g`);
-  setText('nutritionInsight', macroEstimate.insight);
-}
-
-function estimateMealMacros(todayMeals, calories) {
-  if (!todayMeals.length || !calories) {
-    return {
-      percentages: { carb: 0, protein: 0, fat: 0 },
-      grams: { carb: 0, protein: 0, fat: 0 },
-      dominantLabel: 'No meals yet',
-      insight: 'Log a meal to estimate today’s carbohydrate, protein, and fat balance.'
-    };
-  }
-
-  const scores = todayMeals.reduce((totals, meal) => {
-    const estimate = estimateMealMacroShare(meal);
-    totals.carb += estimate.carb;
-    totals.protein += estimate.protein;
-    totals.fat += estimate.fat;
-    return totals;
-  }, { carb: 0, protein: 0, fat: 0 });
-
-  const totalScore = scores.carb + scores.protein + scores.fat || 1;
-  const rawPercentages = {
-    carb: Math.round(scores.carb / totalScore * 100),
-    protein: Math.round(scores.protein / totalScore * 100)
-  };
-  const percentages = {
-    carb: rawPercentages.carb,
-    protein: rawPercentages.protein,
-    fat: Math.max(0, 100 - rawPercentages.carb - rawPercentages.protein)
-  };
-  const grams = {
-    carb: Math.max(0, Math.round((calories * percentages.carb / 100) / 4)),
-    protein: Math.max(0, Math.round((calories * percentages.protein / 100) / 4)),
-    fat: Math.max(0, Math.round((calories * percentages.fat / 100) / 9))
-  };
-  const dominantEntry = Object.entries(percentages).sort((a, b) => b[1] - a[1])[0] || ['carb', 0];
-  const dominantLabel = dominantEntry[0] === 'carb'
-    ? 'Carb-led'
-    : dominantEntry[0] === 'protein'
-      ? 'Protein-led'
-      : 'Fat-led';
-
-  let insight = `Estimated split: ${percentages.carb}% carbs, ${percentages.protein}% protein, ${percentages.fat}% fat.`;
-  if (percentages.protein >= 30) {
-    insight += ' Protein looks strong for recovery and staying full.';
-  } else if (percentages.carb >= 55) {
-    insight += ' Energy is skewing toward carbohydrates, so pairing the next meal with protein could steady things out.';
-  } else if (percentages.fat >= 38) {
-    insight += ' Today leans richer, so a lighter, produce-forward next meal could rebalance the day.';
-  } else {
-    insight += ' The split looks fairly balanced for a general day.';
-  }
-
-  return { percentages, grams, dominantLabel, insight };
-}
-
-function estimateMealMacroShare(meal) {
-  const text = foodSearchText(meal);
-  const scores = { carb: 1.6, protein: 1.1, fat: 0.9 };
-  const applyBoost = (words, boost) => {
-    if (words.some((word) => text.includes(word))) {
-      scores.carb += boost.carb || 0;
-      scores.protein += boost.protein || 0;
-      scores.fat += boost.fat || 0;
-    }
-  };
-
-  applyBoost(['rice', 'bread', 'toast', 'pasta', 'spaghetti', 'noodle', 'ramen', 'oat', 'cereal', 'potato', 'corn', 'wrap', 'taco', 'pizza', 'burger', 'bun', 'dumpling'], { carb: 1.9, protein: 0.4, fat: 0.4 });
-  applyBoost(['chicken', 'beef', 'pork', 'steak', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'shrimp', 'yogurt', 'milk', 'protein'], { carb: 0.2, protein: 2.3, fat: 0.5 });
-  applyBoost(['avocado', 'olive', 'cheese', 'butter', 'cream', 'coconut', 'nuts', 'peanut', 'almond', 'walnut'], { carb: 0.2, protein: 0.4, fat: 2.2 });
-  applyBoost(['fried', 'crispy', 'bacon', 'sausage', 'dessert', 'cake', 'cookie', 'ice cream', 'donut', 'pastry'], { carb: 1.1, protein: 0.2, fat: 1.8 });
-  applyBoost(['salad', 'vegetable', 'broccoli', 'spinach', 'greens', 'tomato', 'cucumber', 'fruit', 'apple', 'banana', 'berry', 'orange', 'mango'], { carb: 0.8, protein: 0.3, fat: 0.1 });
-  applyBoost(['soup', 'stew', 'curry', 'bowl'], { carb: 0.6, protein: 0.8, fat: 0.8 });
-  return scores;
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
@@ -1193,9 +1097,7 @@ function notesWithoutMealType(notes) {
 
 function notesWithMealType(notes, mealType) {
   const cleanNotes = notesWithoutMealType(notes);
-  const normalizedMealType = String(mealType || '').trim().toLowerCase();
-  if (!normalizedMealType) return cleanNotes;
-  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${normalizedMealType}]]`;
+  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${mealType}]]`;
 }
 
 function renderFavorites() {
