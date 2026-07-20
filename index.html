@@ -57,7 +57,7 @@
             <h3 id="authStatusTitle">Continue with Google</h3>
             <p id="authStatusCopy">Sign in to load your family and member permissions.</p>
             <div class="landing-auth-actions">
-              <button id="googleSignInButton" class="primary-button" type="button">Continue with Google</button>
+              <button id="googleSignInButton" class="primary-button" type="button" onclick="return window.startFamilyBitesGoogleLogin ? window.startFamilyBitesGoogleLogin(event) : false;">Continue with Google</button>
               <button id="signOutButton" class="secondary-button hidden" type="button">Sign out</button>
             </div>
             <small id="authStatusMeta">Only approved family accounts can open this space.</small>
@@ -548,8 +548,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="app.js"></script>
+  <script src="supabase.js?v=20260720-authfix1"></script>
+  <script src="app.js?v=20260720-authfix1"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">
