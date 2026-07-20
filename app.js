@@ -55,6 +55,42 @@ const menuItems = [
   { id: 'brunch', name: 'Family Brunch', detail: 'Pancakes, fruit, and eggs', emoji: '🥞', photo: 'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=700&q=82' }
 ];
 
+const insightNutrientMeta = {
+  vitamin_a_mcg: { label: 'Vitamin A', focus: 'Eye health', support: 'Supports vision and immune defense.' },
+  vitamin_c_mg: { label: 'Vitamin C', focus: 'Skin & immunity', support: 'Helps collagen, skin repair, and immune support.' },
+  vitamin_d_mcg: { label: 'Vitamin D', focus: 'Bones & immunity', support: 'Supports bone health and immune balance.' },
+  vitamin_e_mg: { label: 'Vitamin E', focus: 'Cells & skin', support: 'Protects cells and supports skin health.' },
+  vitamin_k_mcg: { label: 'Vitamin K', focus: 'Blood & bones', support: 'Important for clotting and bone support.' },
+  vitamin_b12_mcg: { label: 'Vitamin B12', focus: 'Nerve function', support: 'Helps nerve function and red blood cell production.' },
+  vitamin_b6_mg: { label: 'Vitamin B6', focus: 'Brain & sleep', support: 'Supports brain signaling and nutrient metabolism.' },
+  folate_mcg: { label: 'Folate (B9)', focus: 'Cell health', support: 'Important for cell growth and DNA building.' },
+  calcium_mg: { label: 'Calcium', focus: 'Bones & teeth', support: 'Supports bones, teeth, and muscle function.' },
+  iron_mg: { label: 'Iron', focus: 'Blood & energy', support: 'Helps oxygen transport and daily energy.' },
+  magnesium_mg: { label: 'Magnesium', focus: 'Muscles & nerves', support: 'Supports muscles, nerves, and relaxation.' },
+  potassium_mg: { label: 'Potassium', focus: 'Heart & muscles', support: 'Helps fluid balance, nerves, and heart rhythm.' },
+  zinc_mg: { label: 'Zinc', focus: 'Immunity & healing', support: 'Supports immune defense and wound healing.' },
+  selenium_mcg: { label: 'Selenium', focus: 'Cells & thyroid', support: 'Supports antioxidant defense and thyroid function.' },
+  omega3_g: { label: 'Omega-3', focus: 'Heart & brain', support: 'Supports heart, brain, and cell membrane health.' }
+};
+
+const insightNutrientOrder = [
+  'potassium_mg',
+  'calcium_mg',
+  'folate_mcg',
+  'magnesium_mg',
+  'vitamin_c_mg',
+  'vitamin_k_mcg',
+  'vitamin_e_mg',
+  'iron_mg',
+  'vitamin_b6_mg',
+  'zinc_mg',
+  'vitamin_a_mcg',
+  'vitamin_d_mcg',
+  'vitamin_b12_mcg',
+  'selenium_mcg',
+  'omega3_g'
+];
+
 let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
@@ -62,6 +98,7 @@ let currentScanInsight = null;
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
+  { page: 'insights', icon: '✨', label: 'Insights' },
   { page: 'order', icon: '🧑‍🍳', label: 'Chef Menu' },
   { page: 'snap', icon: '📷', label: 'Snap Food' },
   { page: 'favorites', icon: '❤️', label: 'Favorites' },
@@ -77,7 +114,7 @@ const mobileItems = [
   { page: 'dashboard', icon: '⌂', label: 'Home' },
   { page: 'timeline', icon: '♜', label: 'Meals' },
   { page: 'snap', icon: '📷', label: 'Snap Food' },
-  { page: 'chat', icon: '◌', label: 'Chat' },
+  { page: 'insights', icon: '✦', label: 'Insights' },
   { page: 'settings', icon: '•••', label: 'More' }
 ];
 
@@ -517,6 +554,7 @@ function showPage(pageName) {
 
 function renderAll() {
   renderDashboard();
+  renderInsightsPage();
   renderMeals();
   renderFavorites();
   renderOrderMenu();
@@ -794,6 +832,195 @@ function renderDashboardNutrientItems(items, emptyMessage) {
   `).join('');
 }
 
+function renderInsightsPage() {
+  const member = appState.currentMember;
+  const dayStatus = document.getElementById('insightsDayStatus');
+  const coverageCards = document.getElementById('insightsCoverageCards');
+  const mealHistory = document.getElementById('insightsMealHistory');
+  const footnote = document.getElementById('insightsFootnote');
+  if (!member || !dayStatus || !coverageCards || !mealHistory || !footnote) return;
+
+  const todayMeals = getMemberMeals().filter(isToday);
+  const calories = sum(todayMeals, 'calories');
+  const profile = getInsightProfile(member);
+  const engine = window.MyMealMapNutrition;
+
+  if (!engine?.summarizeMeals) {
+    dayStatus.textContent = 'Nutrition insights are loading.';
+    coverageCards.innerHTML = '<p class="muted">Micronutrient analysis is not available right now.</p>';
+    mealHistory.innerHTML = '<p class="muted">Meal insights will appear after scanning a meal.</p>';
+    return;
+  }
+
+  const summary = engine.summarizeMeals(todayMeals, profile);
+  const rows = buildInsightCoverageRows(summary);
+  const scannedMeals = todayMeals.filter((meal) => getMealInsight(meal));
+
+  dayStatus.textContent = todayMeals.length
+    ? `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'} logged today · ${calories.toLocaleString()} cal`
+    : 'No meals logged yet today.';
+  coverageCards.innerHTML = rows.length
+    ? rows.map(renderInsightCoverageCard).join('')
+    : '<p class="muted">Scan a meal to start today’s micronutrient picture.</p>';
+  mealHistory.innerHTML = renderInsightMealHistory(todayMeals, scannedMeals.length);
+  footnote.textContent = `${engine.DISCLAIMER} Daily totals are approximate and depend on visible ingredients, portion size, and your profile.`;
+}
+
+function getInsightProfile(member) {
+  const measurements = appState.profileMeasurements[member?.id] || {};
+  const inferredSex = String(member?.name || '').toLowerCase().includes('dad')
+    || String(member?.name || '').toLowerCase().includes('papa')
+    ? 'male'
+    : 'female';
+  return {
+    age: Number(measurements.age) || 35,
+    sex: measurements.sex || inferredSex,
+    weightKg: Number(measurements.weight_kg ?? member?.weight_kg) || 70,
+    heightCm: Number(measurements.height_cm ?? member?.height_cm) || 170,
+    activityLevel: mapInsightActivityLevel(Number(measurements.activity) || 1.55)
+  };
+}
+
+function mapInsightActivityLevel(activityValue) {
+  if (activityValue <= 1.25) return 'low';
+  if (activityValue >= 1.7) return 'high';
+  return 'moderate';
+}
+
+function buildInsightCoverageRows(summary) {
+  return insightNutrientOrder
+    .filter((key) => summary.targets[key] > 0)
+    .map((key) => {
+      const meta = insightNutrientMeta[key] || {};
+      const target = Number(summary.targets[key]) || 0;
+      const eaten = Number(summary.totals[key]) || 0;
+      const percent = Math.max(0, Math.round(Number(summary.coverage[key]) || 0));
+      const remaining = Math.max(target - eaten, 0);
+      return {
+        key,
+        label: meta.label || window.MyMealMapNutrition?.NUTRIENT_LABELS?.[key] || key,
+        focus: meta.focus || 'Daily support',
+        support: meta.support || 'Estimated support based on today’s meals.',
+        target,
+        eaten,
+        percent,
+        remaining,
+        unit: nutrientUnitForKey(key),
+        status: insightStatusFromPercent(percent)
+      };
+    })
+    .sort((left, right) => left.percent - right.percent || right.remaining - left.remaining);
+}
+
+function insightStatusFromPercent(percent) {
+  if (percent >= 100) return 'covered';
+  if (percent >= 60) return 'progress';
+  if (percent >= 25) return 'warning';
+  return 'critical';
+}
+
+function nutrientUnitForKey(key) {
+  if (key.endsWith('_mcg')) return 'mcg';
+  if (key.endsWith('_mg')) return 'mg';
+  if (key.endsWith('_g')) return 'g';
+  return '';
+}
+
+function formatInsightNutrient(value, unit) {
+  const amount = Number(value) || 0;
+  const decimals = unit === 'g'
+    ? (amount < 10 ? 1 : 0)
+    : amount < 10
+      ? 1
+      : 0;
+  return `${amount.toLocaleString(undefined, {
+    minimumFractionDigits: amount && decimals ? decimals : 0,
+    maximumFractionDigits: decimals
+  })} ${unit}`.trim();
+}
+
+function renderInsightCoverageCard(item) {
+  return `
+    <article class="insight-coverage-card insight-status-${escapeAttr(item.status)}">
+      <div class="insight-card-top">
+        <div>
+          <strong>${escapeHtml(item.label)}</strong>
+          <small>${escapeHtml(item.focus)}</small>
+        </div>
+        <span class="insight-percent-pill">${escapeHtml(`${item.percent}% complete`)}</span>
+      </div>
+      <div class="insight-amount-row">
+        <strong>${escapeHtml(formatInsightNutrient(item.eaten, item.unit))}</strong>
+        <span>of ${escapeHtml(formatInsightNutrient(item.target, item.unit))}</span>
+      </div>
+      <p>${escapeHtml(item.support)}</p>
+      <div class="insight-progress-track" aria-hidden="true">
+        <span class="insight-progress-fill" style="width:${Math.min(item.percent, 100)}%"></span>
+      </div>
+      <div class="insight-card-footer">
+        <span class="insight-missing-pill">${escapeHtml(item.remaining > 0 ? `${formatInsightNutrient(item.remaining, item.unit)} still to go` : 'Covered today')}</span>
+      </div>
+    </article>
+  `;
+}
+
+function renderInsightMealHistory(todayMeals, scannedMealCount) {
+  if (!todayMeals.length) {
+    return '<p class="muted">Today’s scanned meals will appear here once you save them.</p>';
+  }
+
+  return todayMeals.map((meal, index) => {
+    const insight = getMealInsight(meal);
+    const time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(meal.eaten_at));
+    const mealType = getMealType(meal);
+    const summary = insight?.summary || (scannedMealCount
+      ? 'This meal was saved without AI micronutrient detail.'
+      : 'Scan and save a meal photo to store vitamin and mineral detail here.');
+    const macroMarkup = insight?.macros ? `
+      <div class="insight-meal-macros">
+        <span>Protein <strong>${escapeHtml(`${Number(insight.macros.protein_g || 0)}g`)}</strong></span>
+        <span>Carbs <strong>${escapeHtml(`${Number(insight.macros.carbs_g || 0)}g`)}</strong></span>
+        <span>Fat <strong>${escapeHtml(`${Number(insight.macros.fat_g || 0)}g`)}</strong></span>
+        <span>Fiber <strong>${escapeHtml(`${Number(insight.macros.fiber_g || 0)}g`)}</strong></span>
+      </div>
+    ` : '';
+    const highlightMarkup = insight?.highlights?.length
+      ? `<div class="insight-chip-row">${insight.highlights.map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`).join('')}</div>`
+      : '';
+
+    return `
+      <details class="insight-meal-card" ${index === 0 ? 'open' : ''}>
+        <summary>
+          <div>
+            <strong>${escapeHtml(meal.food_name)}</strong>
+            <small>${escapeHtml(`${mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal'} · ${Number(meal.calories || 0).toLocaleString()} cal`)}</small>
+          </div>
+          <span>${escapeHtml(time)}</span>
+        </summary>
+        <div class="insight-meal-body">
+          <p class="insight-meal-summary">${escapeHtml(summary)}</p>
+          ${highlightMarkup}
+          ${macroMarkup}
+          <div class="insight-meal-columns">
+            <div>
+              <h4>Vitamins</h4>
+              <div class="scan-insight-list">${renderMicronutrientList(insight?.vitamins || [], 'No vitamin estimate saved for this meal.')}</div>
+            </div>
+            <div>
+              <h4>Minerals</h4>
+              <div class="scan-insight-list">${renderMicronutrientList(insight?.minerals || [], 'No mineral estimate saved for this meal.')}</div>
+            </div>
+          </div>
+          <div class="meal-actions" aria-label="Actions for ${escapeAttr(meal.food_name)}">
+            <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
+            <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
+          </div>
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
   const systems = [
     { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate'], benefit: 'supports focus and steady brain fuel' },
@@ -965,7 +1192,7 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
-    notes: notesWithMealType(document.getElementById('editNotes').value, mealType, meal?.notes)
+    notes: notesWithMealType(document.getElementById('editNotes').value, mealType, meal?.notes, false)
   };
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
@@ -1237,10 +1464,10 @@ function notesWithoutMealType(notes) {
   return removeMealTag(removeMealTag(notes, 'meal_type'), 'ai_insight');
 }
 
-function notesWithMealType(notes, mealType, existingNotes = '') {
+function notesWithMealType(notes, mealType, existingNotes = '', includeCurrentInsight = true) {
   const cleanNotes = notesWithoutMealType(notes);
   const normalizedMealType = String(mealType || '').trim().toLowerCase();
-  const encodedInsight = currentScanInsight
+  const encodedInsight = includeCurrentInsight && currentScanInsight
     ? encodeMealInsight(currentScanInsight)
     : extractMealTag(existingNotes, 'ai_insight');
   let value = cleanNotes;
@@ -2539,6 +2766,7 @@ function renderSettings() {
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
+        <button class="settings-nav-btn" data-page="insights">✨ Insights</button>
         <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
         <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
         <button class="settings-nav-btn" data-page="timeline">📅 Timeline</button>
