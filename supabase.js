@@ -7,6 +7,10 @@
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+  const productionAppUrl = window.FAMILYBITES_APP_URL || 'https://mymealmap1.netlify.app/';
+  const authError = new URLSearchParams(window.location.search).get('error_description')
+    || new URLSearchParams(window.location.search).get('error')
+    || '';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
@@ -15,18 +19,52 @@
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit',
     storage: window.localStorage
   }
 }) : null;
 
   function authRedirectUrl() {
-  return 'https://familytaste.netlify.app/';
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (isLocalhost) return `${window.location.origin}${window.location.pathname}`;
+    return productionAppUrl;
   }
 
-  function authRedirectUrl() {
-    return `${window.location.origin}${window.location.pathname}`;
+  function directGoogleAuthUrl() {
+    const redirectTo = encodeURIComponent(authRedirectUrl());
+    return `${url}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}&prompt=select_account`;
   }
+
+  window.startFamilyBitesGoogleLogin = async function startFamilyBitesGoogleLogin(event) {
+    if (event?.preventDefault) event.preventDefault();
+
+    const fallbackUrl = directGoogleAuthUrl();
+    if (!client) {
+      window.location.assign(fallbackUrl);
+      return false;
+    }
+
+    try {
+      const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: authRedirectUrl(),
+          queryParams: { prompt: 'select_account' },
+          skipBrowserRedirect: true
+        }
+      });
+      if (error) throw error;
+      window.location.assign(data?.url || fallbackUrl);
+    } catch (error) {
+      console.warn('Falling back to direct Google auth URL.', error);
+      window.location.assign(fallbackUrl);
+    }
+    return false;
+  };
+
+  window.familyBitesAuthDebug = {
+    error: authError ? decodeURIComponent(authError.replace(/\+/g, ' ')) : '',
+    redirectTo: authRedirectUrl()
+  };
 
   function requireContext(db) {
     if (!db.authContext?.familyId) throw new Error('Google sign-in is required before loading family data.');
@@ -105,16 +143,7 @@
       return data?.subscription || null;
     },
     async signInWithGoogle() {
-      if (!client) return null;
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: authRedirectUrl(),
-          queryParams: { prompt: 'select_account' }
-        }
-      });
-      if (error) throw error;
-      return true;
+      return window.startFamilyBitesGoogleLogin();
     },
     async signOut() {
       if (!client) return null;
