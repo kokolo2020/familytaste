@@ -134,7 +134,6 @@ function renderAuthState(mode = 'signed-out') {
   const title = document.getElementById('authStatusTitle');
   const copy = document.getElementById('authStatusCopy');
   const meta = document.getElementById('authStatusMeta');
-  const authDebugError = String(window.familyBitesAuthDebug?.error || '').trim();
 
   const showProfiles = mode === 'ready';
   spotlight.classList.toggle('hidden', !showProfiles);
@@ -149,9 +148,7 @@ function renderAuthState(mode = 'signed-out') {
   if (mode === 'loading') {
     title.textContent = 'Checking access';
     copy.textContent = 'Loading your Google session and family permissions…';
-    meta.textContent = authDebugError
-      ? `Auth returned: ${authDebugError}`
-      : 'The app will unlock after your family access is confirmed.';
+    meta.textContent = 'The app will unlock after your family access is confirmed.';
     return;
   }
 
@@ -175,9 +172,7 @@ function renderAuthState(mode = 'signed-out') {
 
   title.textContent = 'Continue with Google';
   copy.textContent = 'Sign in to load your family and member permissions.';
-  meta.textContent = authDebugError
-    ? `Auth returned: ${authDebugError}`
-    : 'Only approved family accounts can open this space.';
+  meta.textContent = 'Only approved family accounts can open this space.';
 }
 
 function bindEvents() {
