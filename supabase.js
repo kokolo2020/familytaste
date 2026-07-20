@@ -8,6 +8,9 @@
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
   const productionAppUrl = window.FAMILYBITES_APP_URL || 'https://mymealmap1.netlify.app/';
+  const authError = new URLSearchParams(window.location.search).get('error_description')
+    || new URLSearchParams(window.location.search).get('error')
+    || '';
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
@@ -16,7 +19,6 @@
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'implicit',
     storage: window.localStorage
   }
 }) : null;
@@ -57,6 +59,11 @@
       window.location.assign(fallbackUrl);
     }
     return false;
+  };
+
+  window.familyBitesAuthDebug = {
+    error: authError ? decodeURIComponent(authError.replace(/\+/g, ' ')) : '',
+    redirectTo: authRedirectUrl()
   };
 
   function requireContext(db) {
