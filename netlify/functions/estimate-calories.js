@@ -18,6 +18,15 @@ exports.handler = async (event) => {
     }
 
     const hint = String(body.food_name || '').slice(0, 180);
+    const notes = String(body.notes || '').slice(0, 240);
+    const restaurant = String(body.restaurant_name || '').slice(0, 120);
+    const location = String(body.location_name || '').slice(0, 120);
+    const ingredientHints = Array.isArray(body.likely_ingredients)
+      ? body.likely_ingredients.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 12)
+      : [];
+    const quickTags = Array.isArray(body.quick_tags)
+      ? body.quick_tags.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 12)
+      : [];
     const portion = ['small', 'regular', 'large'].includes(body.portion_size) ? body.portion_size : 'regular';
     const response = await fetch(OPENAI_URL, {
       method: 'POST',
@@ -32,7 +41,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Notes: ${notes || 'none'}. Restaurant: ${restaurant || 'none'}. Location: ${location || 'none'}. User-edited likely ingredients: ${ingredientHints.join(', ') || 'none'}. User-selected quick tags: ${quickTags.join(', ') || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also estimate likely macros plus the most relevant vitamins and minerals for this dish, plus a short list of likely ingredients and useful quick tags for the scan editor. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]
@@ -61,9 +70,68 @@ exports.handler = async (event) => {
                 },
                 total_calories: { type: 'integer', minimum: 0, maximum: 10000 },
                 confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
-                note: { type: 'string' }
+                note: { type: 'string' },
+                likely_ingredients: {
+                  type: 'array',
+                  maxItems: 8,
+                  items: { type: 'string' }
+                },
+                quick_tags: {
+                  type: 'array',
+                  maxItems: 8,
+                  items: { type: 'string' }
+                },
+                insight: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    summary: { type: 'string' },
+                    highlights: { type: 'array', items: { type: 'string' }, maxItems: 4 },
+                    macros: {
+                      type: 'object',
+                      additionalProperties: false,
+                      properties: {
+                        protein_g: { type: 'number', minimum: 0, maximum: 1000 },
+                        carbs_g: { type: 'number', minimum: 0, maximum: 1000 },
+                        fat_g: { type: 'number', minimum: 0, maximum: 1000 },
+                        fiber_g: { type: 'number', minimum: 0, maximum: 1000 },
+                        sugar_g: { type: 'number', minimum: 0, maximum: 1000 }
+                      },
+                      required: ['protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
+                    },
+                    vitamins: {
+                      type: 'array',
+                      maxItems: 4,
+                      items: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                          name: { type: 'string' },
+                          amount: { type: 'string' },
+                          benefit: { type: 'string' }
+                        },
+                        required: ['name', 'amount', 'benefit']
+                      }
+                    },
+                    minerals: {
+                      type: 'array',
+                      maxItems: 4,
+                      items: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                          name: { type: 'string' },
+                          amount: { type: 'string' },
+                          benefit: { type: 'string' }
+                        },
+                        required: ['name', 'amount', 'benefit']
+                      }
+                    }
+                  },
+                  required: ['summary', 'highlights', 'macros', 'vitamins', 'minerals']
+                }
               },
-              required: ['foods', 'total_calories', 'confidence', 'note']
+              required: ['foods', 'total_calories', 'confidence', 'note', 'likely_ingredients', 'quick_tags', 'insight']
             }
           }
         }

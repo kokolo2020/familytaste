@@ -1390,6 +1390,121 @@ h1 span {
 .calorie-scanner .estimate-error { color: #a43a28; font-weight: 750; }
 .calorie-scanner button:disabled { opacity: .65; cursor: wait; }
 
+.scan-editor-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #eadbc9;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 249, 238, .96), rgba(247, 252, 243, .92));
+}
+
+.scan-rescan-panel p {
+  margin: 0;
+  color: #736657;
+  line-height: 1.45;
+}
+
+.scan-rescan-button {
+  min-height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffeeb9, #ffe4a4);
+  color: #6b430d;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.scan-panel-header {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.scan-panel-header h3 {
+  margin: 0;
+  color: #352316;
+  font-size: 24px;
+}
+
+.scan-panel-header p {
+  margin: 6px 0 0;
+  color: #7f7062;
+  line-height: 1.45;
+}
+
+.scan-panel-header-tags {
+  align-items: center;
+}
+
+.scan-panel-header-tags p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.scan-confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #eaf7ce;
+  color: #5d8a1d;
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: lowercase;
+}
+
+.scan-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.scan-chip {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #d5e6bc;
+  border-radius: 999px;
+  background: #fff;
+  color: #5c4732;
+  font-size: 16px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.scan-chip-active {
+  background: #e8f8d9;
+  color: #3b6d21;
+  border-color: #abd48f;
+}
+
+.scan-chip b {
+  margin-left: 12px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.scan-ingredient-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.scan-add-button {
+  min-width: 108px;
+  min-height: 56px;
+  border: 0;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ffe6a4, #ffd978);
+  color: #70470f;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .scan-insight-panel { display: grid; gap: 12px; padding: 16px; background: linear-gradient(135deg, rgba(255, 249, 238, .95), rgba(247, 252, 243, .95)); }
 .scan-insight-header { align-items: start; margin-bottom: 0; }
 .scan-insight-header .eyebrow { margin-bottom: 4px; }
@@ -2650,6 +2765,19 @@ h1 span {
   .nutrition-highlights span { margin-bottom: 2px; font-size: 4.5px; }
   .nutrition-highlights strong { font-size: 6px; }
   .nutrition-insight { margin-top: 5px; font-size: 5px; }
+  .scan-editor-panel { gap: 8px; padding: 10px; border-radius: 10px; }
+  .scan-rescan-button { min-height: 32px; font-size: 8px; }
+  .scan-rescan-panel p { font-size: 6px; }
+  .scan-panel-header { gap: 6px; }
+  .scan-panel-header h3 { font-size: 11px; }
+  .scan-panel-header p { margin-top: 3px; font-size: 6px; }
+  .scan-panel-header-tags p { font-size: 6px; }
+  .scan-confidence-badge { min-height: 22px; padding: 0 8px; font-size: 6px; }
+  .scan-chip-grid { gap: 6px; }
+  .scan-chip { min-height: 26px; padding: 0 10px; font-size: 7px; }
+  .scan-chip b { margin-left: 6px; font-size: 10px; }
+  .scan-ingredient-add-row { gap: 6px; }
+  .scan-add-button { min-width: 56px; min-height: 32px; border-radius: 12px; font-size: 8px; }
   .scan-insight-macro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scan-insight-columns { grid-template-columns: 1fr; }
   #page-dashboard .nutrition-donut { width: 44px; height: 44px; }

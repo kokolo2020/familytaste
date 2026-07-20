@@ -59,6 +59,29 @@ let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
 let currentScanInsight = null;
+let currentScanIngredients = [];
+let currentScanTags = [];
+let currentScanConfidence = '';
+let currentScanDirty = false;
+
+const scanQuickTagOptions = [
+  'Fried',
+  'Grilled',
+  'Steamed',
+  'Baked',
+  'Roasted',
+  'Stir-fried',
+  'Sweet Drink',
+  'Dessert',
+  'High Protein',
+  'High Fiber',
+  'Processed',
+  'Creamy',
+  'Saucy',
+  'Plant-based Likely',
+  'Contains Dairy',
+  'Contains Meat'
+];
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
@@ -253,6 +276,16 @@ function bindEvents() {
     if (removeFavTarget) {
       handleRemoveFavorite(removeFavTarget.dataset.removeFav);
     }
+
+    const removeIngredientTarget = event.target.closest('[data-remove-scan-ingredient]');
+    if (removeIngredientTarget) {
+      removeScanIngredient(removeIngredientTarget.dataset.removeScanIngredient);
+    }
+
+    const quickTagTarget = event.target.closest('[data-scan-tag]');
+    if (quickTagTarget) {
+      toggleScanTag(quickTagTarget.dataset.scanTag);
+    }
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
@@ -260,6 +293,13 @@ function bindEvents() {
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
+  document.getElementById('rescanFoodDetails').addEventListener('click', handleRescanFoodDetails);
+  document.getElementById('addScanIngredientButton').addEventListener('click', handleAddScanIngredient);
+  document.getElementById('scanIngredientInput').addEventListener('keydown', handleScanIngredientKeydown);
+  ['foodName', 'notes', 'restaurantName', 'locationName'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.addEventListener('input', markScanDetailsDirty);
+  });
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
@@ -1234,7 +1274,16 @@ function getMealType(meal) {
 }
 
 function notesWithoutMealType(notes) {
-  return removeMealTag(removeMealTag(notes, 'meal_type'), 'ai_insight');
+  return removeMealTag(
+    removeMealTag(
+      removeMealTag(
+        removeMealTag(notes, 'meal_type'),
+        'ai_insight'
+      ),
+      'scan_ingredients'
+    ),
+    'scan_tags'
+  );
 }
 
 function notesWithMealType(notes, mealType, existingNotes = '') {
@@ -1243,10 +1292,25 @@ function notesWithMealType(notes, mealType, existingNotes = '') {
   const encodedInsight = currentScanInsight
     ? encodeMealInsight(currentScanInsight)
     : extractMealTag(existingNotes, 'ai_insight');
+  const savedIngredients = currentScanIngredients.length
+    ? currentScanIngredients
+    : extractDelimitedMealTag(existingNotes, 'scan_ingredients');
+  const savedTags = currentScanTags.length
+    ? currentScanTags
+    : extractDelimitedMealTag(existingNotes, 'scan_tags');
   let value = cleanNotes;
   if (normalizedMealType) value = `${value}${value ? ' ' : ''}[[meal_type:${normalizedMealType}]]`;
   if (encodedInsight) value = `${value}${value ? ' ' : ''}[[ai_insight:${encodedInsight}]]`;
+  if (savedIngredients.length) value = `${value}${value ? ' ' : ''}[[scan_ingredients:${savedIngredients.join('|')}]]`;
+  if (savedTags.length) value = `${value}${value ? ' ' : ''}[[scan_tags:${savedTags.join('|')}]]`;
   return value.trim();
+}
+
+function extractDelimitedMealTag(notes, tag) {
+  return extractMealTag(notes, tag)
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function extractMealTag(notes, tag) {
@@ -1896,6 +1960,144 @@ function updateMealPreview() {
   if (photoUrl) previewPhoto.src = photoUrl;
 }
 
+function normalizeScanLabel(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function titleCaseScanLabel(value) {
+  return normalizeScanLabel(value)
+    .split(' ')
+    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+    .join(' ');
+}
+
+function uniqueScanLabels(values) {
+  const seen = new Set();
+  return values
+    .map((item) => normalizeScanLabel(item))
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (!item || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function deriveQuickTags({ foods = [], ingredients = [], insight = null }) {
+  const haystack = [
+    ...foods.map((item) => item.name || ''),
+    ...ingredients,
+    insight?.summary || '',
+    ...(insight?.highlights || [])
+  ].join(' ').toLowerCase();
+
+  const derived = [];
+  const include = (label, match) => {
+    if (match && !derived.includes(label)) derived.push(label);
+  };
+
+  include('Fried', /fried|karaage|crispy|batter/.test(haystack));
+  include('Grilled', /grilled|charred|bbq/.test(haystack));
+  include('Steamed', /steamed/.test(haystack));
+  include('Baked', /baked/.test(haystack));
+  include('Roasted', /roasted/.test(haystack));
+  include('Stir-fried', /stir[- ]fried|stir fried/.test(haystack));
+  include('Sweet Drink', /latte|coffee|milk tea|tea|smoothie|juice|soda|cola|sweet drink/.test(haystack));
+  include('Dessert', /cake|cookie|dessert|ice cream|pastry|donut/.test(haystack));
+  include('High Protein', /protein|chicken|beef|pork|fish|egg|tofu|tuna|shrimp/.test(haystack));
+  include('High Fiber', /fiber|greens|vegetable|beans|salad|seaweed|fruit|oats/.test(haystack));
+  include('Processed', /sausage|processed|instant|packaged/.test(haystack));
+  include('Creamy', /cream|creamy|mayo|mayonnaise|latte/.test(haystack));
+  include('Saucy', /sauce|dressing|gravy/.test(haystack));
+  include('Plant-based Likely', /tofu|beans|greens|vegetable|fruit|seaweed/.test(haystack) && !/chicken|beef|pork|fish|egg|shrimp/.test(haystack));
+  include('Contains Dairy', /milk|cheese|butter|cream|yogurt|latte/.test(haystack));
+  include('Contains Meat', /chicken|beef|pork|fish|salmon|tuna|shrimp/.test(haystack));
+
+  return uniqueScanLabels(derived);
+}
+
+function resetScanEditor() {
+  currentScanIngredients = [];
+  currentScanTags = [];
+  currentScanConfidence = '';
+  currentScanDirty = false;
+  renderScanEditor();
+}
+
+function renderScanEditor() {
+  const ingredientPanel = document.getElementById('scanIngredientPanel');
+  const rescanPanel = document.getElementById('scanRescanPanel');
+  const ingredientChips = document.getElementById('scanIngredientChips');
+  const tagList = document.getElementById('scanQuickTagList');
+  const confidenceBadge = document.getElementById('scanConfidenceBadge');
+  if (!ingredientPanel || !rescanPanel || !ingredientChips || !tagList || !confidenceBadge) return;
+
+  const hasEditorData = currentScanIngredients.length || currentScanTags.length || currentScanConfidence;
+  ingredientPanel.classList.toggle('hidden', !hasEditorData);
+  rescanPanel.classList.toggle('hidden', !currentScanDirty);
+  confidenceBadge.textContent = currentScanConfidence ? `${currentScanConfidence} confidence` : 'scan ready';
+
+  ingredientChips.innerHTML = currentScanIngredients.map((ingredient) => `
+    <button class="scan-chip scan-chip-active" type="button" data-remove-scan-ingredient="${escapeAttr(ingredient)}">
+      <span>${escapeHtml(ingredient)}</span>
+      <b>×</b>
+    </button>
+  `).join('');
+
+  tagList.innerHTML = scanQuickTagOptions.map((tag) => {
+    const active = currentScanTags.some((item) => item.toLowerCase() === tag.toLowerCase());
+    return `
+      <button class="scan-chip scan-tag-chip ${active ? 'scan-chip-active' : ''}" type="button" data-scan-tag="${escapeAttr(tag)}">
+        ${escapeHtml(tag)}
+      </button>
+    `;
+  }).join('');
+}
+
+function markScanDetailsDirty() {
+  if (!document.getElementById('photoPreview').dataset.photoUrl) return;
+  if (!currentScanInsight && !currentScanIngredients.length && !currentScanTags.length) return;
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function removeScanIngredient(value) {
+  currentScanIngredients = currentScanIngredients.filter((item) => item.toLowerCase() !== String(value || '').toLowerCase());
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function toggleScanTag(value) {
+  const normalized = titleCaseScanLabel(value);
+  const exists = currentScanTags.some((item) => item.toLowerCase() === normalized.toLowerCase());
+  currentScanTags = exists
+    ? currentScanTags.filter((item) => item.toLowerCase() !== normalized.toLowerCase())
+    : [...currentScanTags, normalized];
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function handleAddScanIngredient() {
+  const input = document.getElementById('scanIngredientInput');
+  const value = titleCaseScanLabel(input.value);
+  if (!value) return;
+  currentScanIngredients = uniqueScanLabels([...currentScanIngredients, value]).map(titleCaseScanLabel);
+  input.value = '';
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function handleScanIngredientKeydown(event) {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  handleAddScanIngredient();
+}
+
+async function handleRescanFoodDetails() {
+  currentScanDirty = false;
+  await applyAiCalorieEstimate();
+}
+
 async function handlePhotoChange(event) {
   const file = event.target.files?.[0];
   if (!file) {
@@ -1917,6 +2119,7 @@ async function handlePhotoChange(event) {
   document.getElementById('foodName').value = '';
   document.getElementById('calories').value = '';
   currentScanInsight = null;
+  resetScanEditor();
   renderScanInsight(null);
   updateMealPreview();
 
@@ -1954,6 +2157,7 @@ function resetPhotoPreview() {
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
   estimateStatus.textContent = 'Add a photo and AI will estimate the visible food, calories, and nutrient insight.';
   currentScanInsight = null;
+  resetScanEditor();
   renderScanInsight(null);
 }
 
@@ -1980,6 +2184,11 @@ async function applyAiCalorieEstimate() {
       body: JSON.stringify({
         image_url: photoUrl,
         food_name: document.getElementById('foodName').value.trim(),
+        notes: document.getElementById('notes').value.trim(),
+        restaurant_name: document.getElementById('restaurantName').value.trim(),
+        location_name: document.getElementById('locationName').value.trim(),
+        likely_ingredients: currentScanIngredients,
+        quick_tags: currentScanTags,
         portion_size: 'regular'
       })
     });
@@ -1996,6 +2205,22 @@ async function applyAiCalorieEstimate() {
       foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
     }
     currentScanInsight = normalizeScanInsight(estimate.insight);
+    currentScanIngredients = uniqueScanLabels([
+      ...(estimate.likely_ingredients || []),
+      ...(estimate.foods || []).map((food) => food.name)
+    ]).map(titleCaseScanLabel);
+    currentScanTags = uniqueScanLabels(
+      (estimate.quick_tags || []).length
+        ? estimate.quick_tags
+        : deriveQuickTags({
+            foods: estimate.foods || [],
+            ingredients: currentScanIngredients,
+            insight: currentScanInsight
+          })
+    ).map(titleCaseScanLabel);
+    currentScanConfidence = String(estimate.confidence || '').toLowerCase();
+    currentScanDirty = false;
+    renderScanEditor();
     renderScanInsight(currentScanInsight);
     const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
     status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
@@ -2004,6 +2229,7 @@ async function applyAiCalorieEstimate() {
     updateMealPreview();
   } catch (error) {
     currentScanInsight = null;
+    resetScanEditor();
     renderScanInsight(null);
     status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
     status.classList.add('estimate-error');

@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260719a" />
-  <link rel="stylesheet" href="simple-landing.css?v=20260719a" />
+  <link rel="stylesheet" href="style.css?v=20260720-scan-details1" />
+  <link rel="stylesheet" href="simple-landing.css?v=20260720-scan-details1" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -327,6 +327,31 @@
                 <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Insight</button>
                 <small id="calorieEstimate">Add a photo and AI will estimate the visible food, calories, and nutrient insight.</small>
               </div>
+              <section id="scanRescanPanel" class="scan-editor-panel scan-rescan-panel wide hidden" aria-live="polite">
+                <button id="rescanFoodDetails" class="scan-rescan-button" type="button">✨ Rescan Food Details</button>
+                <p>Details changed. Rescan if you want AI to refine the calories with your updated ingredients and notes.</p>
+              </section>
+              <section id="scanIngredientPanel" class="scan-editor-panel scan-ingredient-panel wide hidden" aria-live="polite">
+                <div class="scan-panel-header">
+                  <div>
+                    <h3>Likely ingredients</h3>
+                    <p>Confirm or edit what AI found before you save this scan.</p>
+                  </div>
+                  <span id="scanConfidenceBadge" class="scan-confidence-badge">high confidence</span>
+                </div>
+                <div id="scanIngredientChips" class="scan-chip-grid"></div>
+                <div class="scan-ingredient-add-row">
+                  <input id="scanIngredientInput" type="text" placeholder="Add an ingredient" autocomplete="off">
+                  <button id="addScanIngredientButton" class="scan-add-button" type="button">Add</button>
+                </div>
+                <div class="scan-panel-header scan-panel-header-tags">
+                  <div>
+                    <h3>Quick tags</h3>
+                  </div>
+                  <p>Tap to keep or remove these labels.</p>
+                </div>
+                <div id="scanQuickTagList" class="scan-chip-grid scan-tag-grid"></div>
+              </section>
               <section id="mealInsightSection" class="insight-panel scan-insight-panel wide hidden" aria-live="polite">
                 <div class="section-title scan-insight-header">
                   <div>
@@ -605,8 +630,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260720-ui-restore1"></script>
-  <script src="app.js?v=20260720-ui-restore1"></script>
+  <script src="supabase.js?v=20260720-scan-details1"></script>
+  <script src="app.js?v=20260720-scan-details1"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">
