@@ -11,18 +11,14 @@
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
   const client = isConfigured ? window.supabase.createClient(url, anonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit',
-    storage: window.localStorage
-  }
-}) : null;
-
-  function authRedirectUrl() {
-  return 'https://familytaste.netlify.app/';
-  }
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'implicit',
+      storage: window.localStorage
+    }
+  }) : null;
 
   function authRedirectUrl() {
     return `${window.location.origin}${window.location.pathname}`;
@@ -42,23 +38,36 @@
       role: normalizedRole,
       member_id: record.member_id || null,
       email: record.email || '',
-      status: record.status || 'active',
-      families: record.families || null
+      status: record.status || 'active'
     };
+  }
+
+  async function fetchFamilyName(familyId) {
+    if (!familyId) return fallbackFamilyName;
+    const { data, error } = await client
+      .from('families')
+      .select('name')
+      .eq('id', familyId)
+      .maybeSingle();
+    if (error) {
+      console.warn('Could not load family name.', error);
+      return fallbackFamilyName;
+    }
+    return data?.name || fallbackFamilyName;
   }
 
   async function fetchMembershipForUser(userId) {
     const membershipQueries = [
       () => client
         .from('family_memberships')
-        .select('id, family_id, role, email, status, families(name)')
+        .select('id, family_id, role, email, status')
         .eq('user_id', userId)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
         .limit(1),
       () => client
         .from('family_users')
-        .select('id, family_id, role, member_id, email, families(name)')
+        .select('id, family_id, role, member_id, email')
         .eq('user_id', userId)
         .order('created_at', { ascending: true })
         .limit(1)
@@ -102,40 +111,53 @@
       family_id: createdFamily.id,
       user_id: user.id,
       email: user.email || null,
-      role: 'admin',
-      member_id: null
+      role: 'owner',
+      status: 'active'
     };
     const { data: createdMembership, error: membershipError } = await client
-      .from('family_users')
+      .from('family_memberships')
       .insert(membershipPayload)
-      .select('id, family_id, role, member_id, email')
+      .select('id, family_id, role, email, status')
       .single();
-    if (membershipError) throw membershipError;
-
-    const { data: createdMember, error: memberError } = await client
-      .from('members')
-      .insert({
+    if (membershipError) {
+      const fallbackPayload = {
         family_id: createdFamily.id,
-        name: memberName,
-        avatar: '👤',
-        role: 'Family Admin'
-      })
-      .select()
-      .single();
-    if (memberError) throw memberError;
+        user_id: user.id,
+        email: user.email || null,
+        role: 'admin',
+        member_id: null
+      };
+      const { data: fallbackMembership, error: fallbackError } = await client
+        .from('family_users')
+        .insert(fallbackPayload)
+        .select('id, family_id, role, member_id, email')
+        .single();
+      if (fallbackError) throw fallbackError;
 
-    const { data: linkedMembership, error: linkedMembershipError } = await client
-      .from('family_users')
-      .update({ member_id: createdMember.id })
-      .eq('id', createdMembership.id)
-      .select('id, family_id, role, member_id, email')
-      .single();
-    if (linkedMembershipError) throw linkedMembershipError;
+      const { data: createdMember, error: memberError } = await client
+        .from('members')
+        .insert({
+          family_id: createdFamily.id,
+          name: memberName,
+          avatar: '👤',
+          role: 'Family Admin'
+        })
+        .select()
+        .single();
+      if (memberError) throw memberError;
 
-    return {
-      ...linkedMembership,
-      families: { name: createdFamily.name }
-    };
+      const { data: linkedMembership, error: linkedMembershipError } = await client
+        .from('family_users')
+        .update({ member_id: createdMember.id })
+        .eq('id', fallbackMembership.id)
+        .select('id, family_id, role, member_id, email')
+        .single();
+      if (linkedMembershipError) throw linkedMembershipError;
+
+      return normalizeMembershipRecord(linkedMembership);
+    }
+
+    return normalizeMembershipRecord(createdMembership);
   }
 
   window.familyBitesDb = {
@@ -202,13 +224,14 @@
       }
 
       this.familyId = membership.family_id;
+      const familyName = await fetchFamilyName(membership.family_id);
       this.authContext = {
         user,
         familyId: membership.family_id,
         role: membership.role || 'member',
         memberId: membership.member_id || null,
         email: user.email || membership.email || '',
-        familyName: membership.families?.name || fallbackFamilyName
+        familyName
       };
       return this.authContext;
     },
