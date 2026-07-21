@@ -302,6 +302,32 @@ function bindEvents() {
     }
   });
 
+  document.addEventListener('mouseover', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (impactCard) setActiveBodyImpactPart(impactCard.dataset.position, impactCard.dataset.part);
+  });
+
+  document.addEventListener('mouseout', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (!impactCard) return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && impactCard.contains(nextTarget)) return;
+    clearActiveBodyImpactPart();
+  });
+
+  document.addEventListener('focusin', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (impactCard) setActiveBodyImpactPart(impactCard.dataset.position, impactCard.dataset.part);
+  });
+
+  document.addEventListener('focusout', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (!impactCard) return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && impactCard.contains(nextTarget)) return;
+    clearActiveBodyImpactPart();
+  });
+
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
   document.getElementById('chatForm').addEventListener('submit', sendChat);
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
@@ -758,28 +784,7 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   renderDashboardNutrition(todayMeals, calories);
 
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
-  const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position, foods]) => `
-    
-    <article
-  class="impact-callout impact-${position}"
-  data-part="${escapeAttr(name)}"
-  data-score="${score}"
-  data-copy="${escapeAttr(copy)}"
-  tabindex="0"
->
-  
-      <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
-      <span class="impact-callout-status ${escapeAttr(impactStatusTone(score))}">${escapeHtml(impactStatusLabel(score))}</span>
-      <strong>${score}%</strong>
-      ${foods.length ? `<div class="impact-food-mini-list">${foods.map((food) => `
-        <div class="impact-food-mini">
-          <span class="impact-food-mini-name">${escapeHtml(food.name)}</span>
-          <span class="impact-food-mini-score meal-score-${escapeAttr(mealScoreTone(food.score))}">${food.score.toFixed(1)}</span>
-        </div>
-      `).join('')}</div>` : ''}
-      <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
-    </article>`).join('');
+  renderBodyImpactCards(impacts);
   queueBodyImpactSnapshotSave({
     totalCalories: calories,
     bodyHealthScore: health,
@@ -817,6 +822,60 @@ function renderDashboardNutrition(todayMeals, calories) {
   const mineralList = document.getElementById('dashboardMineralList');
   if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
   if (mineralList) mineralList.innerHTML = renderDashboardNutrientItems(dailyInsight.minerals, 'No mineral estimates yet.');
+}
+
+function renderBodyImpactCards(impacts) {
+  const leftColumn = document.getElementById('bodyImpactLeft');
+  const rightColumn = document.getElementById('bodyImpactRight');
+  if (!leftColumn || !rightColumn) return;
+
+  const midpoint = Math.ceil(impacts.length / 2);
+  const leftItems = impacts.slice(0, midpoint);
+  const rightItems = impacts.slice(midpoint);
+
+  leftColumn.innerHTML = leftItems.map(renderBodyImpactCard).join('');
+  rightColumn.innerHTML = rightItems.map(renderBodyImpactCard).join('');
+}
+
+function renderBodyImpactCard([name, score, icon, copy, position, foods]) {
+  return `
+    <article
+      class="impact-callout impact-${position}"
+      data-part="${escapeAttr(name)}"
+      data-position="${escapeAttr(position)}"
+      data-score="${score}"
+      data-copy="${escapeAttr(copy)}"
+      tabindex="0"
+    >
+      <div class="impact-callout-top">
+        <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
+        <strong>${score}%</strong>
+      </div>
+      <span class="impact-callout-status ${escapeAttr(impactStatusTone(score))}">${escapeHtml(impactStatusLabel(score))}</span>
+    </article>
+  `;
+}
+
+function setActiveBodyImpactPart(position, partName) {
+  const figure = document.getElementById('humanFigure');
+  const label = document.getElementById('bodyImpactActiveLabel');
+  if (!figure) return;
+  figure.dataset.activePart = String(position || '').trim().toLowerCase();
+  if (label) {
+    label.textContent = partName || 'Body system';
+    label.classList.add('is-visible');
+  }
+}
+
+function clearActiveBodyImpactPart() {
+  const figure = document.getElementById('humanFigure');
+  const label = document.getElementById('bodyImpactActiveLabel');
+  if (!figure) return;
+  delete figure.dataset.activePart;
+  if (label) {
+    label.textContent = 'Body system';
+    label.classList.remove('is-visible');
+  }
 }
 
 function estimateMealMacros(todayMeals, calories) {
