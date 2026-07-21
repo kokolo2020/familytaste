@@ -160,6 +160,72 @@
     return normalizeMembershipRecord(createdMembership);
   }
 
+  async function ensureLegacyFamilyUser(user, membership) {
+    if (!client || !user?.id || !membership?.family_id) return membership;
+
+    const normalizedRole = membership.role === 'admin' ? 'admin' : 'member';
+    const selectExisting = async () => {
+      const { data, error } = await client
+        .from('family_users')
+        .select('id, family_id, role, member_id, email')
+        .eq('family_id', membership.family_id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1);
+      if (error) {
+        const message = String(error.message || '').toLowerCase();
+        const safeToSkip = error.code === 'PGRST205'
+          || message.includes('relation')
+          || message.includes('does not exist')
+          || message.includes('schema cache');
+        if (safeToSkip) return null;
+        throw error;
+      }
+      return data?.[0] || null;
+    };
+
+    const existing = await selectExisting();
+    if (existing) {
+      return {
+        ...membership,
+        member_id: membership.member_id || existing.member_id || null,
+        email: membership.email || existing.email || user.email || ''
+      };
+    }
+
+    const payload = {
+      family_id: membership.family_id,
+      user_id: user.id,
+      member_id: membership.member_id || null,
+      email: membership.email || user.email || null,
+      role: normalizedRole
+    };
+    const { data, error } = await client
+      .from('family_users')
+      .insert(payload)
+      .select('id, family_id, role, member_id, email')
+      .single();
+    if (error) {
+      const duplicate = error.code === '23505' || String(error.message || '').toLowerCase().includes('duplicate');
+      if (!duplicate) throw error;
+      const retry = await selectExisting();
+      if (retry) {
+        return {
+          ...membership,
+          member_id: membership.member_id || retry.member_id || null,
+          email: membership.email || retry.email || user.email || ''
+        };
+      }
+      throw error;
+    }
+
+    return {
+      ...membership,
+      member_id: membership.member_id || data?.member_id || null,
+      email: membership.email || data?.email || user.email || ''
+    };
+  }
+
   window.familyBitesDb = {
     client,
     familyId: null,
@@ -209,6 +275,7 @@
 
       let membership = await fetchMembershipForUser(user.id);
       if (!membership) membership = await bootstrapFirstFamily(this, user);
+      if (membership) membership = await ensureLegacyFamilyUser(user, membership);
 
       if (!membership) {
         this.familyId = null;
