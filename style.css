@@ -462,6 +462,131 @@
   .macro-list > div { grid-template-columns: 72px 1fr 26px; gap: 5px; }
 }
 
+/* Final dashboard cleanup */
+body.dashboard-mode .app-header {
+  display: none;
+}
+
+#page-dashboard .dashboard-intro {
+  align-items: flex-start;
+  margin: 0;
+  padding: 4px 2px 2px;
+}
+
+#page-dashboard .dashboard-intro-copy {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+#page-dashboard .dashboard-intro-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#page-dashboard .dashboard-intro .eyebrow {
+  margin: 0;
+  color: #e85d14;
+  font-size: 14px;
+  text-transform: none;
+}
+
+#page-dashboard .dashboard-profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+#page-dashboard .dashboard-profile-chip img,
+#page-dashboard .dashboard-profile-chip .avatar-circle {
+  width: 24px;
+  height: 24px;
+}
+
+#page-dashboard .dashboard-date-line {
+  margin: 0;
+  color: #8b7a6b;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#page-dashboard .daily-summary {
+  display: none !important;
+}
+
+#page-dashboard .dashboard-nutrient-columns-full .dashboard-nutrient-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#page-dashboard .dashboard-nutrient-item.is-missing {
+  background: #fcf8f2;
+  opacity: .92;
+}
+
+@media (min-width: 761px) {
+  body.dashboard-mode .content-shell {
+    padding-top: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  #page-dashboard .dashboard-intro {
+    padding: 2px 0;
+  }
+
+  #page-dashboard .dashboard-intro-topline {
+    align-items: center;
+    gap: 8px;
+  }
+
+  #page-dashboard .dashboard-intro .eyebrow {
+    font-size: 11px;
+  }
+
+  #page-dashboard .dashboard-profile-chip {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  #page-dashboard .dashboard-profile-chip img,
+  #page-dashboard .dashboard-profile-chip .avatar-circle {
+    width: 18px;
+    height: 18px;
+  }
+
+  #page-dashboard .dashboard-date-line {
+    font-size: 11px;
+  }
+
+  #page-dashboard .dashboard-nutrient-columns,
+  #page-dashboard .dashboard-nutrient-columns-full {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #page-dashboard .dashboard-nutrient-columns-full .dashboard-nutrient-list {
+    grid-template-columns: 1fr;
+  }
+
+  #page-dashboard .dashboard-nutrient-item {
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  #page-dashboard .dashboard-nutrient-item strong {
+    font-size: 9px;
+  }
+
+  #page-dashboard .dashboard-nutrient-item small {
+    margin-top: 3px;
+    font-size: 7px;
+  }
+}
+
 /* Final body-impact override */
 #page-dashboard .body-impact-panel .panel-subtitle {
   margin: 0 0 10px !important;

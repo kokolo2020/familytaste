@@ -587,6 +587,7 @@ function showPage(pageName) {
   if (!appState.currentMember) return;
 
   appState.currentPage = pageName;
+  document.body.classList.toggle('dashboard-mode', pageName === 'dashboard');
   document.querySelectorAll('.page').forEach((page) => page.classList.remove('active-page'));
   const page = document.getElementById(`page-${pageName}`);
   if (page) page.classList.add('active-page');
@@ -630,9 +631,12 @@ function renderDashboard() {
   const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
   const goal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
   const progress = Math.min(Math.round((calories / goal) * 100), 100);
-
-  document.getElementById('dashboardMealCount').textContent = `${todayMeals.length} meal${todayMeals.length === 1 ? '' : 's'}`;
-  document.getElementById('dashboardCalorieCount').textContent = `${calories.toLocaleString()} cal`;
+  const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+  setText('dashboardDateLine', dateLabel);
+  const dashboardProfileBadge = document.getElementById('dashboardProfileBadge');
+  if (dashboardProfileBadge && appState.currentMember) {
+    dashboardProfileBadge.innerHTML = `${avatarMarkup(appState.currentMember)} <span>${escapeHtml(appState.currentMember.name)}</span>`;
+  }
 
   document.getElementById('todayCalories').textContent = calories.toLocaleString();
   document.getElementById('todayMeals').textContent = todayMeals.length.toString();
@@ -732,33 +736,102 @@ async function shareFoodStory() {
     return;
   }
 
-  const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
-  const calorieGoal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
-  const calories = sum(todayMeals, 'calories');
   const shareTitle = `${appState.currentMember?.name || 'My'} food story`;
-  const shareText = buildShareableFoodStory(todayMeals, calories, calorieGoal);
+  const card = document.querySelector('.food-story-panel');
+  if (!card) {
+    alert('Food story card is not ready to share yet.');
+    return;
+  }
 
   try {
+    const blob = await createCardSnapshotBlob(card);
+    const file = new File([blob], 'food-story.png', { type: 'image/png' });
     if (navigator.share) {
-      await navigator.share({
-        title: shareTitle,
-        text: shareText,
-        url: window.location.href
-      });
-      return;
+      const sharePayload = { title: shareTitle, files: [file] };
+      if (!navigator.canShare || navigator.canShare(sharePayload)) {
+        await navigator.share(sharePayload);
+        return;
+      }
     }
 
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
-      alert('Food story copied. You can paste it anywhere to share.');
-      return;
-    }
+    downloadBlob(file, file.name);
+    alert('Food story snapshot downloaded. You can share the image from your device.');
+    return;
   } catch (error) {
     if (error?.name === 'AbortError') return;
     console.warn('Food story share failed.', error);
   }
 
   alert('Sharing is not available in this browser right now.');
+}
+
+async function createCardSnapshotBlob(element) {
+  const rect = element.getBoundingClientRect();
+  const width = Math.max(1, Math.ceil(rect.width));
+  const height = Math.max(1, Math.ceil(rect.height));
+  const clone = element.cloneNode(true);
+  inlineSnapshotStyles(element, clone);
+  const shareButton = clone.querySelector('#shareFoodStoryButton');
+  if (shareButton) shareButton.remove();
+
+  const wrapper = document.createElement('div');
+  wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+  wrapper.style.width = `${width}px`;
+  wrapper.style.height = `${height}px`;
+  wrapper.style.background = '#fff7eb';
+  wrapper.appendChild(clone);
+
+  const serialized = new XMLSerializer().serializeToString(wrapper);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <foreignObject width="100%" height="100%">${serialized}</foreignObject>
+    </svg>
+  `;
+  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = width * 2;
+      canvas.height = height * 2;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        reject(new Error('Canvas is unavailable.'));
+        return;
+      }
+      context.scale(2, 2);
+      context.fillStyle = '#fff7eb';
+      context.fillRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Could not create image blob.'));
+      }, 'image/png');
+    };
+    image.onerror = () => reject(new Error('Could not render food story snapshot.'));
+    image.src = dataUrl;
+  });
+}
+
+function inlineSnapshotStyles(sourceNode, targetNode) {
+  if (!(sourceNode instanceof Element) || !(targetNode instanceof Element)) return;
+  const computed = getComputedStyle(sourceNode);
+  targetNode.setAttribute('style', computed.cssText || Array.from(computed).map((prop) => `${prop}:${computed.getPropertyValue(prop)};`).join(''));
+  Array.from(sourceNode.children).forEach((child, index) => {
+    inlineSnapshotStyles(child, targetNode.children[index]);
+  });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function buildShareableFoodStory(todayMeals, calories, calorieGoal) {
@@ -1002,6 +1075,34 @@ function estimateMealMacroShare(meal) {
 }
 
 function aggregateDailyScanInsight(todayMeals) {
+  const vitaminCatalog = [
+    ['vitamin a', 'Vitamin A'],
+    ['vitamin b1', 'Vitamin B1 (Thiamin)'],
+    ['vitamin b2', 'Vitamin B2 (Riboflavin)'],
+    ['vitamin b3', 'Vitamin B3 (Niacin)'],
+    ['vitamin b5', 'Vitamin B5 (Pantothenic Acid)'],
+    ['vitamin b6', 'Vitamin B6'],
+    ['vitamin b7', 'Vitamin B7 (Biotin)'],
+    ['folate', 'Folate (Vitamin B9)'],
+    ['folate (vitamin b9)', 'Folate (Vitamin B9)'],
+    ['vitamin b9', 'Folate (Vitamin B9)'],
+    ['vitamin b12', 'Vitamin B12'],
+    ['vitamin c', 'Vitamin C'],
+    ['vitamin d', 'Vitamin D'],
+    ['vitamin e', 'Vitamin E'],
+    ['vitamin k', 'Vitamin K']
+  ];
+  const mineralCatalog = [
+    ['calcium', 'Calcium'],
+    ['iron', 'Iron'],
+    ['magnesium', 'Magnesium'],
+    ['potassium', 'Potassium'],
+    ['zinc', 'Zinc'],
+    ['selenium', 'Selenium'],
+    ['phosphorus', 'Phosphorus'],
+    ['iodine', 'Iodine'],
+    ['sodium', 'Sodium']
+  ];
   const nutrientBuckets = {
     vitamins: new Map(),
     minerals: new Map()
@@ -1031,33 +1132,56 @@ function aggregateDailyScanInsight(todayMeals) {
     });
   });
 
-  const sortItems = (map) => Array.from(map.values())
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 4);
+  const buildCatalogItems = (map, catalog) => {
+    const remaining = new Map(map);
+    const items = [];
+
+    catalog.forEach(([key, label]) => {
+      const match = remaining.get(key);
+      if (match) {
+        items.push({ ...match, name: label, missing: false });
+        remaining.delete(key);
+      } else {
+        items.push({
+          name: label,
+          amount: '',
+          benefit: 'No estimate yet from today’s scans.',
+          count: 0,
+          missing: true
+        });
+      }
+    });
+
+    Array.from(remaining.values())
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .forEach((item) => items.push({ ...item, missing: false }));
+
+    return items;
+  };
 
   if (!mealsWithInsight) {
     return {
       summary: 'Scan a meal photo to unlock today’s vitamin and mineral estimate on the dashboard.',
-      vitamins: [],
-      minerals: []
+      vitamins: buildCatalogItems(new Map(), vitaminCatalog),
+      minerals: buildCatalogItems(new Map(), mineralCatalog)
     };
   }
 
   return {
     summary: mealsWithInsight === 1
       ? (summarySource || 'Today’s scan suggests a useful mix of vitamins and minerals.')
-      : `Combined from ${mealsWithInsight} scanned meals today. Vitamins and minerals below are the strongest repeated estimates.`,
-    vitamins: sortItems(nutrientBuckets.vitamins),
-    minerals: sortItems(nutrientBuckets.minerals)
+      : `Combined from ${mealsWithInsight} scanned meals today. The breakdown below brings together the strongest estimated vitamins and minerals from your saved scans.`,
+    vitamins: buildCatalogItems(nutrientBuckets.vitamins, vitaminCatalog),
+    minerals: buildCatalogItems(nutrientBuckets.minerals, mineralCatalog)
   };
 }
 
 function renderDashboardNutrientItems(items, emptyMessage) {
   if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
   return items.map((item) => `
-    <article class="dashboard-nutrient-item">
+    <article class="dashboard-nutrient-item${item.missing ? ' is-missing' : ''}">
       <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+      <small>${escapeHtml(item.benefit || (item.missing ? 'No estimate yet from today’s scans.' : 'Estimated from today’s scanned meals.'))}</small>
     </article>
   `).join('');
 }
@@ -2651,8 +2775,8 @@ function normalizeScanInsight(insight, options = {}) {
       fiber_g: Math.max(0, Math.round(Number(insight.macros?.fiber_g) || 0)),
       sugar_g: Math.max(0, Math.round(Number(insight.macros?.sugar_g) || 0))
     },
-    vitamins: Array.isArray(insight.vitamins) ? insight.vitamins.slice(0, 4).map(normalizeMicronutrient) : [],
-    minerals: Array.isArray(insight.minerals) ? insight.minerals.slice(0, 4).map(normalizeMicronutrient) : [],
+    vitamins: Array.isArray(insight.vitamins) ? insight.vitamins.map(normalizeMicronutrient) : [],
+    minerals: Array.isArray(insight.minerals) ? insight.minerals.map(normalizeMicronutrient) : [],
     estimated_weight_g: estimatedWeightGrams,
     applied_weight_g: appliedWeightGrams,
     user_weight_g: usedUserWeight ? appliedWeightGrams : null,
