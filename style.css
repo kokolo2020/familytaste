@@ -459,6 +459,163 @@
   .macro-list > div { grid-template-columns: 72px 1fr 26px; gap: 5px; }
 }
 
+/* Final body-impact override */
+#page-dashboard .body-impact-panel .panel-subtitle {
+  margin: 0 0 10px !important;
+}
+
+#page-dashboard .body-impact-panel .body-analysis-label {
+  margin: 0 0 14px !important;
+}
+
+#page-dashboard .body-impact-panel .body-impact-content {
+  display: grid !important;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 240px) minmax(180px, 1fr) !important;
+  align-items: start !important;
+  gap: 16px !important;
+  min-height: auto !important;
+}
+
+#page-dashboard .body-impact-panel .impact-column {
+  display: grid !important;
+  gap: 10px !important;
+  align-self: start !important;
+}
+
+#page-dashboard .body-impact-panel .human-figure {
+  position: sticky !important;
+  top: 18px;
+  inset: auto !important;
+  min-height: 0 !important;
+  padding: 6px 0 48px !important;
+  align-self: start !important;
+  justify-self: center !important;
+  width: 100% !important;
+  max-width: 240px !important;
+  border-radius: 48px !important;
+  background: radial-gradient(circle, rgba(255, 224, 190, .28), transparent 70%) !important;
+}
+
+#page-dashboard .body-impact-panel .human-figure img {
+  width: 100% !important;
+  max-width: 210px !important;
+  max-height: 470px !important;
+  object-fit: contain !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  min-height: 0 !important;
+  padding: 12px 13px !important;
+  border-radius: 14px !important;
+  background: rgba(255, 253, 249, .98) !important;
+  box-shadow: 0 8px 18px rgba(76, 42, 18, .05) !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout::after {
+  display: none !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout-top {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout-title {
+  display: block !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout strong {
+  display: block !important;
+  margin: 0 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  flex: 0 0 auto !important;
+}
+
+#page-dashboard .body-impact-panel .impact-callout-status {
+  margin: 8px 0 0 !important;
+  font-size: 9px !important;
+}
+
+#page-dashboard .body-impact-panel .body-impact-active-label {
+  bottom: 0 !important;
+}
+
+#page-dashboard .body-impact-panel .body-impact-note {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 1000px) {
+  #page-dashboard .body-impact-panel .body-impact-content {
+    grid-template-columns: minmax(150px, 1fr) minmax(150px, 210px) minmax(150px, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  #page-dashboard .body-impact-panel .human-figure img {
+    max-width: 180px !important;
+    max-height: 380px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-callout-title {
+    font-size: 13px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-callout strong {
+    font-size: 17px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #page-dashboard .body-impact-panel .body-impact-content {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  #page-dashboard .body-impact-panel .human-figure {
+    position: relative !important;
+    top: auto !important;
+    order: 1 !important;
+    max-width: 180px !important;
+    padding: 0 0 42px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-column-left {
+    order: 2 !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-column-right {
+    order: 3 !important;
+  }
+
+  #page-dashboard .body-impact-panel .human-figure img {
+    max-width: 160px !important;
+    max-height: 280px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-column {
+    gap: 8px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-callout {
+    padding: 11px 12px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-callout-title {
+    font-size: 13px !important;
+  }
+
+  #page-dashboard .body-impact-panel .impact-callout strong {
+    font-size: 16px !important;
+  }
+}
+
 * { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
