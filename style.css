@@ -2230,8 +2230,87 @@ h1 span {
   width: 100%;
   max-width: 225px;
   max-height: 520px;
-  opacity: .96;
-  filter: drop-shadow(0 16px 24px rgba(142, 75, 33, .12));
+  opacity: .92;
+  filter: saturate(.88) drop-shadow(0 16px 24px rgba(142, 75, 33, .12));
+  transition: opacity .24s ease, filter .24s ease;
+}
+
+#page-dashboard .human-figure:hover img,
+#page-dashboard .human-figure[data-active-part] img {
+  opacity: 1;
+  filter: saturate(1) drop-shadow(0 18px 26px rgba(142, 75, 33, .14));
+}
+
+#page-dashboard .body-clothing-layer {
+  position: absolute;
+  inset: 18px 14% 42px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#page-dashboard .body-clothing {
+  position: absolute;
+  background: linear-gradient(180deg, rgba(246, 153, 77, .92), rgba(226, 104, 42, .96));
+  box-shadow: 0 10px 18px rgba(132, 62, 24, .16);
+  transition: opacity .22s ease, transform .22s ease, filter .22s ease;
+}
+
+#page-dashboard .body-clothing-shirt {
+  top: 10%;
+  left: 27%;
+  width: 46%;
+  height: 22%;
+  border-radius: 28px 28px 16px 16px;
+}
+
+#page-dashboard .body-clothing-sleeve {
+  top: 13%;
+  width: 14%;
+  height: 18%;
+  border-radius: 18px;
+}
+
+#page-dashboard .body-clothing-sleeve-left {
+  left: 16%;
+  transform: rotate(18deg);
+}
+
+#page-dashboard .body-clothing-sleeve-right {
+  right: 16%;
+  transform: rotate(-18deg);
+}
+
+#page-dashboard .body-clothing-pants {
+  top: 30%;
+  left: 32%;
+  width: 36%;
+  height: 42%;
+  border-radius: 18px 18px 26px 26px;
+  background: linear-gradient(180deg, rgba(67, 84, 94, .92), rgba(45, 58, 68, .98));
+}
+
+#page-dashboard .body-clothing-shoe {
+  bottom: 0;
+  width: 15%;
+  height: 4.5%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(238, 242, 247, .96), rgba(213, 220, 229, .98));
+  box-shadow: 0 8px 14px rgba(98, 112, 124, .14);
+}
+
+#page-dashboard .body-clothing-shoe-left {
+  left: 31%;
+}
+
+#page-dashboard .body-clothing-shoe-right {
+  right: 31%;
+}
+
+#page-dashboard .human-figure:hover .body-clothing,
+#page-dashboard .human-figure[data-active-part] .body-clothing {
+  opacity: .04;
+  transform: scale(.985);
+  filter: blur(1px);
 }
 
 #page-dashboard .body-highlight-layer {
@@ -2271,6 +2350,7 @@ h1 span {
   position: absolute;
   opacity: 0;
   transform: scale(.92);
+  z-index: 1;
   transition: opacity .2s ease, transform .2s ease, box-shadow .2s ease;
   border-radius: 999px;
   filter: blur(6px);
