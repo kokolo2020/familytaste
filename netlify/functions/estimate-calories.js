@@ -28,6 +28,9 @@ exports.handler = async (event) => {
       ? body.quick_tags.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 12)
       : [];
     const portion = ['small', 'regular', 'large'].includes(body.portion_size) ? body.portion_size : 'regular';
+    const userWeightGrams = Number.isFinite(Number(body.weight_grams)) && Number(body.weight_grams) > 0
+      ? Math.round(Number(body.weight_grams))
+      : null;
     const response = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
@@ -41,7 +44,7 @@ exports.handler = async (event) => {
           content: [
             {
               type: 'input_text',
-              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Notes: ${notes || 'none'}. Restaurant: ${restaurant || 'none'}. Location: ${location || 'none'}. User-edited likely ingredients: ${ingredientHints.join(', ') || 'none'}. User-selected quick tags: ${quickTags.join(', ') || 'none'}. Portion selected by user: ${portion}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. Also estimate likely macros plus the most relevant vitamins and minerals for this dish, plus a short list of likely ingredients and useful quick tags for the scan editor. This is a nutrition estimate, not medical advice.`
+              text: `Estimate calories in this food photo. Food hint: ${hint || 'none'}. Notes: ${notes || 'none'}. Restaurant: ${restaurant || 'none'}. Location: ${location || 'none'}. User-edited likely ingredients: ${ingredientHints.join(', ') || 'none'}. User-selected quick tags: ${quickTags.join(', ') || 'none'}. Portion selected by user: ${portion}. User-entered total food weight in grams: ${userWeightGrams || 'none'}. Identify visible foods, estimate realistic portions, include likely cooking oil or sauce when visible, and state uncertainty. If a user-entered weight is provided, treat it as a strong constraint for the total edible portion and rescale calories, macros, vitamins, and minerals around that weight without changing the dish identity unless the photo clearly contradicts it. Return both your own estimated total weight and the final applied weight used for the nutrition estimate. Also estimate likely macros plus the most relevant vitamins and minerals for this dish, plus a short list of likely ingredients and useful quick tags for the scan editor. This is a nutrition estimate, not medical advice.`
             },
             { type: 'input_image', image_url: imageUrl }
           ]
@@ -81,6 +84,19 @@ exports.handler = async (event) => {
                   maxItems: 8,
                   items: { type: 'string' }
                 },
+                estimated_weight_grams: {
+                  anyOf: [
+                    { type: 'integer', minimum: 0, maximum: 5000 },
+                    { type: 'null' }
+                  ]
+                },
+                applied_weight_grams: {
+                  anyOf: [
+                    { type: 'integer', minimum: 0, maximum: 5000 },
+                    { type: 'null' }
+                  ]
+                },
+                used_user_weight: { type: 'boolean' },
                 insight: {
                   type: 'object',
                   additionalProperties: false,
@@ -131,7 +147,7 @@ exports.handler = async (event) => {
                   required: ['summary', 'highlights', 'macros', 'vitamins', 'minerals']
                 }
               },
-              required: ['foods', 'total_calories', 'confidence', 'note', 'likely_ingredients', 'quick_tags', 'insight']
+              required: ['foods', 'total_calories', 'confidence', 'note', 'likely_ingredients', 'quick_tags', 'estimated_weight_grams', 'applied_weight_grams', 'used_user_weight', 'insight']
             }
           }
         }

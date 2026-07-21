@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260720-food-columns1" />
-  <link rel="stylesheet" href="simple-landing.css?v=20260720-food-columns1" />
+  <link rel="stylesheet" href="style.css?v=20260721-grams1" />
+  <link rel="stylesheet" href="simple-landing.css?v=20260721-grams1" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -138,6 +138,37 @@
                 </div>
                 <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
               </div>
+
+              <section class="food-story-panel dashboard-card">
+                <div class="food-story-header">
+                  <div>
+                    <p class="eyebrow">Daily food brief</p>
+                    <h3>Today’s food story</h3>
+                    <p id="foodStoryDate" class="food-story-date">Today · 0 dishes logged</p>
+                  </div>
+                </div>
+                <div class="food-story-layout">
+                  <div class="food-story-donut-card">
+                    <div id="foodStoryDonut" class="food-story-donut">
+                      <div class="food-story-donut-center">
+                        <strong id="foodStoryCalories">0</strong>
+                        <small>calories</small>
+                        <span id="foodStoryGoal">0% of goal</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="foodStoryList" class="food-story-list"></div>
+                </div>
+                <div class="food-story-metrics">
+                  <article><span>Daily goal</span><strong id="foodStoryGoalCalories">1,700 cal</strong></article>
+                  <article><span>Food score</span><strong id="foodStoryScore">0/100</strong></article>
+                  <article><span>Variety</span><strong id="foodStoryVariety">0 foods</strong></article>
+                </div>
+                <div class="food-story-observation">
+                  <span>Today’s observation</span>
+                  <p id="foodStoryObservation">Log your first meal and your food story will appear here.</p>
+                </div>
+              </section>
 
               <section class="today-food-panel dashboard-card">
                 <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
@@ -323,13 +354,17 @@
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <label>Total food weight (g)
+                <input id="scanWeightGrams" name="weight_grams" type="number" min="1" step="1" inputmode="numeric" placeholder="Optional: 220">
+              </label>
               <div class="calorie-scanner wide">
                 <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Insight</button>
                 <small id="calorieEstimate">Add a photo and AI will estimate the visible food, calories, and nutrient insight.</small>
               </div>
               <section id="scanRescanPanel" class="scan-editor-panel scan-rescan-panel wide hidden" aria-live="polite">
                 <button id="rescanFoodDetails" class="scan-rescan-button" type="button">✨ Rescan Food Details</button>
-                <p>Details changed. Rescan if you want AI to refine the calories with your updated ingredients and notes.</p>
+                <p id="scanWeightHint">Optional: enter total food weight in grams if you want AI to refine calories and nutrients.</p>
+                <p>Details changed. Rescan if you want AI to refine the calories with your updated ingredients, notes, or portion weight.</p>
               </section>
               <section id="scanIngredientPanel" class="scan-editor-panel scan-ingredient-panel wide hidden" aria-live="polite">
                 <div class="scan-panel-header">
@@ -630,8 +665,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js?v=20260720-food-columns1"></script>
-  <script src="app.js?v=20260720-food-columns1"></script>
+  <script src="supabase.js?v=20260721-grams1"></script>
+  <script src="app.js?v=20260721-grams1"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">
