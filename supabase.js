@@ -33,6 +33,99 @@
     return db.authContext;
   }
 
+  function normalizeMembershipRecord(record) {
+    if (!record) return null;
+    const normalizedRole = record.role === 'owner' ? 'admin' : (record.role || 'member');
+    return {
+      id: record.id,
+      family_id: record.family_id,
+      role: normalizedRole,
+      member_id: record.member_id || null,
+      email: record.email || '',
+      status: record.status || 'active'
+    };
+  }
+
+  async function fetchFamilyName(familyId) {
+    if (!familyId) return fallbackFamilyName;
+    const { data, error } = await client
+      .from('families')
+      .select('name')
+      .eq('id', familyId)
+      .maybeSingle();
+    if (error) {
+      console.warn('Could not load family name.', error);
+      return fallbackFamilyName;
+    }
+    return data?.name || fallbackFamilyName;
+  }
+
+  async function fetchMembershipForUser(userId, userEmail) {
+    const normalizedEmail = String(userEmail || '').trim().toLowerCase();
+    const membershipQueries = [
+      () => client
+        .from('family_memberships')
+        .select('id, family_id, role, email, status')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(1),
+      () => client
+        .from('family_users')
+        .select('id, family_id, role, member_id, email')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+    ];
+
+    let legacyLookupError = null;
+
+    for (const runQuery of membershipQueries) {
+      const { data, error } = await runQuery();
+      if (!error && data?.[0]) return normalizeMembershipRecord(data[0]);
+      if (!error) continue;
+      legacyLookupError = error;
+      const message = String(error.message || '').toLowerCase();
+      const safeToFallback = error.code === 'PGRST205'
+        || message.includes('relation')
+        || message.includes('does not exist')
+        || message.includes('column')
+        || message.includes('schema cache');
+      if (!safeToFallback) throw error;
+    }
+
+    if (normalizedEmail) {
+      const { data, error } = await client
+        .from('family_memberships')
+        .select('id, family_id, role, email, status, user_id')
+        .ilike('email', normalizedEmail)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(1);
+      if (error) throw error;
+
+      const matchedMembership = data?.[0] || null;
+      if (matchedMembership) {
+        if (userId && matchedMembership.user_id !== userId) {
+          const { data: relinkedMembership, error: relinkError } = await client
+            .from('family_memberships')
+            .update({ user_id: userId, email: normalizedEmail })
+            .eq('id', matchedMembership.id)
+            .select('id, family_id, role, email, status')
+            .single();
+          if (!relinkError) return normalizeMembershipRecord(relinkedMembership);
+          console.warn('Could not relink family membership to current auth user. Continuing with email match.', relinkError);
+        }
+        return normalizeMembershipRecord(matchedMembership);
+      }
+    }
+
+    if (legacyLookupError) {
+      console.warn('Legacy family lookup unavailable; continuing with family_memberships-only auth.', legacyLookupError);
+    }
+
+    return null;
+  }
   async function bootstrapFirstFamily(db, user) {
     if (!client || !allowBootstrap) return null;
     if (adminEmails.length && !adminEmails.includes(String(user.email || '').toLowerCase())) return null;
