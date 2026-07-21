@@ -124,7 +124,7 @@
     const membershipQueries = [
       () => client
         .from('family_memberships')
-        .select('id, family_id, role, email, status, member_id')
+        .select('id, family_id, role, email, status')
         .eq('user_id', userId)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
@@ -137,13 +137,13 @@
         .limit(1)
     ];
 
-    let lastError = null;
+    let legacyLookupError = null;
 
     for (const runQuery of membershipQueries) {
       const { data, error } = await runQuery();
       if (!error && data?.[0]) return normalizeMembershipRecord(data[0]);
       if (!error) continue;
-      lastError = error;
+      legacyLookupError = error;
       const message = String(error.message || '').toLowerCase();
       const safeToFallback = error.code === 'PGRST205'
         || message.includes('relation')
@@ -153,12 +153,10 @@
       if (!safeToFallback) throw error;
     }
 
-    if (lastError) throw lastError;
-
     if (normalizedEmail) {
       const { data, error } = await client
         .from('family_memberships')
-        .select('id, family_id, role, email, status, member_id, user_id')
+        .select('id, family_id, role, email, status, user_id')
         .ilike('email', normalizedEmail)
         .eq('status', 'active')
         .order('created_at', { ascending: true })
@@ -172,13 +170,17 @@
             .from('family_memberships')
             .update({ user_id: userId, email: normalizedEmail })
             .eq('id', matchedMembership.id)
-            .select('id, family_id, role, email, status, member_id')
+            .select('id, family_id, role, email, status')
             .single();
           if (!relinkError) return normalizeMembershipRecord(relinkedMembership);
           console.warn('Could not relink family membership to current auth user. Continuing with email match.', relinkError);
         }
         return normalizeMembershipRecord(matchedMembership);
       }
+    }
+
+    if (legacyLookupError) {
+      console.warn('Legacy family lookup unavailable; continuing with family_memberships-only auth.', legacyLookupError);
     }
 
     return null;
