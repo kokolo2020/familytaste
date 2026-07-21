@@ -7,25 +7,84 @@
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+  const authPendingKey = 'familyBites.auth.pending';
+  const cookieDomain = window.location.hostname.includes('.') ? `; domain=${window.location.hostname}` : '';
+
+  const safeStorage = {
+    getItem(key) {
+      try {
+        const value = window.localStorage?.getItem(key);
+        if (value !== null && value !== undefined) return value;
+      } catch (error) {
+        console.warn('localStorage getItem failed, using cookie fallback.', error);
+      }
+      const match = document.cookie.match(new RegExp(`(?:^|; )${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`));
+      return match ? decodeURIComponent(match[1]) : null;
+    },
+    setItem(key, value) {
+      try {
+        window.localStorage?.setItem(key, value);
+        return;
+      } catch (error) {
+        console.warn('localStorage setItem failed, using cookie fallback.', error);
+      }
+      document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax${cookieDomain}`;
+    },
+    removeItem(key) {
+      try {
+        window.localStorage?.removeItem(key);
+      } catch (error) {
+        console.warn('localStorage removeItem failed, using cookie fallback.', error);
+      }
+      document.cookie = `${key}=; path=/; max-age=0; samesite=lax${cookieDomain}`;
+    }
+  };
 
   const hasClient = Boolean(window.supabase?.createClient);
   const isConfigured = Boolean(hasClient && url && anonKey && !url.includes('YOUR_') && !anonKey.includes('YOUR_'));
   const client = isConfigured ? window.supabase.createClient(url, anonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit',
-    storage: window.localStorage
-  }
-}) : null;
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: safeStorage
+    }
+  }) : null;
 
   function authRedirectUrl() {
-  return 'https://familytaste.netlify.app/';
+    return `${window.location.origin}/auth-callback.html`;
   }
 
-  function authRedirectUrl() {
-    return `${window.location.origin}${window.location.pathname}`;
+  function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function markAuthPending() {
+    try {
+      safeStorage.setItem(authPendingKey, String(Date.now()));
+    } catch (error) {
+      console.warn('Could not persist auth pending marker.', error);
+    }
+  }
+
+  function clearAuthPending() {
+    try {
+      safeStorage.removeItem(authPendingKey);
+    } catch (error) {
+      console.warn('Could not clear auth pending marker.', error);
+    }
+  }
+
+  function hasRecentPendingAuth(maxAgeMs = 10 * 60 * 1000) {
+    try {
+      const value = safeStorage.getItem(authPendingKey);
+      if (!value) return false;
+      const timestamp = Number(value);
+      return Number.isFinite(timestamp) && (Date.now() - timestamp) <= maxAgeMs;
+    } catch (error) {
+      console.warn('Could not read auth pending marker.', error);
+      return false;
+    }
   }
 
   function requireContext(db) {
@@ -126,6 +185,7 @@
 
     return null;
   }
+
   async function bootstrapFirstFamily(db, user) {
     if (!client || !allowBootstrap) return null;
     if (adminEmails.length && !adminEmails.includes(String(user.email || '').toLowerCase())) return null;
@@ -145,39 +205,118 @@
       family_id: createdFamily.id,
       user_id: user.id,
       email: user.email || null,
-      role: 'admin',
-      member_id: null
+      role: 'owner',
+      status: 'active'
     };
     const { data: createdMembership, error: membershipError } = await client
-      .from('family_users')
+      .from('family_memberships')
       .insert(membershipPayload)
-      .select('id, family_id, role, member_id, email')
+      .select('id, family_id, role, email, status')
       .single();
-    if (membershipError) throw membershipError;
-
-    const { data: createdMember, error: memberError } = await client
-      .from('members')
-      .insert({
+    if (membershipError) {
+      const fallbackPayload = {
         family_id: createdFamily.id,
-        name: memberName,
-        avatar: '👤',
-        role: 'Family Admin'
-      })
-      .select()
-      .single();
-    if (memberError) throw memberError;
+        user_id: user.id,
+        email: user.email || null,
+        role: 'admin',
+        member_id: null
+      };
+      const { data: fallbackMembership, error: fallbackError } = await client
+        .from('family_users')
+        .insert(fallbackPayload)
+        .select('id, family_id, role, member_id, email')
+        .single();
+      if (fallbackError) throw fallbackError;
 
-    const { data: linkedMembership, error: linkedMembershipError } = await client
+      const { data: createdMember, error: memberError } = await client
+        .from('members')
+        .insert({
+          family_id: createdFamily.id,
+          name: memberName,
+          avatar: '👤',
+          role: 'Family Admin'
+        })
+        .select()
+        .single();
+      if (memberError) throw memberError;
+
+      const { data: linkedMembership, error: linkedMembershipError } = await client
+        .from('family_users')
+        .update({ member_id: createdMember.id })
+        .eq('id', fallbackMembership.id)
+        .select('id, family_id, role, member_id, email')
+        .single();
+      if (linkedMembershipError) throw linkedMembershipError;
+
+      return normalizeMembershipRecord(linkedMembership);
+    }
+
+    return normalizeMembershipRecord(createdMembership);
+  }
+
+  async function ensureLegacyFamilyUser(user, membership) {
+    if (!client || !user?.id || !membership?.family_id) return membership;
+
+    const normalizedRole = membership.role === 'admin' ? 'admin' : 'member';
+    const selectExisting = async () => {
+      const { data, error } = await client
+        .from('family_users')
+        .select('id, family_id, role, member_id, email')
+        .eq('family_id', membership.family_id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(1);
+      if (error) {
+        const message = String(error.message || '').toLowerCase();
+        const safeToSkip = error.code === 'PGRST205'
+          || message.includes('relation')
+          || message.includes('does not exist')
+          || message.includes('schema cache');
+        if (safeToSkip) return null;
+        throw error;
+      }
+      return data?.[0] || null;
+    };
+
+    const existing = await selectExisting();
+    if (existing) {
+      return {
+        ...membership,
+        member_id: membership.member_id || existing.member_id || null,
+        email: membership.email || existing.email || user.email || ''
+      };
+    }
+
+    const payload = {
+      family_id: membership.family_id,
+      user_id: user.id,
+      member_id: membership.member_id || null,
+      email: membership.email || user.email || null,
+      role: normalizedRole
+    };
+    const { data, error } = await client
       .from('family_users')
-      .update({ member_id: createdMember.id })
-      .eq('id', createdMembership.id)
+      .insert(payload)
       .select('id, family_id, role, member_id, email')
       .single();
-    if (linkedMembershipError) throw linkedMembershipError;
+    if (error) {
+      const duplicate = error.code === '23505' || String(error.message || '').toLowerCase().includes('duplicate');
+      if (!duplicate) throw error;
+      const retry = await selectExisting();
+      if (retry) {
+        return {
+          ...membership,
+          member_id: membership.member_id || retry.member_id || null,
+          email: membership.email || retry.email || user.email || ''
+        };
+      }
+      throw error;
+    }
 
     return {
-      ...linkedMembership,
-      families: { name: createdFamily.name }
+      ...membership,
+      member_id: membership.member_id || data?.member_id || null,
+      email: membership.email || data?.email || user.email || ''
     };
   }
 
@@ -188,17 +327,32 @@
     authContext: null,
     async getSession() {
       if (!client) return null;
-      const { data, error } = await client.auth.getSession();
+      let { data, error } = await client.auth.getSession();
       if (error) throw error;
+      if (!data.session && hasRecentPendingAuth()) {
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          await sleep(400);
+          const retry = await client.auth.getSession();
+          if (retry.error) throw retry.error;
+          if (retry.data.session) {
+            data = retry.data;
+            break;
+          }
+        }
+      }
       return data.session || null;
     },
     onAuthStateChange(callback) {
       if (!client) return null;
-      const { data } = client.auth.onAuthStateChange((_event, session) => callback(session));
+      const { data } = client.auth.onAuthStateChange((event, session) => {
+        if (session?.user) clearAuthPending();
+        callback(session, event);
+      });
       return data?.subscription || null;
     },
     async signInWithGoogle() {
       if (!client) return null;
+      markAuthPending();
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -213,6 +367,7 @@
       if (!client) return null;
       const { error } = await client.auth.signOut();
       if (error) throw error;
+      clearAuthPending();
       this.familyId = null;
       this.authContext = null;
       return true;
@@ -223,21 +378,23 @@
       const user = session?.user;
 
       if (!user) {
+        if (!hasRecentPendingAuth(20 * 1000)) clearAuthPending();
         this.familyId = null;
         this.authContext = null;
         return null;
       }
 
-      const { data: memberships, error } = await client
-        .from('family_users')
-        .select('id, family_id, role, member_id, email, families(name)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(1);
-      if (error) throw error;
+      clearAuthPending();
 
-      let membership = memberships?.[0] || null;
+      let membership = await fetchMembershipForUser(user.id, user.email);
       if (!membership) membership = await bootstrapFirstFamily(this, user);
+      if (membership) {
+        try {
+          membership = await ensureLegacyFamilyUser(user, membership);
+        } catch (error) {
+          console.warn('Legacy family_users sync failed; continuing with family_memberships access.', error);
+        }
+      }
 
       if (!membership) {
         this.familyId = null;
@@ -253,13 +410,14 @@
       }
 
       this.familyId = membership.family_id;
+      const familyName = await fetchFamilyName(membership.family_id);
       this.authContext = {
         user,
         familyId: membership.family_id,
         role: membership.role || 'member',
         memberId: membership.member_id || null,
         email: user.email || membership.email || '',
-        familyName: membership.families?.name || fallbackFamilyName
+        familyName
       };
       return this.authContext;
     },
@@ -329,6 +487,15 @@
         location_name: meal.location_name || null,
         price: meal.price,
         calories: meal.calories,
+        protein_g: meal.protein_g ?? null,
+        carbs_g: meal.carbs_g ?? null,
+        fat_g: meal.fat_g ?? null,
+        fiber_g: meal.fiber_g ?? null,
+        sugar_g: meal.sugar_g ?? null,
+        ai_health_score: meal.ai_health_score ?? null,
+        ai_tags: Array.isArray(meal.ai_tags) ? meal.ai_tags : [],
+        likely_ingredients: Array.isArray(meal.likely_ingredients) ? meal.likely_ingredients : [],
+        ai_insight: meal.ai_insight || null,
         description: meal.notes || null,
         photo_url: meal.photo_url || null,
         eaten_at: meal.eaten_at
@@ -347,6 +514,12 @@
       if ('notes' in payload) {
         payload.description = payload.notes || null;
         delete payload.notes;
+      }
+      if ('ai_tags' in payload) {
+        payload.ai_tags = Array.isArray(payload.ai_tags) ? payload.ai_tags : [];
+      }
+      if ('likely_ingredients' in payload) {
+        payload.likely_ingredients = Array.isArray(payload.likely_ingredients) ? payload.likely_ingredients : [];
       }
 
       let query = client
@@ -446,6 +619,26 @@
       const { data, error } = await client
         .from('bio_logs')
         .upsert(payload, { onConflict: 'member_id,log_date' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    async saveBodyImpactSnapshot(snapshot) {
+      const context = requireContext(this);
+      const payload = {
+        family_id: context.familyId,
+        member_id: context.role === 'admin' ? snapshot.member_id : context.memberId,
+        impact_date: snapshot.impact_date,
+        total_calories: Number(snapshot.total_calories) || 0,
+        body_health_score: Number(snapshot.body_health_score) || 0,
+        nutrition_balance: Number(snapshot.nutrition_balance) || 0,
+        meal_count: Number(snapshot.meal_count) || 0,
+        impact_cards: Array.isArray(snapshot.impact_cards) ? snapshot.impact_cards : []
+      };
+      const { data, error } = await client
+        .from('daily_body_impact')
+        .upsert(payload, { onConflict: 'family_id,member_id,impact_date' })
         .select()
         .single();
       if (error) throw error;
