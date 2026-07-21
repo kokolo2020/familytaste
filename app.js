@@ -26,6 +26,7 @@ const appState = {
   bioLogs: {},
   profileMeasurements: {}
 };
+window.appState = appState;
 
 const profilePhotoStorageKey = 'familyBites.profilePhotos';
 const localMealsStorageKey = 'familyBites.meals.v2';
@@ -57,6 +58,32 @@ const menuItems = [
 let voiceRecorder = null;
 let voiceChunks = [];
 let dashboardHistoryRange = 'yesterday';
+let currentScanInsight = null;
+let currentScanIngredients = [];
+let currentScanTags = [];
+let currentScanConfidence = '';
+let currentScanDirty = false;
+let currentScanEstimatedWeightGrams = null;
+let lastBodyImpactSnapshotSignature = '';
+
+const scanQuickTagOptions = [
+  'Fried',
+  'Grilled',
+  'Steamed',
+  'Baked',
+  'Roasted',
+  'Stir-fried',
+  'Sweet Drink',
+  'Dessert',
+  'High Protein',
+  'High Fiber',
+  'Processed',
+  'Creamy',
+  'Saucy',
+  'Plant-based Likely',
+  'Contains Dairy',
+  'Contains Meat'
+];
 
 const navItems = [
   { page: 'dashboard', icon: '🏠', label: 'Dashboard' },
@@ -90,6 +117,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   hydrateFromSupabase();
 });
+
+window.startFamilyBitesGoogleLogin = async function startFamilyBitesGoogleLogin(event) {
+  if (event?.preventDefault) event.preventDefault();
+  if (!window.familyBitesDb?.signInWithGoogle) return false;
+  try {
+    await window.familyBitesDb.signInWithGoogle();
+  } catch (error) {
+    console.warn('Google sign-in could not start.', error);
+    alert('Google sign-in could not start. Check Supabase Google auth settings and try again.');
+  }
+  return false;
+};
 
 function isAdminUser() {
   return !window.familyBitesDb?.isConfigured || appState.authRole === 'admin';
@@ -251,6 +290,42 @@ function bindEvents() {
     if (removeFavTarget) {
       handleRemoveFavorite(removeFavTarget.dataset.removeFav);
     }
+
+    const removeIngredientTarget = event.target.closest('[data-remove-scan-ingredient]');
+    if (removeIngredientTarget) {
+      removeScanIngredient(removeIngredientTarget.dataset.removeScanIngredient);
+    }
+
+    const quickTagTarget = event.target.closest('[data-scan-tag]');
+    if (quickTagTarget) {
+      toggleScanTag(quickTagTarget.dataset.scanTag);
+    }
+  });
+
+  document.addEventListener('mouseover', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (impactCard) setActiveBodyImpactPart(impactCard.dataset.position, impactCard.dataset.part);
+  });
+
+  document.addEventListener('mouseout', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (!impactCard) return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && impactCard.contains(nextTarget)) return;
+    clearActiveBodyImpactPart();
+  });
+
+  document.addEventListener('focusin', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (impactCard) setActiveBodyImpactPart(impactCard.dataset.position, impactCard.dataset.part);
+  });
+
+  document.addEventListener('focusout', (event) => {
+    const impactCard = event.target.closest('.impact-callout[data-position]');
+    if (!impactCard) return;
+    const nextTarget = event.relatedTarget;
+    if (nextTarget && impactCard.contains(nextTarget)) return;
+    clearActiveBodyImpactPart();
   });
 
   document.getElementById('mealForm').addEventListener('submit', saveMeal);
@@ -258,6 +333,13 @@ function bindEvents() {
   document.getElementById('mealPhotoUpload').addEventListener('change', handlePhotoChange);
   document.getElementById('mealPhotoCamera').addEventListener('change', handlePhotoChange);
   document.getElementById('aiEstimateCalories').addEventListener('click', applyAiCalorieEstimate);
+  document.getElementById('rescanFoodDetails').addEventListener('click', handleRescanFoodDetails);
+  document.getElementById('addScanIngredientButton').addEventListener('click', handleAddScanIngredient);
+  document.getElementById('scanIngredientInput').addEventListener('keydown', handleScanIngredientKeydown);
+  ['foodName', 'notes', 'restaurantName', 'locationName', 'scanWeightGrams'].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.addEventListener('input', markScanDetailsDirty);
+  });
   document.getElementById('profilePhotoInput').addEventListener('change', handleProfilePhotoChange);
   document.getElementById('voiceRecordButton').addEventListener('click', toggleVoiceRecording);
   document.getElementById('sendCartButton').addEventListener('click', sendCartToChef);
@@ -266,15 +348,7 @@ function bindEvents() {
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
-  document.getElementById('googleSignInButton').addEventListener('click', async () => {
-    if (!window.familyBitesDb?.signInWithGoogle) return;
-    try {
-      await window.familyBitesDb.signInWithGoogle();
-    } catch (error) {
-      console.warn('Google sign-in could not start.', error);
-      alert('Google sign-in could not start. Check Supabase Google auth settings and try again.');
-    }
-  });
+  document.getElementById('googleSignInButton').addEventListener('click', window.startFamilyBitesGoogleLogin);
   document.getElementById('signOutButton').addEventListener('click', async () => {
     if (!window.familyBitesDb?.signOut) return;
     try {
@@ -293,7 +367,7 @@ function bindEvents() {
     if (event.key === 'Enter') handleSaveProfileName();
   });
 
-  ['foodName', 'mealType', 'restaurantName', 'calories'].forEach((id) => {
+  ['foodName', 'mealType', 'restaurantName', 'calories', 'scanWeightGrams'].forEach((id) => {
     document.getElementById(id).addEventListener('input', updateMealPreview);
   });
 }
@@ -373,7 +447,19 @@ async function hydrateFromSupabase() {
     renderAuthState('ready');
   } catch (error) {
     console.warn('Supabase auth-backed family loading failed.', error);
-    renderAuthState(appState.authUser ? 'no-family' : 'signed-out');
+    let activeSessionUser = null;
+    try {
+      activeSessionUser = (await window.familyBitesDb?.getSession?.())?.user || null;
+    } catch (sessionError) {
+      console.warn('Could not inspect active auth session after load failure.', sessionError);
+    }
+    if (activeSessionUser) {
+      appState.authUser = activeSessionUser;
+      appState.currentUserEmail = activeSessionUser.email || '';
+      renderAuthState('no-family');
+    } else {
+      renderAuthState('signed-out');
+    }
   }
 
   renderProfiles();
@@ -558,10 +644,83 @@ function renderDashboard() {
   document.getElementById('bioCalories').textContent = calories.toLocaleString();
 
   renderFoodList('todayFoodList', todayMeals, 'No food logged today yet.');
+  renderFoodStory(todayMeals, calories, goal);
   renderDashboardHistory(memberMeals, yesterdayMeals);
   renderFavoriteFoods(memberMeals);
   renderBioInputs();
   renderHealthInsights(todayMeals, calories, goal);
+}
+
+function renderFoodStory(todayMeals, calories, calorieGoal) {
+  const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+  setText('foodStoryDate', `${dateLabel} · ${todayMeals.length} dish${todayMeals.length === 1 ? '' : 'es'} logged`);
+  setText('foodStoryCalories', calories.toLocaleString());
+  const goalPercent = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
+  setText('foodStoryGoal', `${goalPercent}% of goal`);
+  setText('foodStoryGoalCalories', `${Number(calorieGoal || 0).toLocaleString()} cal`);
+
+  const donut = document.getElementById('foodStoryDonut');
+  const storyItems = buildFoodStoryItems(todayMeals, calories);
+  if (donut) {
+    donut.style.setProperty('--story-chart', storyItems.length
+      ? `conic-gradient(${storyItems.map((item) => `${item.color} ${item.start}% ${item.end}%`).join(', ')})`
+      : 'conic-gradient(#f2ece4 0 100%)');
+  }
+
+  const foodStoryList = document.getElementById('foodStoryList');
+  if (foodStoryList) {
+    foodStoryList.innerHTML = storyItems.length ? storyItems.map((item) => `
+      <article class="food-story-item">
+        <span class="food-story-dot" style="background:${escapeAttr(item.color)}"></span>
+        <div class="food-story-copy">
+          <strong>${escapeHtml(item.name)}</strong>
+          <small>${item.percent}% of today</small>
+        </div>
+        <b>${item.calories.toLocaleString()} cal</b>
+      </article>
+    `).join('') : '<p class="muted">Log meals to generate your food story.</p>';
+  }
+
+  const varietyCount = new Set(todayMeals.map((meal) => meal.food_name?.trim().toLowerCase()).filter(Boolean)).size;
+  const averageScore = todayMeals.length
+    ? Math.round(todayMeals.reduce((total, meal) => total + getMealNutritionScore(meal) * 10, 0) / todayMeals.length)
+    : 0;
+  setText('foodStoryScore', `${averageScore}/100`);
+  setText('foodStoryVariety', `${varietyCount} food${varietyCount === 1 ? '' : 's'}`);
+  setText('foodStoryObservation', buildFoodStoryObservation(todayMeals, calories, calorieGoal, averageScore, varietyCount));
+}
+
+function buildFoodStoryItems(todayMeals, totalCalories) {
+  const palette = ['#f46d1f', '#f2b51c', '#6da85c', '#1e8a7b', '#d36558', '#8b6fd1'];
+  const rankedMeals = [...todayMeals]
+    .filter((meal) => Number(meal.calories) > 0)
+    .sort((a, b) => (Number(b.calories) || 0) - (Number(a.calories) || 0))
+    .slice(0, 5);
+  let cursor = 0;
+  return rankedMeals.map((meal, index) => {
+    const calories = Number(meal.calories) || 0;
+    const percent = totalCalories ? Math.max(1, Math.round((calories / totalCalories) * 100)) : 0;
+    const start = cursor;
+    cursor += totalCalories ? (calories / totalCalories) * 100 : 0;
+    return {
+      name: meal.food_name || 'Meal',
+      calories,
+      percent,
+      color: palette[index % palette.length],
+      start,
+      end: cursor
+    };
+  });
+}
+
+function buildFoodStoryObservation(todayMeals, calories, calorieGoal, averageScore, varietyCount) {
+  if (!todayMeals.length) return 'Log your first meal and your food story will appear here.';
+  const progress = calorieGoal ? calories / calorieGoal : 0;
+  if (averageScore >= 82 && varietyCount >= 4) return 'Plenty of variety shaped today’s food story, with a strong balance across your meals.';
+  if (progress > 1.05) return 'Today leaned calorie-heavy, so the next meal can be lighter and more vegetable-forward.';
+  if (varietyCount <= 2) return 'Today is still concentrated around a few foods. Adding fruit, beans, or greens would broaden the story.';
+  if (averageScore >= 68) return 'Your food story looks steady today. A little more produce would make the day even stronger.';
+  return 'Today’s meals are a good start. The next dish can add more balance and micronutrient support.';
 }
 
 function renderDashboardHistory(memberMeals, yesterdayMeals) {
@@ -609,7 +768,6 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('summaryCalorieGoal', `${calories.toLocaleString()} / ${calorieGoal.toLocaleString()} cal`);
   setText('summaryRingCalories', calories.toLocaleString());
   setText('nutritionDonutCalories', calories.toLocaleString());
-  renderTodayMacros(todayMeals, calories);
   setText('summaryTip', mealCount
     ? `You’re ${progress}% of the way to your daily calorie goal.`
     : 'Log your first meal to start your daily analysis.');
@@ -623,29 +781,17 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
   setText('glucoseStatus', !glucose ? 'Add reading' : glucose < 70 ? 'Below range' : glucose <= 140 ? 'In range' : 'Above range');
   setText('nutritionBalance', nutrition);
   setText('nutritionStatus', nutrition >= 80 ? 'Well balanced' : nutrition >= 60 ? 'Good progress' : mealCount ? 'Can improve' : 'Log a meal');
+  renderDashboardNutrition(todayMeals, calories);
 
   const impacts = buildFoodBodyImpacts(todayMeals, calories);
-  const impactList = document.getElementById('bodyImpactList');
-  if (impactList) impactList.innerHTML = impacts.map(([name, score, icon, copy, position, foods]) => `
-    
-    <article
-  class="impact-callout impact-${position}"
-  data-part="${escapeAttr(name)}"
-  data-score="${score}"
-  data-copy="${escapeAttr(copy)}"
-  tabindex="0"
->
-  
-      <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
-      <strong>${score}%</strong>
-      ${foods.length ? `<div class="impact-food-mini-list">${foods.map((food) => `
-        <div class="impact-food-mini">
-          <span class="impact-food-mini-name">${escapeHtml(food.name)}</span>
-          <span class="impact-food-mini-score meal-score-${escapeAttr(mealScoreTone(food.score))}">${food.score.toFixed(1)}</span>
-        </div>
-      `).join('')}</div>` : ''}
-      <p title="${escapeAttr(copy)}">${escapeHtml(copy)}</p>
-    </article>`).join('');
+  renderBodyImpactCards(impacts);
+  queueBodyImpactSnapshotSave({
+    totalCalories: calories,
+    bodyHealthScore: health,
+    nutritionBalance: nutrition,
+    mealCount,
+    impacts
+  });
 
   const recommendations = buildRecommendations({ calories, calorieGoal, steps, glucose, mealCount, nutrition });
   const recommendationList = document.getElementById('aiRecommendationList');
@@ -655,84 +801,120 @@ function renderHealthInsights(todayMeals, calories, calorieGoal) {
     </article>`).join('');
 }
 
-function renderTodayMacros(todayMeals, calories) {
-  const mealCount = todayMeals.length;
+function renderDashboardNutrition(todayMeals, calories) {
   const macroEstimate = estimateMealMacros(todayMeals, calories);
   Object.entries(macroEstimate.percentages).forEach(([name, value]) => {
     const bar = document.getElementById(`${name}MacroBar`);
     if (bar) bar.style.width = `${value}%`;
     setText(`${name}MacroValue`, `${value}%`);
   });
-  const donut = document.getElementById('nutritionDonut');
+
+  const donut = document.querySelector('#page-dashboard .nutrition-donut');
   if (donut) {
-    donut.classList.toggle('empty', !mealCount);
-    donut.style.background = mealCount
+    donut.style.background = todayMeals.length
       ? `radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#ffb32f 0 ${macroEstimate.percentages.carb}%, #89c95d ${macroEstimate.percentages.carb}% ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}%, #f25732 ${macroEstimate.percentages.carb + macroEstimate.percentages.protein}% 100%)`
-      : '';
+      : 'radial-gradient(circle at center, #fff 54%, transparent 56%), conic-gradient(#f0e8dc 0 100%)';
   }
-  setText('macroDominant', macroEstimate.dominantLabel);
-  setText('macroProteinGrams', `${macroEstimate.grams.protein}g`);
-  setText('macroGramSummary', `${macroEstimate.grams.carb}g / ${macroEstimate.grams.protein}g / ${macroEstimate.grams.fat}g`);
-  setText('nutritionInsight', macroEstimate.insight);
+
+  const dailyInsight = aggregateDailyScanInsight(todayMeals);
+  setText('nutritionInsight', dailyInsight.summary);
+  const vitaminList = document.getElementById('dashboardVitaminList');
+  const mineralList = document.getElementById('dashboardMineralList');
+  if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
+  if (mineralList) mineralList.innerHTML = renderDashboardNutrientItems(dailyInsight.minerals, 'No mineral estimates yet.');
+}
+
+function renderBodyImpactCards(impacts) {
+  const leftColumn = document.getElementById('bodyImpactLeft');
+  const rightColumn = document.getElementById('bodyImpactRight');
+  if (!leftColumn || !rightColumn) return;
+
+  const midpoint = Math.ceil(impacts.length / 2);
+  const leftItems = impacts.slice(0, midpoint);
+  const rightItems = impacts.slice(midpoint);
+
+  leftColumn.innerHTML = leftItems.map(renderBodyImpactCard).join('');
+  rightColumn.innerHTML = rightItems.map(renderBodyImpactCard).join('');
+}
+
+function renderBodyImpactCard([name, score, icon, copy, position, foods]) {
+  return `
+    <article
+      class="impact-callout impact-${position}"
+      data-part="${escapeAttr(name)}"
+      data-position="${escapeAttr(position)}"
+      data-score="${score}"
+      data-copy="${escapeAttr(copy)}"
+      tabindex="0"
+    >
+      <div class="impact-callout-top">
+        <span class="impact-callout-title">${icon} ${escapeHtml(name)}</span>
+        <strong>${score}%</strong>
+      </div>
+      <span class="impact-callout-status ${escapeAttr(impactStatusTone(score))}">${escapeHtml(impactStatusLabel(score))}</span>
+    </article>
+  `;
+}
+
+function setActiveBodyImpactPart(position, partName) {
+  const figure = document.getElementById('humanFigure');
+  const label = document.getElementById('bodyImpactActiveLabel');
+  if (!figure) return;
+  figure.dataset.activePart = String(position || '').trim().toLowerCase();
+  if (label) {
+    label.textContent = partName || 'Body system';
+    label.classList.add('is-visible');
+  }
+}
+
+function clearActiveBodyImpactPart() {
+  const figure = document.getElementById('humanFigure');
+  const label = document.getElementById('bodyImpactActiveLabel');
+  if (!figure) return;
+  delete figure.dataset.activePart;
+  if (label) {
+    label.textContent = 'Body system';
+    label.classList.remove('is-visible');
+  }
 }
 
 function estimateMealMacros(todayMeals, calories) {
   if (!todayMeals.length || !calories) {
     return {
-      percentages: { carb: 0, protein: 0, fat: 0 },
-      grams: { carb: 0, protein: 0, fat: 0 },
-      dominantLabel: 'No meals yet',
-      insight: 'Log a meal to estimate today’s carbohydrate, protein, and fat balance.'
+      percentages: { carb: 0, protein: 0, fat: 0 }
     };
   }
 
-  const scores = todayMeals.reduce((totals, meal) => {
+  const macroTotals = todayMeals.reduce((totals, meal) => {
+    const savedInsight = getMealInsight(meal);
+    if (savedInsight?.macros) {
+      totals.carb += Number(savedInsight.macros.carbs_g) || 0;
+      totals.protein += Number(savedInsight.macros.protein_g) || 0;
+      totals.fat += Number(savedInsight.macros.fat_g) || 0;
+      return totals;
+    }
     const estimate = estimateMealMacroShare(meal);
-    totals.carb += estimate.carb;
-    totals.protein += estimate.protein;
-    totals.fat += estimate.fat;
+    totals.carb += estimate.carb * 10;
+    totals.protein += estimate.protein * 10;
+    totals.fat += estimate.fat * 10;
     return totals;
   }, { carb: 0, protein: 0, fat: 0 });
 
-  const totalScore = scores.carb + scores.protein + scores.fat || 1;
-  const rawPercentages = {
-    carb: Math.round(scores.carb / totalScore * 100),
-    protein: Math.round(scores.protein / totalScore * 100)
+  const total = macroTotals.carb + macroTotals.protein + macroTotals.fat || 1;
+  const carb = Math.round(macroTotals.carb / total * 100);
+  const protein = Math.round(macroTotals.protein / total * 100);
+  return {
+    percentages: {
+      carb,
+      protein,
+      fat: Math.max(0, 100 - carb - protein)
+    }
   };
-  const percentages = {
-    carb: rawPercentages.carb,
-    protein: rawPercentages.protein,
-    fat: Math.max(0, 100 - rawPercentages.carb - rawPercentages.protein)
-  };
-  const grams = {
-    carb: Math.max(0, Math.round((calories * percentages.carb / 100) / 4)),
-    protein: Math.max(0, Math.round((calories * percentages.protein / 100) / 4)),
-    fat: Math.max(0, Math.round((calories * percentages.fat / 100) / 9))
-  };
-  const dominantEntry = Object.entries(percentages).sort((a, b) => b[1] - a[1])[0] || ['carb', 0];
-  const dominantLabel = dominantEntry[0] === 'carb'
-    ? 'Carb-led'
-    : dominantEntry[0] === 'protein'
-      ? 'Protein-led'
-      : 'Fat-led';
-
-  let insight = `Estimated split: ${percentages.carb}% carbs, ${percentages.protein}% protein, ${percentages.fat}% fat.`;
-  if (percentages.protein >= 30) {
-    insight += ' Protein looks strong for recovery and staying full.';
-  } else if (percentages.carb >= 55) {
-    insight += ' Energy is skewing toward carbohydrates, so pairing the next meal with protein could steady things out.';
-  } else if (percentages.fat >= 38) {
-    insight += ' Today leans richer, so a lighter, produce-forward next meal could rebalance the day.';
-  } else {
-    insight += ' The split looks fairly balanced for a general day.';
-  }
-
-  return { percentages, grams, dominantLabel, insight };
 }
 
 function estimateMealMacroShare(meal) {
   const text = foodSearchText(meal);
-  const scores = { carb: 1.6, protein: 1.1, fat: 0.9 };
+  const scores = { carb: 1.5, protein: 1.1, fat: 0.9 };
   const applyBoost = (words, boost) => {
     if (words.some((word) => text.includes(word))) {
       scores.carb += boost.carb || 0;
@@ -741,22 +923,88 @@ function estimateMealMacroShare(meal) {
     }
   };
 
-  applyBoost(['rice', 'bread', 'toast', 'pasta', 'spaghetti', 'noodle', 'ramen', 'oat', 'cereal', 'potato', 'corn', 'wrap', 'taco', 'pizza', 'burger', 'bun', 'dumpling'], { carb: 1.9, protein: 0.4, fat: 0.4 });
-  applyBoost(['chicken', 'beef', 'pork', 'steak', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'shrimp', 'yogurt', 'milk', 'protein'], { carb: 0.2, protein: 2.3, fat: 0.5 });
-  applyBoost(['avocado', 'olive', 'cheese', 'butter', 'cream', 'coconut', 'nuts', 'peanut', 'almond', 'walnut'], { carb: 0.2, protein: 0.4, fat: 2.2 });
-  applyBoost(['fried', 'crispy', 'bacon', 'sausage', 'dessert', 'cake', 'cookie', 'ice cream', 'donut', 'pastry'], { carb: 1.1, protein: 0.2, fat: 1.8 });
-  applyBoost(['salad', 'vegetable', 'broccoli', 'spinach', 'greens', 'tomato', 'cucumber', 'fruit', 'apple', 'banana', 'berry', 'orange', 'mango'], { carb: 0.8, protein: 0.3, fat: 0.1 });
-  applyBoost(['soup', 'stew', 'curry', 'bowl'], { carb: 0.6, protein: 0.8, fat: 0.8 });
+  applyBoost(['rice', 'bread', 'toast', 'pasta', 'spaghetti', 'noodle', 'oat', 'cereal', 'potato', 'corn', 'wrap', 'pizza', 'bun'], { carb: 1.9, protein: 0.3, fat: 0.3 });
+  applyBoost(['chicken', 'beef', 'pork', 'steak', 'fish', 'salmon', 'tuna', 'egg', 'tofu', 'shrimp', 'yogurt', 'milk', 'protein'], { carb: 0.2, protein: 2.2, fat: 0.5 });
+  applyBoost(['avocado', 'olive', 'cheese', 'butter', 'cream', 'coconut', 'nuts', 'peanut', 'almond', 'walnut'], { carb: 0.2, protein: 0.3, fat: 2.2 });
+  applyBoost(['fried', 'crispy', 'bacon', 'sausage', 'dessert', 'cake', 'cookie', 'ice cream', 'donut', 'pastry'], { carb: 0.9, protein: 0.1, fat: 1.8 });
+  applyBoost(['salad', 'vegetable', 'broccoli', 'spinach', 'greens', 'tomato', 'cucumber', 'fruit', 'apple', 'banana', 'berry', 'orange', 'mango'], { carb: 0.7, protein: 0.2, fat: 0.1 });
   return scores;
+}
+
+function aggregateDailyScanInsight(todayMeals) {
+  const nutrientBuckets = {
+    vitamins: new Map(),
+    minerals: new Map()
+  };
+  let mealsWithInsight = 0;
+  let summarySource = '';
+
+  todayMeals.forEach((meal) => {
+    const insight = getMealInsight(meal);
+    if (!insight) return;
+    mealsWithInsight += 1;
+    if (!summarySource && insight.summary) summarySource = insight.summary;
+    ['vitamins', 'minerals'].forEach((group) => {
+      (insight[group] || []).forEach((item) => {
+        const key = String(item.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!nutrientBuckets[group].has(key)) {
+          nutrientBuckets[group].set(key, {
+            name: item.name,
+            amount: item.amount,
+            benefit: item.benefit,
+            count: 0
+          });
+        }
+        nutrientBuckets[group].get(key).count += 1;
+      });
+    });
+  });
+
+  const sortItems = (map) => Array.from(map.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 4);
+
+  if (!mealsWithInsight) {
+    return {
+      summary: 'Scan a meal photo to unlock today’s vitamin and mineral estimate on the dashboard.',
+      vitamins: [],
+      minerals: []
+    };
+  }
+
+  return {
+    summary: mealsWithInsight === 1
+      ? (summarySource || 'Today’s scan suggests a useful mix of vitamins and minerals.')
+      : `Combined from ${mealsWithInsight} scanned meals today. Vitamins and minerals below are the strongest repeated estimates.`,
+    vitamins: sortItems(nutrientBuckets.vitamins),
+    minerals: sortItems(nutrientBuckets.minerals)
+  };
+}
+
+function renderDashboardNutrientItems(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return items.map((item) => `
+    <article class="dashboard-nutrient-item">
+      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
+      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+    </article>
+  `).join('');
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
   const systems = [
     { name: 'Brain', icon: '🧠', position: 'brain', words: ['coffee', 'latte', 'tea', 'nuts', 'walnut', 'fish', 'salmon', 'egg', 'berry', 'chocolate'], benefit: 'supports focus and steady brain fuel' },
-    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], benefit: 'provides heart-supporting fats and fiber' },
+    { name: 'Liver', icon: '🟨', position: 'liver', words: ['greens', 'leafy', 'broccoli', 'cabbage', 'garlic', 'egg', 'fish', 'seaweed'], benefit: 'adds foods commonly linked with detox and recovery support' },
     { name: 'Muscles', icon: '💪', position: 'muscles', words: ['chicken', 'beef', 'pork', 'fish', 'salmon', 'egg', 'tofu', 'nuts', 'yogurt', 'milk', 'protein'], benefit: 'provides protein for muscle repair' },
-    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], benefit: 'moves through digestion for nutrient absorption' },
+    { name: 'Joints / Knees', icon: '🦵', position: 'joints', words: ['salmon', 'fish', 'walnut', 'olive', 'avocado', 'berries', 'greens'], benefit: 'includes foods often associated with joint-friendly eating' },
+    { name: 'Immunity', icon: '🛡️', position: 'immunity', words: ['fruit', 'orange', 'berry', 'greens', 'broccoli', 'garlic', 'yogurt', 'seaweed'], benefit: 'brings in immune-supporting vitamins and diversity' },
     { name: 'Energy', icon: '⚡', position: 'energy', words: [], benefit: 'supplies energy for the whole body', includeAll: true },
+    { name: 'Heart', icon: '🫀', position: 'heart', words: ['nuts', 'fish', 'salmon', 'avocado', 'olive', 'oat', 'bean', 'vegetable', 'salad'], benefit: 'provides heart-supporting fats and fiber' },
+    { name: 'Eyes', icon: '👁️', position: 'eyes', words: ['carrot', 'egg', 'greens', 'spinach', 'pumpkin', 'mango'], benefit: 'brings in foods often linked to eye-support nutrients' },
+    { name: 'Digestive System', icon: '🌙', position: 'digestion', words: ['vegetable', 'salad', 'fruit', 'berry', 'nuts', 'bean', 'oat', 'rice', 'noodle', 'ramen', 'taco', 'gyoza', 'kyosa'], benefit: 'moves through digestion for nutrient absorption' },
+    { name: 'Skin', icon: '✨', position: 'skin', words: ['avocado', 'nuts', 'fish', 'tomato', 'cucumber', 'berries', 'watermelon'], benefit: 'includes nutrients commonly linked to skin support' },
+    { name: 'Recovery', icon: '🔧', position: 'recovery', words: ['chicken', 'fish', 'egg', 'yogurt', 'milk', 'rice', 'banana', 'potato'], benefit: 'helps replenish energy and rebuild after effort' },
     { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy'], benefit: 'can contribute calcium and bone nutrients' }
   ];
 
@@ -774,6 +1022,57 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
       : 'No matching food logged';
     const copy = ratedMeals.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
     return [system.name, score, system.icon, copy, system.position, ratedMeals.slice(0, 3)];
+  });
+}
+
+function impactStatusLabel(score) {
+  if (score >= 70) return `Strong signal (${score}%)`;
+  if (score >= 35) return `Steady signal (${score}%)`;
+  if (score > 0) return `Building (${score}%)`;
+  return 'No signal yet (0%)';
+}
+
+function impactStatusTone(score) {
+  if (score >= 70) return 'status-strong';
+  if (score >= 35) return 'status-steady';
+  if (score > 0) return 'status-building';
+  return 'status-low';
+}
+
+function normalizeBodyImpactSnapshot(impacts) {
+  return impacts.map(([name, score, icon, copy, position, foods]) => ({
+    name,
+    score,
+    icon,
+    copy,
+    position,
+    foods: (foods || []).map((food) => ({
+      name: food.name,
+      score: Number(food.score?.toFixed ? food.score.toFixed(1) : food.score) || 0
+    }))
+  }));
+}
+
+function queueBodyImpactSnapshotSave({ totalCalories, bodyHealthScore, nutritionBalance, mealCount, impacts }) {
+  const member = appState.currentMember;
+  if (!window.familyBitesDb?.isConfigured || !appState.familyId || !member?.id) return;
+  if (typeof window.familyBitesDb?.saveBodyImpactSnapshot !== 'function') return;
+  const snapshot = {
+    family_id: appState.familyId,
+    member_id: member.id,
+    impact_date: todayKey(),
+    total_calories: Number(totalCalories) || 0,
+    body_health_score: Number(bodyHealthScore) || 0,
+    nutrition_balance: Number(nutritionBalance) || 0,
+    meal_count: Number(mealCount) || 0,
+    impact_cards: normalizeBodyImpactSnapshot(impacts)
+  };
+  const signature = JSON.stringify(snapshot);
+  if (signature === lastBodyImpactSnapshotSignature) return;
+  lastBodyImpactSnapshotSignature = signature;
+  window.familyBitesDb.saveBodyImpactSnapshot(snapshot).catch((error) => {
+    console.warn('Body impact snapshot sync failed.', error);
+    lastBodyImpactSnapshotSignature = '';
   });
 }
 
@@ -903,6 +1202,7 @@ function mergeDateKeepTime(originalIso, dateValue) {
 }
 
 async function handleSaveMealEdit() {
+  const meal = editingMealId ? appState.meals.find((item) => item.id === editingMealId) : null;
   const foodName = document.getElementById('editFoodName').value.trim();
   if (!foodName) {
     document.getElementById('editFoodName').focus();
@@ -920,21 +1220,21 @@ async function handleSaveMealEdit() {
     location_name: document.getElementById('editLocation').value.trim(),
     price: numberOrNull(document.getElementById('editPrice').value),
     calories: numberOrNull(document.getElementById('editCalories').value),
-    notes: notesWithMealType(document.getElementById('editNotes').value, mealType)
+    notes: notesWithMealType(document.getElementById('editNotes').value, mealType, meal?.notes)
   };
+  const nutritionFields = buildMealNutritionStorage({ ...meal, ...fields });
   const dateValue = document.getElementById('editDate').value;
   document.getElementById('mealModal').classList.add('hidden');
 
   if (editingMealId) {
-    const meal = appState.meals.find((item) => item.id === editingMealId);
     if (!meal) return;
-    Object.assign(meal, fields);
+    Object.assign(meal, fields, nutritionFields);
     meal.eaten_at = mergeDateKeepTime(meal.eaten_at, dateValue);
     saveStoredAppData();
     renderAll();
     if (window.familyBitesDb?.isConfigured) {
       try {
-        await window.familyBitesDb.updateMeal(meal.id, { ...fields, eaten_at: meal.eaten_at });
+        await window.familyBitesDb.updateMeal(meal.id, { ...fields, ...nutritionFields, eaten_at: meal.eaten_at });
       } catch (error) {
         console.warn('Meal updated locally but Supabase write failed.', error);
       }
@@ -998,7 +1298,8 @@ async function handleLogAgain(foodName) {
     calories: source.calories ?? null,
     notes: source.notes || '',
     photo_url: source.photo_url || '',
-    eaten_at: new Date().toISOString()
+    eaten_at: new Date().toISOString(),
+    ...buildMealNutritionStorage(source, { ignoreCurrentScan: true })
   });
 }
 
@@ -1158,6 +1459,7 @@ function mealTemplate(meal, withActions = false) {
           <button class="meal-edit-button" type="button" data-edit-meal="${escapeAttr(meal.id)}">✏️ Edit</button>
           <button class="meal-delete-button" type="button" data-delete-meal="${escapeAttr(meal.id)}">🗑 Delete</button>
         </div>` : '';
+  const insightSnippet = mealInsightSnippet(meal);
   return `
     <article class="meal-card ${meal.photo_url ? 'has-photo' : ''}">
       <span class="meal-emoji">${mealEmoji(meal.food_name)}</span>
@@ -1167,7 +1469,8 @@ function mealTemplate(meal, withActions = false) {
           <h4>${escapeHtml(meal.food_name)}</h4>
           <span class="meal-score-badge meal-score-${scoreTone}" title="Estimated nutrition score ${score.toFixed(1)} out of 10">${mealScoreIcon(score)} ${score.toFixed(1)}</span>
         </div>
-        <p>${escapeHtml(mealDisplayMeta(meal))}</p>${actions}
+        <p>${escapeHtml(mealDisplayMeta(meal))}</p>
+        ${insightSnippet ? `<small class="meal-insight-snippet">${escapeHtml(insightSnippet)}</small>` : ''}${actions}
       </div>
       <strong>${Number(meal.calories || 0).toLocaleString()} cal</strong>
     </article>
@@ -1184,18 +1487,155 @@ function mealDisplayMeta(meal) {
 }
 
 function getMealType(meal) {
-  return String(meal?.notes || '').match(/\[\[meal_type:([^\]]+)\]\]/i)?.[1]?.toLowerCase() || '';
+  return extractMealTag(meal?.notes, 'meal_type').toLowerCase();
 }
 
 function notesWithoutMealType(notes) {
-  return String(notes || '').replace(/\s*\[\[meal_type:[^\]]+\]\]\s*/ig, ' ').trim();
+  return removeMealTag(
+    removeMealTag(
+      removeMealTag(
+        removeMealTag(
+          removeMealTag(notes, 'meal_type'),
+          'ai_insight'
+        ),
+        'scan_weight_g'
+      ),
+      'scan_ingredients'
+    ),
+    'scan_tags'
+  );
 }
 
-function notesWithMealType(notes, mealType) {
+function notesWithMealType(notes, mealType, existingNotes = '') {
   const cleanNotes = notesWithoutMealType(notes);
   const normalizedMealType = String(mealType || '').trim().toLowerCase();
-  if (!normalizedMealType) return cleanNotes;
-  return `${cleanNotes}${cleanNotes ? ' ' : ''}[[meal_type:${normalizedMealType}]]`;
+  const encodedInsight = currentScanInsight
+    ? encodeMealInsight(currentScanInsight)
+    : extractMealTag(existingNotes, 'ai_insight');
+  const savedIngredients = currentScanIngredients.length
+    ? currentScanIngredients
+    : extractDelimitedMealTag(existingNotes, 'scan_ingredients');
+  const savedTags = currentScanTags.length
+    ? currentScanTags
+    : extractDelimitedMealTag(existingNotes, 'scan_tags');
+  const savedWeight = getCurrentScanWeightGrams() ?? getMealStoredWeight(existingNotes);
+  let value = cleanNotes;
+  if (normalizedMealType) value = `${value}${value ? ' ' : ''}[[meal_type:${normalizedMealType}]]`;
+  if (encodedInsight) value = `${value}${value ? ' ' : ''}[[ai_insight:${encodedInsight}]]`;
+  if (savedWeight) value = `${value}${value ? ' ' : ''}[[scan_weight_g:${savedWeight}]]`;
+  if (savedIngredients.length) value = `${value}${value ? ' ' : ''}[[scan_ingredients:${savedIngredients.join('|')}]]`;
+  if (savedTags.length) value = `${value}${value ? ' ' : ''}[[scan_tags:${savedTags.join('|')}]]`;
+  return value.trim();
+}
+
+function getMealStoredWeight(source) {
+  const rawNotes = typeof source === 'string' ? source : source?.notes;
+  const taggedWeight = normalizeWeightGrams(extractMealTag(rawNotes, 'scan_weight_g'));
+  if (taggedWeight) return taggedWeight;
+  if (typeof source !== 'string') {
+    const insight = getMealInsight(source);
+    return normalizeWeightGrams(insight?.user_weight_g || insight?.applied_weight_g || null);
+  }
+  return null;
+}
+
+function getMealStoredIngredients(meal) {
+  if (Array.isArray(meal?.likely_ingredients) && meal.likely_ingredients.length) {
+    return uniqueScanLabels(meal.likely_ingredients).map(titleCaseScanLabel);
+  }
+  return extractDelimitedMealTag(meal?.notes, 'scan_ingredients').map(titleCaseScanLabel);
+}
+
+function getMealStoredTags(meal) {
+  if (Array.isArray(meal?.ai_tags) && meal.ai_tags.length) {
+    return uniqueScanLabels(meal.ai_tags).map(titleCaseScanLabel);
+  }
+  return extractDelimitedMealTag(meal?.notes, 'scan_tags').map(titleCaseScanLabel);
+}
+
+function extractDelimitedMealTag(notes, tag) {
+  return extractMealTag(notes, tag)
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function extractMealTag(notes, tag) {
+  const escapedTag = String(tag).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(notes || '').match(new RegExp(`\\[\\[${escapedTag}:([\\s\\S]*?)\\]\\]`, 'i'))?.[1] || '';
+}
+
+function removeMealTag(notes, tag) {
+  const escapedTag = String(tag).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(notes || '').replace(new RegExp(`\\s*\\[\\[${escapedTag}:[\\s\\S]*?\\]\\]\\s*`, 'ig'), ' ').trim();
+}
+
+function encodeMealInsight(insight) {
+  try {
+    return encodeURIComponent(JSON.stringify(insight));
+  } catch (error) {
+    console.warn('Could not encode meal insight metadata.', error);
+    return '';
+  }
+}
+
+function getMealInsight(meal) {
+  if (meal?.ai_insight && typeof meal.ai_insight === 'object') {
+    return normalizeScanInsight(meal.ai_insight);
+  }
+  if (typeof meal?.ai_insight === 'string' && meal.ai_insight.trim()) {
+    try {
+      return normalizeScanInsight(JSON.parse(meal.ai_insight));
+    } catch (error) {
+      console.warn('Could not parse ai_insight column for meal.', error);
+    }
+  }
+  const rawInsight = extractMealTag(meal?.notes, 'ai_insight');
+  if (!rawInsight) return null;
+  try {
+    return JSON.parse(decodeURIComponent(rawInsight));
+  } catch (error) {
+    console.warn('Could not decode saved meal insight metadata.', error);
+    return null;
+  }
+}
+window.getMealInsight = getMealInsight;
+
+function buildMealNutritionStorage(sourceMeal = {}, options = {}) {
+  const ignoreCurrentScan = Boolean(options.ignoreCurrentScan);
+  const insight = ignoreCurrentScan ? getMealInsight(sourceMeal) : (currentScanInsight || getMealInsight(sourceMeal));
+  const normalizedInsight = insight ? normalizeScanInsight(insight) : null;
+  const ingredients = ignoreCurrentScan
+    ? getMealStoredIngredients(sourceMeal)
+    : (currentScanIngredients.length ? currentScanIngredients : getMealStoredIngredients(sourceMeal));
+  const tags = ignoreCurrentScan
+    ? getMealStoredTags(sourceMeal)
+    : (currentScanTags.length ? currentScanTags : getMealStoredTags(sourceMeal));
+  const fallbackScore = sourceMeal?.food_name ? clampScore(Math.round(getMealNutritionScore(sourceMeal) * 10)) : null;
+
+  return {
+    protein_g: normalizedInsight ? normalizedInsight.macros.protein_g : numberOrNull(sourceMeal?.protein_g),
+    carbs_g: normalizedInsight ? normalizedInsight.macros.carbs_g : numberOrNull(sourceMeal?.carbs_g),
+    fat_g: normalizedInsight ? normalizedInsight.macros.fat_g : numberOrNull(sourceMeal?.fat_g),
+    fiber_g: normalizedInsight ? normalizedInsight.macros.fiber_g : numberOrNull(sourceMeal?.fiber_g),
+    sugar_g: normalizedInsight ? normalizedInsight.macros.sugar_g : numberOrNull(sourceMeal?.sugar_g),
+    ai_health_score: Number.isFinite(Number(sourceMeal?.ai_health_score))
+      ? clampScore(Number(sourceMeal.ai_health_score))
+      : fallbackScore,
+    ai_tags: tags,
+    likely_ingredients: ingredients,
+    ai_insight: normalizedInsight
+  };
+}
+
+function mealInsightSnippet(meal) {
+  const insight = getMealInsight(meal);
+  if (!insight) return '';
+  const topNutrients = [
+    ...(insight.vitamins || []).slice(0, 2).map((item) => `${item.name} ${item.amount}`),
+    ...(insight.minerals || []).slice(0, 1).map((item) => `${item.name} ${item.amount}`)
+  ].filter(Boolean);
+  return topNutrients.length ? `Insight: ${topNutrients.join(' · ')}` : insight.summary || '';
 }
 
 function renderFavorites() {
@@ -1538,7 +1978,78 @@ function renderProfile() {
   document.getElementById('profileCalorieTarget').textContent = measurements.target_calories ? Number(measurements.target_calories).toLocaleString() : '—';
   document.getElementById('profileProteinTarget').textContent = measurements.protein_grams ? Number(measurements.protein_grams).toLocaleString() : '—';
   document.getElementById('profileWaterTarget').textContent = measurements.water_liters ? Number(measurements.water_liters).toFixed(1) : '—';
+  renderProfileNutrientBreakdown(member.id);
   renderAvatarPicker(member);
+}
+
+function renderProfileNutrientBreakdown(memberId) {
+  const summary = document.getElementById('profileNutrientSummary');
+  const vitaminList = document.getElementById('profileVitaminList');
+  const mineralList = document.getElementById('profileMineralList');
+  if (!summary || !vitaminList || !mineralList) return;
+
+  const meals = (appState.meals || [])
+    .filter((meal) => !memberId || meal.member_id === memberId)
+    .slice()
+    .sort((a, b) => new Date(b.eaten_at || b.created_at || 0).getTime() - new Date(a.eaten_at || a.created_at || 0).getTime())
+    .slice(0, 12);
+
+  const nutrientMap = {
+    vitamins: new Map(),
+    minerals: new Map()
+  };
+  let insightMealCount = 0;
+
+  meals.forEach((meal) => {
+    const insight = getMealInsight(meal);
+    if (!insight) return;
+    insightMealCount += 1;
+    ['vitamins', 'minerals'].forEach((group) => {
+      (insight[group] || []).forEach((item) => {
+        const key = String(item.name || '').trim().toLowerCase();
+        if (!key) return;
+        if (!nutrientMap[group].has(key)) {
+          nutrientMap[group].set(key, {
+            name: item.name,
+            amount: item.amount || '',
+            benefit: item.benefit || '',
+            count: 0
+          });
+        }
+        nutrientMap[group].get(key).count += 1;
+      });
+    });
+  });
+
+  const rankItems = (map) => Array.from(map.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 6);
+
+  const vitamins = rankItems(nutrientMap.vitamins);
+  const minerals = rankItems(nutrientMap.minerals);
+
+  if (!insightMealCount) {
+    summary.textContent = 'Scan and save meals to see real vitamins and minerals here.';
+    vitaminList.innerHTML = '<p class="muted">No vitamin breakdown yet.</p>';
+    mineralList.innerHTML = '<p class="muted">No mineral breakdown yet.</p>';
+    return;
+  }
+
+  summary.textContent = insightMealCount === 1
+    ? 'Based on your latest AI-scanned meal.'
+    : `Based on ${insightMealCount} recent AI-scanned meals for this profile.`;
+  vitaminList.innerHTML = renderProfileNutrientItems(vitamins, 'No vitamin breakdown yet.');
+  mineralList.innerHTML = renderProfileNutrientItems(minerals, 'No mineral breakdown yet.');
+}
+
+function renderProfileNutrientItems(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return items.map((item) => `
+    <article class="profile-nutrient-item">
+      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
+      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+    </article>
+  `).join('');
 }
 
 async function handleSaveProfileMeasurements() {
@@ -1638,6 +2149,7 @@ async function saveMeal(event) {
     photo_url: photoUrl,
     eaten_at: new Date().toISOString()
   };
+  Object.assign(meal, buildMealNutritionStorage(meal));
 
   if (!meal.food_name) return;
 
@@ -1720,17 +2232,184 @@ function updateMealPreview() {
   const mealType = document.getElementById('mealType').value;
   const restaurant = document.getElementById('restaurantName').value.trim();
   const calories = document.getElementById('calories').value.trim();
+  const weightGrams = getCurrentScanWeightGrams();
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const previewPhoto = document.getElementById('previewPhoto');
   document.getElementById('previewFood').textContent = food || 'New family bite';
   document.getElementById('previewMeta').textContent = [
     mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal type not selected',
     restaurant || 'Restaurant not set',
-    calories ? `${calories} calories` : 'Calories pending'
-  ].join(' · ');
+    calories ? `${calories} calories` : 'Calories pending',
+    weightGrams ? `${weightGrams}g portion` : null
+  ].filter(Boolean).join(' · ');
 
   previewPhoto.classList.toggle('hidden', !photoUrl);
   if (photoUrl) previewPhoto.src = photoUrl;
+}
+
+function normalizeWeightGrams(value) {
+  const numeric = Math.round(Number(value));
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric;
+}
+
+function getCurrentScanWeightGrams() {
+  return normalizeWeightGrams(document.getElementById('scanWeightGrams')?.value);
+}
+
+function normalizeScanLabel(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function titleCaseScanLabel(value) {
+  return normalizeScanLabel(value)
+    .split(' ')
+    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1) : '')
+    .join(' ');
+}
+
+function uniqueScanLabels(values) {
+  const seen = new Set();
+  return values
+    .map((item) => normalizeScanLabel(item))
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (!item || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function deriveQuickTags({ foods = [], ingredients = [], insight = null }) {
+  const haystack = [
+    ...foods.map((item) => item.name || ''),
+    ...ingredients,
+    insight?.summary || '',
+    ...(insight?.highlights || [])
+  ].join(' ').toLowerCase();
+
+  const derived = [];
+  const include = (label, match) => {
+    if (match && !derived.includes(label)) derived.push(label);
+  };
+
+  include('Fried', /fried|karaage|crispy|batter/.test(haystack));
+  include('Grilled', /grilled|charred|bbq/.test(haystack));
+  include('Steamed', /steamed/.test(haystack));
+  include('Baked', /baked/.test(haystack));
+  include('Roasted', /roasted/.test(haystack));
+  include('Stir-fried', /stir[- ]fried|stir fried/.test(haystack));
+  include('Sweet Drink', /latte|coffee|milk tea|tea|smoothie|juice|soda|cola|sweet drink/.test(haystack));
+  include('Dessert', /cake|cookie|dessert|ice cream|pastry|donut/.test(haystack));
+  include('High Protein', /protein|chicken|beef|pork|fish|egg|tofu|tuna|shrimp/.test(haystack));
+  include('High Fiber', /fiber|greens|vegetable|beans|salad|seaweed|fruit|oats/.test(haystack));
+  include('Processed', /sausage|processed|instant|packaged/.test(haystack));
+  include('Creamy', /cream|creamy|mayo|mayonnaise|latte/.test(haystack));
+  include('Saucy', /sauce|dressing|gravy/.test(haystack));
+  include('Plant-based Likely', /tofu|beans|greens|vegetable|fruit|seaweed/.test(haystack) && !/chicken|beef|pork|fish|egg|shrimp/.test(haystack));
+  include('Contains Dairy', /milk|cheese|butter|cream|yogurt|latte/.test(haystack));
+  include('Contains Meat', /chicken|beef|pork|fish|salmon|tuna|shrimp/.test(haystack));
+
+  return uniqueScanLabels(derived);
+}
+
+function resetScanEditor() {
+  currentScanIngredients = [];
+  currentScanTags = [];
+  currentScanConfidence = '';
+  currentScanDirty = false;
+  currentScanEstimatedWeightGrams = null;
+  const weightInput = document.getElementById('scanWeightGrams');
+  if (weightInput) weightInput.value = '';
+  renderScanEditor();
+}
+
+function renderScanEditor() {
+  const ingredientPanel = document.getElementById('scanIngredientPanel');
+  const rescanPanel = document.getElementById('scanRescanPanel');
+  const ingredientChips = document.getElementById('scanIngredientChips');
+  const tagList = document.getElementById('scanQuickTagList');
+  const confidenceBadge = document.getElementById('scanConfidenceBadge');
+  const weightHint = document.getElementById('scanWeightHint');
+  const rescanButton = document.getElementById('rescanFoodDetails');
+  if (!ingredientPanel || !rescanPanel || !ingredientChips || !tagList || !confidenceBadge || !weightHint || !rescanButton) return;
+
+  const enteredWeight = getCurrentScanWeightGrams();
+  const hasEditorData = currentScanIngredients.length || currentScanTags.length || currentScanConfidence || currentScanEstimatedWeightGrams || enteredWeight;
+  ingredientPanel.classList.toggle('hidden', !hasEditorData);
+  rescanPanel.classList.toggle('hidden', !currentScanDirty);
+  confidenceBadge.textContent = currentScanConfidence ? `${currentScanConfidence} confidence` : 'scan ready';
+  if (enteredWeight) {
+    weightHint.textContent = `Using your estimate of ${enteredWeight}g for the next AI rescan.`;
+    rescanButton.textContent = '✨ Rescan with this weight';
+  } else if (currentScanEstimatedWeightGrams) {
+    weightHint.textContent = `AI estimated about ${currentScanEstimatedWeightGrams}g total. Enter your own grams to refine the estimate.`;
+    rescanButton.textContent = '✨ Rescan Food Details';
+  } else {
+    weightHint.textContent = 'Optional: enter total food weight in grams if you want AI to refine calories and nutrients.';
+    rescanButton.textContent = '✨ Rescan Food Details';
+  }
+
+  ingredientChips.innerHTML = currentScanIngredients.map((ingredient) => `
+    <button class="scan-chip scan-chip-active" type="button" data-remove-scan-ingredient="${escapeAttr(ingredient)}">
+      <span>${escapeHtml(ingredient)}</span>
+      <b>×</b>
+    </button>
+  `).join('');
+
+  tagList.innerHTML = scanQuickTagOptions.map((tag) => {
+    const active = currentScanTags.some((item) => item.toLowerCase() === tag.toLowerCase());
+    return `
+      <button class="scan-chip scan-tag-chip ${active ? 'scan-chip-active' : ''}" type="button" data-scan-tag="${escapeAttr(tag)}">
+        ${escapeHtml(tag)}
+      </button>
+    `;
+  }).join('');
+}
+
+function markScanDetailsDirty() {
+  if (!document.getElementById('photoPreview').dataset.photoUrl) return;
+  if (!currentScanInsight && !currentScanIngredients.length && !currentScanTags.length && !currentScanEstimatedWeightGrams && !getCurrentScanWeightGrams()) return;
+  currentScanDirty = true;
+  renderScanEditor();
+  updateMealPreview();
+}
+
+function removeScanIngredient(value) {
+  currentScanIngredients = currentScanIngredients.filter((item) => item.toLowerCase() !== String(value || '').toLowerCase());
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function toggleScanTag(value) {
+  const normalized = titleCaseScanLabel(value);
+  const exists = currentScanTags.some((item) => item.toLowerCase() === normalized.toLowerCase());
+  currentScanTags = exists
+    ? currentScanTags.filter((item) => item.toLowerCase() !== normalized.toLowerCase())
+    : [...currentScanTags, normalized];
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function handleAddScanIngredient() {
+  const input = document.getElementById('scanIngredientInput');
+  const value = titleCaseScanLabel(input.value);
+  if (!value) return;
+  currentScanIngredients = uniqueScanLabels([...currentScanIngredients, value]).map(titleCaseScanLabel);
+  input.value = '';
+  currentScanDirty = true;
+  renderScanEditor();
+}
+
+function handleScanIngredientKeydown(event) {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  handleAddScanIngredient();
+}
+
+async function handleRescanFoodDetails() {
+  currentScanDirty = false;
+  await applyAiCalorieEstimate();
 }
 
 async function handlePhotoChange(event) {
@@ -1753,6 +2432,9 @@ async function handlePhotoChange(event) {
   event.target.value = '';
   document.getElementById('foodName').value = '';
   document.getElementById('calories').value = '';
+  currentScanInsight = null;
+  resetScanEditor();
+  renderScanInsight(null);
   updateMealPreview();
 
   try {
@@ -1763,7 +2445,7 @@ async function handlePhotoChange(event) {
     photoPreview.classList.remove('hidden');
     document.getElementById('photoIcon').classList.add('hidden');
     document.getElementById('photoTitle').textContent = 'Photo ready';
-    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories…';
+    document.getElementById('photoHint').textContent = 'AI is scanning the meal for calories and nutrients…';
     updateMealPreview();
     await applyAiCalorieEstimate();
   } catch (error) {
@@ -1787,13 +2469,17 @@ function resetPhotoPreview() {
   document.getElementById('photoHint').textContent = 'Choose where your photo comes from.';
   const estimateStatus = document.getElementById('calorieEstimate');
   estimateStatus.classList.remove('estimate-success', 'estimate-error');
-  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food and calories.';
+  estimateStatus.textContent = 'Add a photo and AI will estimate the visible food, calories, and nutrient insight.';
+  currentScanInsight = null;
+  resetScanEditor();
+  renderScanInsight(null);
 }
 
 async function applyAiCalorieEstimate() {
   const photoUrl = document.getElementById('photoPreview').dataset.photoUrl || '';
   const status = document.getElementById('calorieEstimate');
   const button = document.getElementById('aiEstimateCalories');
+  const userWeightGrams = getCurrentScanWeightGrams();
   if (!photoUrl) {
     status.textContent = 'Upload or take a food photo first.';
     status.classList.add('estimate-error');
@@ -1804,7 +2490,7 @@ async function applyAiCalorieEstimate() {
   button.disabled = true;
   button.textContent = 'Scanning…';
   status.classList.remove('estimate-success', 'estimate-error');
-  status.textContent = 'AI is identifying the food and estimating portions…';
+  status.textContent = 'AI is identifying the food and estimating calories, vitamins, and nutrients…';
 
   try {
     const response = await fetch('/.netlify/functions/estimate-calories', {
@@ -1813,7 +2499,13 @@ async function applyAiCalorieEstimate() {
       body: JSON.stringify({
         image_url: photoUrl,
         food_name: document.getElementById('foodName').value.trim(),
-        portion_size: 'regular'
+        notes: document.getElementById('notes').value.trim(),
+        restaurant_name: document.getElementById('restaurantName').value.trim(),
+        location_name: document.getElementById('locationName').value.trim(),
+        likely_ingredients: currentScanIngredients,
+        quick_tags: currentScanTags,
+        portion_size: 'regular',
+        weight_grams: userWeightGrams
       })
     });
     const estimate = await response.json();
@@ -1828,12 +2520,43 @@ async function applyAiCalorieEstimate() {
     if (estimate.foods?.length) {
       foodInput.value = estimate.foods.map((food) => food.name).filter(Boolean).join(', ');
     }
+    currentScanEstimatedWeightGrams = normalizeWeightGrams(estimate.estimated_weight_grams || estimate.applied_weight_grams);
+    currentScanInsight = normalizeScanInsight(estimate.insight, {
+      estimatedWeightGrams: currentScanEstimatedWeightGrams,
+      appliedWeightGrams: normalizeWeightGrams(estimate.applied_weight_grams),
+      usedUserWeight: Boolean(estimate.used_user_weight)
+    });
+    currentScanIngredients = uniqueScanLabels([
+      ...(estimate.likely_ingredients || []),
+      ...(estimate.foods || []).map((food) => food.name)
+    ]).map(titleCaseScanLabel);
+    currentScanTags = uniqueScanLabels(
+      (estimate.quick_tags || []).length
+        ? estimate.quick_tags
+        : deriveQuickTags({
+            foods: estimate.foods || [],
+            ingredients: currentScanIngredients,
+            insight: currentScanInsight
+          })
+    ).map(titleCaseScanLabel);
+    currentScanConfidence = String(estimate.confidence || '').toLowerCase();
+    currentScanDirty = false;
+    renderScanEditor();
+    renderScanInsight(currentScanInsight);
     const foods = estimate.foods?.map((food) => `${food.name} ${food.calories} kcal`).join(' + ');
-    status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence). Please confirm before saving.`;
+    const weightStatus = userWeightGrams
+      ? ` Refined using ${userWeightGrams}g.`
+      : currentScanEstimatedWeightGrams
+        ? ` AI portion estimate: about ${currentScanEstimatedWeightGrams}g.`
+        : '';
+    status.textContent = `${foods || 'Meal'} · about ${calories.toLocaleString()} kcal (${estimate.confidence} confidence).${weightStatus} Please confirm before saving.`;
     status.classList.add('estimate-success');
-    document.getElementById('photoHint').textContent = 'AI calorie estimate ready.';
+    document.getElementById('photoHint').textContent = 'AI Insight is ready.';
     updateMealPreview();
   } catch (error) {
+    currentScanInsight = null;
+    resetScanEditor();
+    renderScanInsight(null);
     status.textContent = error.message || 'AI scan is unavailable. Enter calories manually and try again later.';
     status.classList.add('estimate-error');
     document.getElementById('photoHint').textContent = 'Photo ready. AI scan could not finish.';
@@ -1841,6 +2564,82 @@ async function applyAiCalorieEstimate() {
     button.disabled = false;
     button.textContent = originalLabel;
   }
+}
+
+function normalizeScanInsight(insight, options = {}) {
+  if (!insight || typeof insight !== 'object') return null;
+  const estimatedWeightGrams = normalizeWeightGrams(options.estimatedWeightGrams ?? insight.estimated_weight_g ?? insight.estimatedWeightGrams);
+  const appliedWeightGrams = normalizeWeightGrams(options.appliedWeightGrams ?? insight.applied_weight_g ?? insight.appliedWeightGrams);
+  const usedUserWeight = Boolean(options.usedUserWeight ?? insight.used_user_weight ?? insight.usedUserWeight);
+  return {
+    summary: String(insight.summary || 'AI estimated vitamins and nutrients for this dish.'),
+    highlights: Array.isArray(insight.highlights) ? insight.highlights.slice(0, 4).map((item) => String(item)) : [],
+    macros: {
+      protein_g: Math.max(0, Math.round(Number(insight.macros?.protein_g) || 0)),
+      carbs_g: Math.max(0, Math.round(Number(insight.macros?.carbs_g) || 0)),
+      fat_g: Math.max(0, Math.round(Number(insight.macros?.fat_g) || 0)),
+      fiber_g: Math.max(0, Math.round(Number(insight.macros?.fiber_g) || 0)),
+      sugar_g: Math.max(0, Math.round(Number(insight.macros?.sugar_g) || 0))
+    },
+    vitamins: Array.isArray(insight.vitamins) ? insight.vitamins.slice(0, 4).map(normalizeMicronutrient) : [],
+    minerals: Array.isArray(insight.minerals) ? insight.minerals.slice(0, 4).map(normalizeMicronutrient) : [],
+    estimated_weight_g: estimatedWeightGrams,
+    applied_weight_g: appliedWeightGrams,
+    user_weight_g: usedUserWeight ? appliedWeightGrams : null,
+    used_user_weight: usedUserWeight
+  };
+}
+
+function normalizeMicronutrient(item) {
+  return {
+    name: String(item?.name || 'Nutrient'),
+    amount: String(item?.amount || ''),
+    benefit: String(item?.benefit || '')
+  };
+}
+
+function renderScanInsight(insight) {
+  const section = document.getElementById('mealInsightSection');
+  if (!section) return;
+  if (!insight) {
+    section.classList.add('hidden');
+    document.getElementById('mealInsightSummary').textContent = 'Scan a dish to see estimated vitamins, minerals, and nutrient highlights.';
+    document.getElementById('mealInsightHighlightList').innerHTML = '';
+    document.getElementById('mealVitaminList').innerHTML = '';
+    document.getElementById('mealMineralList').innerHTML = '';
+    document.getElementById('insightProtein').textContent = '0g';
+    document.getElementById('insightCarbs').textContent = '0g';
+    document.getElementById('insightFat').textContent = '0g';
+    document.getElementById('insightFiber').textContent = '0g';
+    return;
+  }
+
+  section.classList.remove('hidden');
+  const weightLine = insight.used_user_weight && insight.applied_weight_g
+    ? ` Refined with your ${insight.applied_weight_g}g estimate.`
+    : insight.estimated_weight_g
+      ? ` AI estimated portion: about ${insight.estimated_weight_g}g.`
+      : '';
+  document.getElementById('mealInsightSummary').textContent = `${insight.summary}${weightLine}`;
+  document.getElementById('insightProtein').textContent = `${insight.macros.protein_g}g`;
+  document.getElementById('insightCarbs').textContent = `${insight.macros.carbs_g}g`;
+  document.getElementById('insightFat').textContent = `${insight.macros.fat_g}g`;
+  document.getElementById('insightFiber').textContent = `${insight.macros.fiber_g}g`;
+  document.getElementById('mealInsightHighlightList').innerHTML = insight.highlights
+    .map((item) => `<span class="insight-chip">${escapeHtml(item)}</span>`)
+    .join('');
+  document.getElementById('mealVitaminList').innerHTML = renderMicronutrientList(insight.vitamins, 'No vitamin estimate yet.');
+  document.getElementById('mealMineralList').innerHTML = renderMicronutrientList(insight.minerals, 'No mineral estimate yet.');
+}
+
+function renderMicronutrientList(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return items.map((item) => `
+    <article class="scan-insight-item">
+      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
+      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
+    </article>
+  `).join('');
 }
 
 async function handleProfilePhotoChange(event) {
@@ -2072,6 +2871,9 @@ function normalizeMeal(meal) {
     food_name: meal.food_name || meal.name || 'Meal',
     notes: meal.notes || meal.description || '',
     photo_url: meal.photo_url || '',
+    ai_tags: Array.isArray(meal.ai_tags) ? meal.ai_tags : getMealStoredTags(meal),
+    likely_ingredients: Array.isArray(meal.likely_ingredients) ? meal.likely_ingredients : getMealStoredIngredients(meal),
+    ai_insight: meal.ai_insight || getMealInsight(meal),
     eaten_at: meal.eaten_at || meal.created_at || new Date().toISOString()
   };
 }

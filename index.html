@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="simple-landing.css" />
+  <link rel="stylesheet" href="style.css?v=20260721-impactclean1" />
+  <link rel="stylesheet" href="simple-landing.css?v=20260721-impactclean1" />
 </head>
 <body>
   <main id="app" class="site-shell">
@@ -57,7 +57,7 @@
             <h3 id="authStatusTitle">Continue with Google</h3>
             <p id="authStatusCopy">Sign in to load your family and member permissions.</p>
             <div class="landing-auth-actions">
-              <button id="googleSignInButton" class="primary-button" type="button">Continue with Google</button>
+              <button id="googleSignInButton" class="primary-button" type="button" onclick="return window.startFamilyBitesGoogleLogin ? window.startFamilyBitesGoogleLogin(event) : false;">Continue with Google</button>
               <button id="signOutButton" class="secondary-button hidden" type="button">Sign out</button>
             </div>
             <small id="authStatusMeta">Only approved family accounts can open this space.</small>
@@ -138,6 +138,37 @@
                 </div>
                 <button class="primary-button dashboard-add-button" data-page="snap" type="button"><span>＋</span> Add</button>
               </div>
+
+              <section class="food-story-panel dashboard-card">
+                <div class="food-story-header">
+                  <div>
+                    <p class="eyebrow">Daily food brief</p>
+                    <h3>Today’s food story</h3>
+                    <p id="foodStoryDate" class="food-story-date">Today · 0 dishes logged</p>
+                  </div>
+                </div>
+                <div class="food-story-layout">
+                  <div class="food-story-donut-card">
+                    <div id="foodStoryDonut" class="food-story-donut">
+                      <div class="food-story-donut-center">
+                        <strong id="foodStoryCalories">0</strong>
+                        <small>calories</small>
+                        <span id="foodStoryGoal">0% of goal</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="foodStoryList" class="food-story-list"></div>
+                </div>
+                <div class="food-story-metrics">
+                  <article><span>Daily goal</span><strong id="foodStoryGoalCalories">1,700 cal</strong></article>
+                  <article><span>Food score</span><strong id="foodStoryScore">0/100</strong></article>
+                  <article><span>Variety</span><strong id="foodStoryVariety">0 foods</strong></article>
+                </div>
+                <div class="food-story-observation">
+                  <span>Today’s observation</span>
+                  <p id="foodStoryObservation">Log your first meal and your food story will appear here.</p>
+                </div>
+              </section>
 
               <section class="today-food-panel dashboard-card">
                 <div id="todayFoodList" class="meal-list dashboard-meal-list"></div>
@@ -232,10 +263,34 @@
               <p class="panel-subtitle">See how your food nourishes your body.</p>
               <p class="eyebrow body-analysis-label">✦ AI Analysis</p>
               <div class="body-impact-content">
-                <div class="human-figure" aria-hidden="true">
+                <div id="bodyImpactLeft" class="impact-column impact-column-left"></div>
+                <div id="humanFigure" class="human-figure" aria-hidden="true">
                   <img src="assets/illustrations/anatomical-body.png" alt="Anatomical wellness illustration showing the brain, heart, digestive organs, muscles, energy and bones">
+                  <div class="body-clothing-layer">
+                    <span class="body-clothing body-clothing-shirt"></span>
+                    <span class="body-clothing body-clothing-sleeve body-clothing-sleeve-left"></span>
+                    <span class="body-clothing body-clothing-sleeve body-clothing-sleeve-right"></span>
+                    <span class="body-clothing body-clothing-pants"></span>
+                    <span class="body-clothing body-clothing-shoe body-clothing-shoe-left"></span>
+                    <span class="body-clothing body-clothing-shoe body-clothing-shoe-right"></span>
+                  </div>
+                  <div class="body-highlight-layer">
+                    <span class="body-highlight body-highlight-brain"></span>
+                    <span class="body-highlight body-highlight-liver"></span>
+                    <span class="body-highlight body-highlight-muscles"></span>
+                    <span class="body-highlight body-highlight-joints"></span>
+                    <span class="body-highlight body-highlight-immunity"></span>
+                    <span class="body-highlight body-highlight-energy"></span>
+                    <span class="body-highlight body-highlight-heart"></span>
+                    <span class="body-highlight body-highlight-eyes"></span>
+                    <span class="body-highlight body-highlight-digestion"></span>
+                    <span class="body-highlight body-highlight-skin"></span>
+                    <span class="body-highlight body-highlight-recovery"></span>
+                    <span class="body-highlight body-highlight-bones"></span>
+                  </div>
+                  <div id="bodyImpactActiveLabel" class="body-impact-active-label">Body system</div>
                 </div>
-                <div id="bodyImpactList" class="body-impact-list"></div>
+                <div id="bodyImpactRight" class="impact-column impact-column-right"></div>
               </div>
               <p class="body-impact-note">ⓘ Percentages show how much of today’s logged food contributes to each body system.</p>
             </section>
@@ -248,14 +303,21 @@
                   <div><span>Protein</span><i><em id="proteinMacroBar" style="width:0%"></em></i><b id="proteinMacroValue">0%</b></div>
                   <div><span>Fats</span><i><em id="fatMacroBar" style="width:0%"></em></i><b id="fatMacroValue">0%</b></div>
                 </div>
-                <div id="nutritionDonut" class="nutrition-donut empty"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
+                <div class="nutrition-donut"><strong id="nutritionDonutCalories">0</strong><small>cal</small></div>
               </div>
-              <div class="nutrition-highlights">
-                <article><span>Dominant fuel</span><strong id="macroDominant">-</strong></article>
-                <article><span>Protein</span><strong id="macroProteinGrams">0g</strong></article>
-                <article><span>Estimated split</span><strong id="macroGramSummary">0g / 0g / 0g</strong></article>
+              <div class="dashboard-nutrient-insight">
+                <p id="nutritionInsight" class="nutrition-insight">Scan meals to see today’s vitamin and mineral estimate here.</p>
+                <div class="dashboard-nutrient-columns">
+                  <div>
+                    <h4>Top vitamins</h4>
+                    <div id="dashboardVitaminList" class="dashboard-nutrient-list"></div>
+                  </div>
+                  <div>
+                    <h4>Top minerals</h4>
+                    <div id="dashboardMineralList" class="dashboard-nutrient-list"></div>
+                  </div>
+                </div>
               </div>
-              <p id="nutritionInsight" class="nutrition-insight">Log a meal to estimate today’s carbohydrate, protein, and fat balance.</p>
               <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
             </section>
 
@@ -316,10 +378,66 @@
               <label>Location<input id="locationName" name="location_name" placeholder="Bangkok, home, school"></label>
               <label>Price<input id="price" name="price" type="number" min="0" step="0.01" placeholder="8.50"></label>
               <label>Calories<input id="calories" name="calories" type="number" min="0" placeholder="640"></label>
+              <label>Total food weight (g)
+                <input id="scanWeightGrams" name="weight_grams" type="number" min="1" step="1" inputmode="numeric" placeholder="Optional: 220">
+              </label>
               <div class="calorie-scanner wide">
-                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Calories</button>
-                <small id="calorieEstimate">Add a photo and AI will estimate the visible food and calories.</small>
+                <button id="aiEstimateCalories" class="secondary-button" type="button">✨ Scan Photo for Insight</button>
+                <small id="calorieEstimate">Add a photo and AI will estimate the visible food, calories, and nutrient insight.</small>
               </div>
+              <section id="scanRescanPanel" class="scan-editor-panel scan-rescan-panel wide hidden" aria-live="polite">
+                <button id="rescanFoodDetails" class="scan-rescan-button" type="button">✨ Rescan Food Details</button>
+                <p id="scanWeightHint">Optional: enter total food weight in grams if you want AI to refine calories and nutrients.</p>
+                <p>Details changed. Rescan if you want AI to refine the calories with your updated ingredients, notes, or portion weight.</p>
+              </section>
+              <section id="scanIngredientPanel" class="scan-editor-panel scan-ingredient-panel wide hidden" aria-live="polite">
+                <div class="scan-panel-header">
+                  <div>
+                    <h3>Likely ingredients</h3>
+                    <p>Confirm or edit what AI found before you save this scan.</p>
+                  </div>
+                  <span id="scanConfidenceBadge" class="scan-confidence-badge">high confidence</span>
+                </div>
+                <div id="scanIngredientChips" class="scan-chip-grid"></div>
+                <div class="scan-ingredient-add-row">
+                  <input id="scanIngredientInput" type="text" placeholder="Add an ingredient" autocomplete="off">
+                  <button id="addScanIngredientButton" class="scan-add-button" type="button">Add</button>
+                </div>
+                <div class="scan-panel-header scan-panel-header-tags">
+                  <div>
+                    <h3>Quick tags</h3>
+                  </div>
+                  <p>Tap to keep or remove these labels.</p>
+                </div>
+                <div id="scanQuickTagList" class="scan-chip-grid scan-tag-grid"></div>
+              </section>
+              <section id="mealInsightSection" class="insight-panel scan-insight-panel wide hidden" aria-live="polite">
+                <div class="section-title scan-insight-header">
+                  <div>
+                    <p class="eyebrow">AI nutrient estimate</p>
+                    <h3>Insight</h3>
+                  </div>
+                  <span class="sparkle">✦</span>
+                </div>
+                <p id="mealInsightSummary">Scan a dish to see estimated vitamins, minerals, and nutrient highlights.</p>
+                <div id="mealInsightHighlightList" class="insight-chip-row"></div>
+                <div class="scan-insight-macro-grid">
+                  <article><span>Protein</span><strong id="insightProtein">0g</strong></article>
+                  <article><span>Carbs</span><strong id="insightCarbs">0g</strong></article>
+                  <article><span>Fat</span><strong id="insightFat">0g</strong></article>
+                  <article><span>Fiber</span><strong id="insightFiber">0g</strong></article>
+                </div>
+                <div class="scan-insight-columns">
+                  <div>
+                    <h4>Vitamins</h4>
+                    <div id="mealVitaminList" class="scan-insight-list"></div>
+                  </div>
+                  <div>
+                    <h4>Minerals</h4>
+                    <div id="mealMineralList" class="scan-insight-list"></div>
+                  </div>
+                </div>
+              </section>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>
@@ -488,6 +606,23 @@
                 <button class="primary-button" id="saveProfileMeasurements" type="button">Save &amp; Calculate</button>
                 <small>General estimates for adults. Medical conditions and pregnancy require professional guidance.</small>
               </section>
+              <section class="profile-nutrient-breakdown" aria-labelledby="profileNutrientBreakdownTitle">
+                <div>
+                  <p class="eyebrow">AI nutrient estimate</p>
+                  <h4 id="profileNutrientBreakdownTitle">Vitamin breakdown</h4>
+                </div>
+                <p id="profileNutrientSummary" class="profile-nutrient-summary">Scan and save meals to see real vitamins and minerals here.</p>
+                <div class="profile-nutrient-columns">
+                  <div>
+                    <h5>Top vitamins</h5>
+                    <div id="profileVitaminList" class="profile-nutrient-list"></div>
+                  </div>
+                  <div>
+                    <h5>Top minerals</h5>
+                    <div id="profileMineralList" class="profile-nutrient-list"></div>
+                  </div>
+                </div>
+              </section>
               <div class="avatar-picker-wrap">
                 <strong>Choose Avatar</strong>
                 <div id="avatarPicker" class="avatar-picker" aria-label="Choose profile avatar"></div>
@@ -554,8 +689,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
-  <script src="app.js"></script>
+  <script src="supabase.js?v=20260721-authloop1"></script>
+  <script src="app.js?v=20260721-impactclean1"></script>
 
 <!-- Health Insight Modal -->
 <div id="healthInsightModal" class="health-modal">
