@@ -838,6 +838,7 @@ function renderBodyImpactCards(impacts) {
 }
 
 function renderBodyImpactCard([name, score, icon, copy, position, foods]) {
+  const compactCopy = summariseBodyImpactCopy(copy);
   return `
     <article
       class="impact-callout impact-${position}"
@@ -852,8 +853,16 @@ function renderBodyImpactCard([name, score, icon, copy, position, foods]) {
         <strong>${score}%</strong>
       </div>
       <span class="impact-callout-status ${escapeAttr(impactStatusTone(score))}">${escapeHtml(impactStatusLabel(score))}</span>
+      <p class="impact-callout-copy">${escapeHtml(compactCopy)}</p>
     </article>
   `;
+}
+
+function summariseBodyImpactCopy(copy) {
+  const text = String(copy || '').trim();
+  if (!text) return 'No matching food logged yet.';
+  const firstSentence = text.split(/(?<=[.!?])\s+/)[0] || text;
+  return firstSentence.length > 120 ? `${firstSentence.slice(0, 117).trim()}…` : firstSentence;
 }
 
 function setActiveBodyImpactPart(position, partName) {
