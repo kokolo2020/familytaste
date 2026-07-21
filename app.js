@@ -348,6 +348,7 @@ function bindEvents() {
   document.getElementById('saveProfileName').addEventListener('click', handleSaveProfileName);
   document.getElementById('saveProfileMeasurements').addEventListener('click', handleSaveProfileMeasurements);
   document.getElementById('saveBioStats').addEventListener('click', handleSaveBioStats);
+  document.getElementById('shareFoodStoryButton').addEventListener('click', shareFoodStory);
   document.getElementById('googleSignInButton').addEventListener('click', window.startFamilyBitesGoogleLogin);
   document.getElementById('signOutButton').addEventListener('click', async () => {
     if (!window.familyBitesDb?.signOut) return;
@@ -721,6 +722,66 @@ function buildFoodStoryObservation(todayMeals, calories, calorieGoal, averageSco
   if (varietyCount <= 2) return 'Today is still concentrated around a few foods. Adding fruit, beans, or greens would broaden the story.';
   if (averageScore >= 68) return 'Your food story looks steady today. A little more produce would make the day even stronger.';
   return 'Today’s meals are a good start. The next dish can add more balance and micronutrient support.';
+}
+
+async function shareFoodStory() {
+  const memberMeals = getMemberMeals();
+  const todayMeals = memberMeals.filter(isToday);
+  if (!todayMeals.length) {
+    alert('Log at least one meal before sharing your food story.');
+    return;
+  }
+
+  const savedTargets = appState.profileMeasurements[appState.currentMember?.id] || {};
+  const calorieGoal = Number(savedTargets.target_calories || appState.currentMember?.target_calories) || 2200;
+  const calories = sum(todayMeals, 'calories');
+  const shareTitle = `${appState.currentMember?.name || 'My'} food story`;
+  const shareText = buildShareableFoodStory(todayMeals, calories, calorieGoal);
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: shareTitle,
+        text: shareText,
+        url: window.location.href
+      });
+      return;
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
+      alert('Food story copied. You can paste it anywhere to share.');
+      return;
+    }
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    console.warn('Food story share failed.', error);
+  }
+
+  alert('Sharing is not available in this browser right now.');
+}
+
+function buildShareableFoodStory(todayMeals, calories, calorieGoal) {
+  const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+  const items = buildFoodStoryItems(todayMeals, calories);
+  const topItems = items.slice(0, 5).map((item) => `- ${item.name} - ${item.calories.toLocaleString()} cal (${item.percent}% of today)`);
+  const varietyCount = new Set(todayMeals.map((meal) => meal.food_name?.trim().toLowerCase()).filter(Boolean)).size;
+  const averageScore = todayMeals.length
+    ? Math.round(todayMeals.reduce((total, meal) => total + getMealNutritionScore(meal) * 10, 0) / todayMeals.length)
+    : 0;
+  const goalPercent = calorieGoal ? clampScore((calories / calorieGoal) * 100) : 0;
+  const observation = buildFoodStoryObservation(todayMeals, calories, calorieGoal, averageScore, varietyCount);
+
+  return [
+    `Today's food story for ${dateLabel}`,
+    `${todayMeals.length} meals · ${calories.toLocaleString()} cal · ${goalPercent}% of goal`,
+    `Food score: ${averageScore}/100 · Variety: ${varietyCount} foods`,
+    '',
+    'Top foods today:',
+    topItems.join('\n'),
+    '',
+    `Observation: ${observation}`
+  ].join('\n');
 }
 
 function renderDashboardHistory(memberMeals, yesterdayMeals) {

@@ -178,6 +178,7 @@
 #page-dashboard .dashboard-card { border-color: #eeeae4; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(69,48,31,.055); }
 #page-dashboard .food-story-panel { padding: 18px; }
 .food-story-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.food-story-share-button { min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 800; white-space: nowrap; }
 .food-story-header .eyebrow { margin-bottom: 8px; color: #b7681d; font-size: 12px; }
 .food-story-header h3 { margin: 0; color: #241a14; font-family: "Playfair Display", Georgia, serif; font-size: clamp(28px, 3vw, 40px); line-height: 1; }
 .food-story-date { margin: 10px 0 0; color: #8b7a6b; font-size: 14px; }
@@ -361,7 +362,9 @@
   #page-dashboard .nutrition-panel,
   #page-dashboard .yesterday-diary-card { border-radius: 16px; }
   #page-dashboard .food-story-panel { padding: 16px; }
+  .food-story-header { flex-direction: column; }
   .food-story-header h3 { font-size: clamp(24px, 8vw, 34px); }
+  .food-story-share-button { min-height: 36px; padding: 0 14px; font-size: 12px; align-self: flex-start; }
   .food-story-date { font-size: 13px; }
   .food-story-layout { grid-template-columns: 1fr; gap: 16px; }
   .food-story-donut { width: min(100%, 260px); }
