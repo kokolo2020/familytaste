@@ -887,7 +887,7 @@ async function hydrateFromSupabase() {
   renderSettings();
   if (appState.members.length) {
     const defaultMember = appState.members.find((member) => member.id === appState.linkedMemberId) || appState.members[0];
-    selectMember(defaultMember, { openDashboard: false });
+    selectMember(defaultMember, { openDashboard: true });
   }
 }
 
