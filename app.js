@@ -412,7 +412,7 @@ function buildComparedNutrientItems(meals, memberId) {
   const profile = resolveNutrientTargetProfile(memberId);
   const { totals, mealCount } = collectDailyNutrientTotals(meals);
 
-  const buildGroup = (group) => nutrientDisplayOrder[group].map((name) => {
+  const buildGroup = (group) => nutrientDisplayOrder[group].map((name, index) => {
     const meta = nutrientReferenceMeta[name];
     const target = Number(profile.targets?.[name]) || 0;
     const eaten = totals.get(name)?.amount || 0;
@@ -428,10 +428,11 @@ function buildComparedNutrientItems(meals, memberId) {
       remaining,
       percent,
       sourceHits,
+      sortIndex: index,
       benefit: totals.get(name)?.benefit || '',
       missing: eaten <= 0.000001
     };
-  });
+  }).sort(compareNutrientDisplayItems);
 
   return {
     profile,
@@ -439,6 +440,16 @@ function buildComparedNutrientItems(meals, memberId) {
     vitamins: buildGroup('vitamins'),
     minerals: buildGroup('minerals')
   };
+}
+
+function compareNutrientDisplayItems(a, b) {
+  const aHasData = Number(a?.sourceHits || 0) > 0 || Number(a?.eaten || 0) > 0.000001;
+  const bHasData = Number(b?.sourceHits || 0) > 0 || Number(b?.eaten || 0) > 0.000001;
+  if (aHasData !== bHasData) return aHasData ? -1 : 1;
+  if ((b?.percent || 0) !== (a?.percent || 0)) return (b?.percent || 0) - (a?.percent || 0);
+  if ((b?.sourceHits || 0) !== (a?.sourceHits || 0)) return (b?.sourceHits || 0) - (a?.sourceHits || 0);
+  if ((b?.eaten || 0) !== (a?.eaten || 0)) return (b?.eaten || 0) - (a?.eaten || 0);
+  return (a?.sortIndex || 0) - (b?.sortIndex || 0);
 }
 
 const avatarOptions = [
@@ -1571,7 +1582,7 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
     { name: 'Bones', icon: '🦴', position: 'bones', words: ['milk', 'latte', 'cheese', 'yogurt', 'almond', 'tofu', 'fish', 'salmon', 'leafy'], benefit: 'can contribute calcium and bone nutrients' }
   ];
 
-  return systems.map((system) => {
+  return systems.map((system, index) => {
     const matched = system.includeAll
       ? todayMeals
       : todayMeals.filter((meal) => system.words.some((word) => foodSearchText(meal).includes(word)));
@@ -1584,8 +1595,18 @@ function buildFoodBodyImpacts(todayMeals, totalCalories) {
       ? `${ratedMeals.slice(0, 3).map((meal) => `${meal.name} (${meal.score.toFixed(1)})`).join(', ')}${ratedMeals.length > 3 ? `, +${ratedMeals.length - 3} more` : ''}`
       : 'No matching food logged';
     const copy = ratedMeals.length ? `${foodList} — ${system.benefit}.` : `${foodList} yet.`;
-    return [system.name, score, system.icon, copy, system.position, ratedMeals.slice(0, 3)];
-  });
+    return [system.name, score, system.icon, copy, system.position, ratedMeals.slice(0, 3), index];
+  }).sort(compareBodyImpactItems);
+}
+
+function compareBodyImpactItems(a, b) {
+  const aScore = Number(a?.[1] || 0);
+  const bScore = Number(b?.[1] || 0);
+  const aHasData = aScore > 0;
+  const bHasData = bScore > 0;
+  if (aHasData !== bHasData) return aHasData ? -1 : 1;
+  if (bScore !== aScore) return bScore - aScore;
+  return Number(a?.[6] || 0) - Number(b?.[6] || 0);
 }
 
 function impactStatusLabel(score) {
@@ -2700,6 +2721,24 @@ function renderFullNutrientCard(item) {
   `;
 }
 
+async function readJsonResponseSafely(response, fallbackMessage) {
+  const rawText = await response.text();
+  if (!rawText) {
+    if (response.ok) return {};
+    throw new Error(fallbackMessage || `Request failed (${response.status}).`);
+  }
+  try {
+    return JSON.parse(rawText);
+  } catch (error) {
+    const contentType = response.headers.get('content-type') || '';
+    const looksLikeHtml = /html/i.test(contentType) || /^\s*</.test(rawText);
+    if (looksLikeHtml) {
+      throw new Error('The AI scan endpoint returned a web page instead of data. Please redeploy the Netlify functions and try again.');
+    }
+    throw new Error(fallbackMessage || 'The server returned invalid scan data.');
+  }
+}
+
 function getNutrientProgress(percent) {
   return Math.max(0, Math.min(100, Number(percent) || 0));
 }
@@ -3174,7 +3213,7 @@ async function applyAiCalorieEstimate() {
         weight_grams: userWeightGrams
       })
     });
-    const estimate = await response.json();
+    const estimate = await readJsonResponseSafely(response, 'AI calorie scan failed.');
     if (!response.ok) throw new Error(estimate.error || 'AI calorie scan failed.');
 
     // Ignore an older scan if the user selected another photo while it ran.

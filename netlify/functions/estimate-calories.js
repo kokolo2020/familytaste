@@ -154,7 +154,7 @@ exports.handler = async (event) => {
       })
     });
 
-    const result = await response.json();
+    const result = await readJsonResponseSafely(response);
     if (!response.ok) {
       const upstreamMessage = result?.error?.message || 'The AI estimate is temporarily unavailable.';
       console.error('OpenAI calorie estimate failed', response.status, upstreamMessage);
@@ -180,4 +180,20 @@ function json(statusCode, body) {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     body: JSON.stringify(body)
   };
+}
+
+async function readJsonResponseSafely(response) {
+  const rawText = await response.text();
+  if (!rawText) return {};
+  try {
+    return JSON.parse(rawText);
+  } catch (error) {
+    const contentType = response.headers.get('content-type') || '';
+    const snippet = rawText.slice(0, 180).replace(/\s+/g, ' ').trim();
+    const message = /html/i.test(contentType) || /^\s*</.test(rawText)
+      ? `Upstream returned HTML instead of JSON (${response.status}).`
+      : `Upstream returned invalid JSON (${response.status}).`;
+    console.error(message, snippet);
+    return { error: { message } };
+  }
 }
