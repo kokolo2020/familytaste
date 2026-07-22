@@ -538,7 +538,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.startFamilyBitesGoogleLogin = async function startFamilyBitesGoogleLogin(event) {
   if (event?.preventDefault) event.preventDefault();
-  if (!window.familyBitesDb?.signInWithGoogle) return false;
+  if (!window.familyBitesDb?.signInWithGoogle) {
+    window.location.reload();
+    return false;
+  }
   try {
     await window.familyBitesDb.signInWithGoogle();
   } catch (error) {
@@ -593,9 +596,19 @@ function renderAuthState(mode = 'signed-out') {
   const showProfiles = mode === 'ready';
   spotlight.classList.toggle('hidden', !showProfiles);
   profileDock.classList.toggle('hidden', !showProfiles);
-  authCard.classList.toggle('hidden', !window.familyBitesDb?.isConfigured && mode === 'demo');
+  authCard.classList.remove('hidden');
 
-  if (mode === 'demo') return;
+  if (mode === 'demo') {
+    signInButton.classList.remove('hidden');
+    signOutButton.classList.add('hidden');
+    signInButton.textContent = 'Refresh app';
+    title.textContent = 'Reconnect secure access';
+    copy.textContent = 'The sign-in service did not finish loading, so the dashboard could not open yet.';
+    meta.textContent = 'Tap refresh app first. If this keeps happening, the Supabase auth script or network connection needs attention.';
+    return;
+  }
+
+  signInButton.textContent = 'Continue with Google';
 
   signInButton.classList.toggle('hidden', mode !== 'signed-out');
   signOutButton.classList.toggle('hidden', mode === 'signed-out' || mode === 'loading');
