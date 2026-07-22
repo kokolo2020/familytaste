@@ -1110,7 +1110,11 @@ function renderFoodStory(todayMeals, calories, calorieGoal) {
   if (foodStoryList) {
     foodStoryList.innerHTML = storyItems.length ? storyItems.map((item) => `
       <article class="food-story-item">
-        <span class="food-story-dot" style="background:${escapeAttr(item.color)}"></span>
+        <span class="food-story-media">
+          ${item.photoUrl
+            ? `<img class="food-story-photo" src="${escapeAttr(item.photoUrl)}" alt="${escapeAttr(item.name)}">`
+            : `<span class="food-story-dot" style="background:${escapeAttr(item.color)}"></span>`}
+        </span>
         <div class="food-story-copy">
           <strong>${escapeHtml(item.name)}</strong>
           <small>${item.percent}% of today</small>
@@ -1130,11 +1134,10 @@ function renderFoodStory(todayMeals, calories, calorieGoal) {
 }
 
 function buildFoodStoryItems(todayMeals, totalCalories) {
-  const palette = ['#f46d1f', '#f2b51c', '#6da85c', '#1e8a7b', '#d36558', '#8b6fd1'];
+  const palette = ['#f46d1f', '#f2b51c', '#6da85c', '#1e8a7b', '#d36558', '#8b6fd1', '#c46b28', '#4f86c6', '#cf4f70', '#7f9b41'];
   const rankedMeals = [...todayMeals]
     .filter((meal) => Number(meal.calories) > 0)
-    .sort((a, b) => (Number(b.calories) || 0) - (Number(a.calories) || 0))
-    .slice(0, 5);
+    .sort((a, b) => (Number(b.calories) || 0) - (Number(a.calories) || 0));
   let cursor = 0;
   return rankedMeals.map((meal, index) => {
     const calories = Number(meal.calories) || 0;
@@ -1145,6 +1148,7 @@ function buildFoodStoryItems(todayMeals, totalCalories) {
       name: meal.food_name || 'Meal',
       calories,
       percent,
+      photoUrl: meal.photo_url || '',
       color: palette[index % palette.length],
       start,
       end: cursor
@@ -1207,6 +1211,7 @@ async function createCardSnapshotBlob(element) {
   inlineSnapshotStyles(element, clone);
   const shareButton = clone.querySelector('#shareFoodStoryButton');
   if (shareButton) shareButton.remove();
+  compactFoodStorySnapshot(clone);
 
   const wrapper = document.createElement('div');
   wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
@@ -1257,6 +1262,70 @@ function inlineSnapshotStyles(sourceNode, targetNode) {
   });
 }
 
+function compactFoodStorySnapshot(clone) {
+  if (!(clone instanceof Element)) return;
+  clone.style.padding = '14px';
+
+  const header = clone.querySelector('.food-story-header');
+  if (header instanceof HTMLElement) {
+    header.style.marginBottom = '10px';
+    header.style.gap = '10px';
+  }
+
+  const layout = clone.querySelector('.food-story-layout');
+  if (layout instanceof HTMLElement) {
+    layout.style.gap = '12px';
+    layout.style.alignItems = 'start';
+  }
+
+  const donut = clone.querySelector('.food-story-donut');
+  if (donut instanceof HTMLElement) {
+    donut.style.width = 'min(100%, 250px)';
+  }
+
+  const list = clone.querySelector('.food-story-list');
+  if (list instanceof HTMLElement) {
+    list.style.gap = '8px';
+    if (list.children.length > 6) {
+      list.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+    }
+  }
+
+  clone.querySelectorAll('.food-story-item').forEach((item) => {
+    if (!(item instanceof HTMLElement)) return;
+    item.style.padding = '8px 10px';
+    item.style.gap = '8px';
+    item.style.borderRadius = '10px';
+  });
+
+  clone.querySelectorAll('.food-story-media').forEach((media) => {
+    if (!(media instanceof HTMLElement)) return;
+    media.style.width = '34px';
+    media.style.height = '34px';
+    media.style.borderRadius = '10px';
+  });
+
+  clone.querySelectorAll('.food-story-copy strong').forEach((label) => {
+    if (label instanceof HTMLElement) label.style.fontSize = '12px';
+  });
+
+  clone.querySelectorAll('.food-story-copy small, .food-story-item b').forEach((label) => {
+    if (label instanceof HTMLElement) label.style.fontSize = '10px';
+  });
+
+  const metrics = clone.querySelector('.food-story-metrics');
+  if (metrics instanceof HTMLElement) {
+    metrics.style.marginTop = '12px';
+    metrics.style.gap = '8px';
+  }
+
+  const observation = clone.querySelector('.food-story-observation');
+  if (observation instanceof HTMLElement) {
+    observation.style.marginTop = '10px';
+    observation.style.padding = '12px 14px';
+  }
+}
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -1271,7 +1340,7 @@ function downloadBlob(blob, filename) {
 function buildShareableFoodStory(todayMeals, calories, calorieGoal) {
   const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
   const items = buildFoodStoryItems(todayMeals, calories);
-  const topItems = items.slice(0, 5).map((item) => `- ${item.name} - ${item.calories.toLocaleString()} cal (${item.percent}% of today)`);
+  const topItems = items.map((item) => `- ${item.name} - ${item.calories.toLocaleString()} cal (${item.percent}% of today)`);
   const varietyCount = new Set(todayMeals.map((meal) => meal.food_name?.trim().toLowerCase()).filter(Boolean)).size;
   const averageScore = todayMeals.length
     ? Math.round(todayMeals.reduce((total, meal) => total + getMealNutritionScore(meal) * 10, 0) / todayMeals.length)
@@ -2707,6 +2776,12 @@ function renderFullNutrientList(items, emptyMessage) {
 function renderFullNutrientCard(item) {
   const tone = getNutrientTone(item);
   const progress = getNutrientProgress(item.percent);
+  const statusLabel = item.remaining > 0
+    ? `${escapeHtml(formatNutrientValue(item.remaining, item.unit))} still missing`
+    : 'Covered for today';
+  const sourceLabel = item.sourceHits === 1
+    ? '1 meal contributing'
+    : `${item.sourceHits || 0} meals contributing`;
   return `
     <article class="nutrient-page-card nutrient-tone-${tone}${item.missing ? ' is-missing' : ''}">
       <div class="nutrient-page-card-top">
@@ -2729,6 +2804,10 @@ function renderFullNutrientCard(item) {
         <span><b>${escapeHtml(formatNutrientValue(item.eaten, item.unit))}</b> eaten</span>
         <span><b>${escapeHtml(formatNutrientValue(item.target, item.unit))}</b> target</span>
         <span><b>${item.remaining > 0 ? escapeHtml(formatNutrientValue(item.remaining, item.unit)) : '0'}</b> still missing</span>
+      </div>
+      <div class="nutrient-page-card-footer">
+        <span class="nutrient-status-pill${item.remaining > 0 ? ' is-missing' : ' is-covered'}">${statusLabel}</span>
+        <span class="nutrient-source-pill">${sourceLabel}</span>
       </div>
     </article>
   `;
