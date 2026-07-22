@@ -65,6 +65,8 @@ let currentScanConfidence = '';
 let currentScanDirty = false;
 let currentScanEstimatedWeightGrams = null;
 let lastBodyImpactSnapshotSignature = '';
+let currentScanVoiceSummary = '';
+let activeScanVoiceUtterance = null;
 
 const scanQuickTagOptions = [
   'Fried',
@@ -336,6 +338,8 @@ function bindEvents() {
   document.getElementById('rescanFoodDetails').addEventListener('click', handleRescanFoodDetails);
   document.getElementById('addScanIngredientButton').addEventListener('click', handleAddScanIngredient);
   document.getElementById('scanIngredientInput').addEventListener('keydown', handleScanIngredientKeydown);
+  document.getElementById('playScanVoiceButton').addEventListener('click', playScanVoiceSummary);
+  document.getElementById('stopScanVoiceButton').addEventListener('click', stopScanVoiceSummary);
   ['foodName', 'notes', 'restaurantName', 'locationName', 'scanWeightGrams'].forEach((id) => {
     const input = document.getElementById(id);
     if (input) input.addEventListener('input', markScanDetailsDirty);
@@ -2508,14 +2512,17 @@ function deriveQuickTags({ foods = [], ingredients = [], insight = null }) {
 }
 
 function resetScanEditor() {
+  stopScanVoiceSummary();
   currentScanIngredients = [];
   currentScanTags = [];
   currentScanConfidence = '';
   currentScanDirty = false;
   currentScanEstimatedWeightGrams = null;
+  currentScanVoiceSummary = '';
   const weightInput = document.getElementById('scanWeightGrams');
   if (weightInput) weightInput.value = '';
   renderScanEditor();
+  renderScanVoicePanel(null);
 }
 
 function renderScanEditor() {
@@ -2784,6 +2791,100 @@ function normalizeScanInsight(insight, options = {}) {
   };
 }
 
+function browserSupportsScanVoice() {
+  return typeof window !== 'undefined'
+    && 'speechSynthesis' in window
+    && typeof window.SpeechSynthesisUtterance === 'function';
+}
+
+function joinListWithAnd(items) {
+  const cleanItems = items.filter(Boolean);
+  if (!cleanItems.length) return '';
+  if (cleanItems.length === 1) return cleanItems[0];
+  if (cleanItems.length === 2) return `${cleanItems[0]} and ${cleanItems[1]}`;
+  return `${cleanItems.slice(0, -1).join(', ')}, and ${cleanItems[cleanItems.length - 1]}`;
+}
+
+function buildScanVoiceSummary(insight) {
+  if (!insight) return '';
+  const macros = [];
+  if (insight.macros?.protein_g) macros.push(`${insight.macros.protein_g} grams of protein`);
+  if (insight.macros?.fiber_g) macros.push(`${insight.macros.fiber_g} grams of fiber`);
+  if (insight.macros?.carbs_g) macros.push(`${insight.macros.carbs_g} grams of carbs`);
+  if (insight.macros?.fat_g) macros.push(`${insight.macros.fat_g} grams of fat`);
+
+  const topVitamins = (insight.vitamins || []).slice(0, 2).map((item) => item.name).filter(Boolean);
+  const topMinerals = (insight.minerals || []).slice(0, 2).map((item) => item.name).filter(Boolean);
+  const weightLine = insight.used_user_weight && insight.applied_weight_g
+    ? `Using your ${insight.applied_weight_g} gram estimate.`
+    : insight.estimated_weight_g
+      ? `AI estimated this portion at about ${insight.estimated_weight_g} grams.`
+      : '';
+
+  return [
+    'Quick meal breakdown.',
+    insight.summary,
+    macros.length ? `This scan suggests about ${joinListWithAnd(macros)}.` : '',
+    topVitamins.length ? `Main vitamin signals: ${joinListWithAnd(topVitamins)}.` : '',
+    topMinerals.length ? `Main mineral signals: ${joinListWithAnd(topMinerals)}.` : '',
+    weightLine
+  ].filter(Boolean).join(' ');
+}
+
+function renderScanVoicePanel(insight) {
+  const panel = document.getElementById('scanVoicePanel');
+  const transcript = document.getElementById('scanVoiceTranscript');
+  const playButton = document.getElementById('playScanVoiceButton');
+  const stopButton = document.getElementById('stopScanVoiceButton');
+  if (!panel || !transcript || !playButton || !stopButton) return;
+
+  if (!insight || !browserSupportsScanVoice()) {
+    panel.classList.add('hidden');
+    transcript.textContent = browserSupportsScanVoice()
+      ? 'Tap play and the app will read a short vitamin and nutrient summary from this scan.'
+      : 'Voice playback is not available on this device.';
+    playButton.disabled = !browserSupportsScanVoice();
+    playButton.textContent = '🔊 Play summary';
+    stopButton.classList.add('hidden');
+    currentScanVoiceSummary = '';
+    return;
+  }
+
+  currentScanVoiceSummary = buildScanVoiceSummary(insight);
+  transcript.textContent = currentScanVoiceSummary || 'Tap play and the app will read a short nutrient summary from this scan.';
+  playButton.disabled = !currentScanVoiceSummary;
+  playButton.textContent = activeScanVoiceUtterance ? '🔊 Playing…' : '🔊 Play summary';
+  stopButton.classList.toggle('hidden', !activeScanVoiceUtterance);
+  panel.classList.remove('hidden');
+}
+
+function stopScanVoiceSummary() {
+  if (browserSupportsScanVoice()) window.speechSynthesis.cancel();
+  activeScanVoiceUtterance = null;
+  renderScanVoicePanel(currentScanInsight);
+}
+
+function playScanVoiceSummary() {
+  if (!browserSupportsScanVoice() || !currentScanVoiceSummary) return;
+  if (activeScanVoiceUtterance) stopScanVoiceSummary();
+
+  const utterance = new window.SpeechSynthesisUtterance(currentScanVoiceSummary);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.onend = () => {
+    activeScanVoiceUtterance = null;
+    renderScanVoicePanel(currentScanInsight);
+  };
+  utterance.onerror = () => {
+    activeScanVoiceUtterance = null;
+    renderScanVoicePanel(currentScanInsight);
+  };
+  activeScanVoiceUtterance = utterance;
+  renderScanVoicePanel(currentScanInsight);
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
 function normalizeMicronutrient(item) {
   return {
     name: String(item?.name || 'Nutrient'),
@@ -2796,6 +2897,7 @@ function renderScanInsight(insight) {
   const section = document.getElementById('mealInsightSection');
   if (!section) return;
   if (!insight) {
+    stopScanVoiceSummary();
     section.classList.add('hidden');
     document.getElementById('mealInsightSummary').textContent = 'Scan a dish to see estimated vitamins, minerals, and nutrient highlights.';
     document.getElementById('mealInsightHighlightList').innerHTML = '';
@@ -2805,6 +2907,7 @@ function renderScanInsight(insight) {
     document.getElementById('insightCarbs').textContent = '0g';
     document.getElementById('insightFat').textContent = '0g';
     document.getElementById('insightFiber').textContent = '0g';
+    renderScanVoicePanel(null);
     return;
   }
 
@@ -2824,6 +2927,7 @@ function renderScanInsight(insight) {
     .join('');
   document.getElementById('mealVitaminList').innerHTML = renderMicronutrientList(insight.vitamins, 'No vitamin estimate yet.');
   document.getElementById('mealMineralList').innerHTML = renderMicronutrientList(insight.minerals, 'No mineral estimate yet.');
+  renderScanVoicePanel(insight);
 }
 
 function renderMicronutrientList(items, emptyMessage) {

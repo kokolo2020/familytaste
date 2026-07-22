@@ -417,6 +417,17 @@
                   </div>
                 </div>
               </section>
+              <section id="scanVoicePanel" class="scan-voice-panel wide hidden" aria-live="polite">
+                <div class="scan-voice-copy">
+                  <p class="eyebrow">AI voice coach</p>
+                  <h3>Want a quick nutrient breakdown?</h3>
+                  <p id="scanVoiceTranscript">Tap play and the app will read a short vitamin and nutrient summary from this scan.</p>
+                </div>
+                <div class="scan-voice-actions">
+                  <button id="playScanVoiceButton" class="secondary-button" type="button">🔊 Play summary</button>
+                  <button id="stopScanVoiceButton" class="scan-voice-stop-button hidden" type="button">Stop</button>
+                </div>
+              </section>
               <label class="wide">Description<textarea id="notes" name="notes" placeholder="What should the family remember?"></textarea></label>
               <button class="primary-button wide" type="submit">Save Meal</button>
             </form>

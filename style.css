@@ -1994,6 +1994,46 @@ h1 span {
 .scan-insight-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
 .scan-insight-item strong { display: block; color: #312218; font-size: 13px; }
 .scan-insight-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
+.scan-voice-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #f1dcc3;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 248, 235, .96), rgba(255, 253, 248, .98));
+}
+.scan-voice-copy {
+  display: grid;
+  gap: 4px;
+}
+.scan-voice-copy h3 {
+  margin: 0;
+  color: #382519;
+  font-size: 16px;
+}
+.scan-voice-copy p:last-child {
+  margin: 0;
+  color: #816f60;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.scan-voice-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scan-voice-stop-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #efcfbf;
+  border-radius: 999px;
+  background: rgba(255,255,255,.88);
+  color: #8d4a32;
+  font-weight: 800;
+}
 .meal-insight-snippet { display: block; margin-top: 6px; color: #7d684f; font-size: 10px; line-height: 1.45; }
 
 .glass-form label {
@@ -3612,6 +3652,12 @@ h1 span {
   .scan-add-button { min-width: 56px; min-height: 32px; border-radius: 12px; font-size: 8px; }
   .scan-insight-macro-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scan-insight-columns { grid-template-columns: 1fr; }
+  .scan-voice-panel { flex-direction: column; align-items: stretch; padding: 14px; }
+  .scan-voice-copy h3 { font-size: 14px; }
+  .scan-voice-copy p:last-child { font-size: 11px; }
+  .scan-voice-actions { width: 100%; }
+  .scan-voice-actions .secondary-button,
+  .scan-voice-stop-button { width: 100%; justify-content: center; }
   #page-dashboard .nutrition-donut { width: 44px; height: 44px; }
   #page-dashboard .nutrition-donut strong { font-size: 10px; }
   #page-dashboard .nutrition-donut small { font-size: 5px; }
