@@ -2642,13 +2642,20 @@ function renderNutrientHub() {
 }
 
 function renderNutrientHighlightCard(item) {
+  const tone = getNutrientTone(item);
+  const progress = getNutrientProgress(item.percent);
   return `
-    <article class="nutrient-highlight-card${item.missing ? ' is-missing' : ''}">
+    <article class="nutrient-highlight-card nutrient-tone-${tone}${item.missing ? ' is-missing' : ''}">
       <div class="nutrient-highlight-top">
         <strong>${escapeHtml(item.name)}</strong>
         <span class="profile-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
       </div>
       <p>${escapeHtml(item.focus)}</p>
+      <div class="nutrient-progress">
+        <div class="nutrient-progress-track">
+          <i class="nutrient-progress-fill" style="width:${progress}%"></i>
+        </div>
+      </div>
       <small>${item.remaining > 0 ? `${escapeHtml(formatNutrientValue(item.remaining, item.unit))} still missing` : 'Covered for today'}</small>
     </article>
   `;
@@ -2664,14 +2671,25 @@ function renderFullNutrientList(items, emptyMessage) {
 }
 
 function renderFullNutrientCard(item) {
+  const tone = getNutrientTone(item);
+  const progress = getNutrientProgress(item.percent);
   return `
-    <article class="nutrient-page-card${item.missing ? ' is-missing' : ''}">
+    <article class="nutrient-page-card nutrient-tone-${tone}${item.missing ? ' is-missing' : ''}">
       <div class="nutrient-page-card-top">
         <div>
           <strong>${escapeHtml(item.name)}</strong>
           <p>${escapeHtml(item.focus)}</p>
         </div>
         <span class="profile-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
+      </div>
+      <div class="nutrient-page-card-meta">
+        <span class="nutrient-page-card-amount">${escapeHtml(formatNutrientValue(item.eaten, item.unit))}</span>
+        <span class="nutrient-page-card-target">of ${escapeHtml(formatNutrientValue(item.target, item.unit))}</span>
+      </div>
+      <div class="nutrient-progress nutrient-progress-strong">
+        <div class="nutrient-progress-track">
+          <i class="nutrient-progress-fill" style="width:${progress}%"></i>
+        </div>
       </div>
       <div class="nutrient-page-card-values">
         <span><b>${escapeHtml(formatNutrientValue(item.eaten, item.unit))}</b> eaten</span>
@@ -2680,6 +2698,21 @@ function renderFullNutrientCard(item) {
       </div>
     </article>
   `;
+}
+
+function getNutrientProgress(percent) {
+  return Math.max(0, Math.min(100, Number(percent) || 0));
+}
+
+function getNutrientTone(item) {
+  const focus = `${item?.name || ''} ${item?.focus || ''}`.toLowerCase();
+  if (/(brain|sleep|energy|b12|b6|folate)/.test(focus)) return 'violet';
+  if (/(heart|blood|iron|recovery|potassium)/.test(focus)) return 'coral';
+  if (/(immunity|skin|vitamin c|vitamin e|selenium)/.test(focus)) return 'mint';
+  if (/(bones|calcium|vitamin d|vitamin k|phosphorus)/.test(focus)) return 'sun';
+  if (/(muscles|magnesium|protein|zinc)/.test(focus)) return 'ocean';
+  if (/(liver|digest|digestive|iodine)/.test(focus)) return 'amber';
+  return 'peach';
 }
 
 async function handleSaveProfileMeasurements() {

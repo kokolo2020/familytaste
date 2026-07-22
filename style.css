@@ -175,15 +175,23 @@
 
 .nutrient-highlight-card,
 .nutrient-page-card {
+  --nutrient-accent: #ff8b64;
+  --nutrient-accent-soft: rgba(255, 139, 100, 0.18);
+  --nutrient-accent-glow: rgba(255, 139, 100, 0.12);
   padding: 14px;
   border: 1px solid #efe3d8;
   border-radius: 14px;
-  background: rgba(255,255,255,.94);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,252,247,.96)),
+    radial-gradient(circle at top right, var(--nutrient-accent-glow), transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
 }
 
 .nutrient-highlight-card.is-missing,
 .nutrient-page-card.is-missing {
-  background: #fcf8f2;
+  background:
+    linear-gradient(180deg, rgba(255,250,247,.98), rgba(252,248,242,.98)),
+    radial-gradient(circle at top right, var(--nutrient-accent-glow), transparent 55%);
 }
 
 .nutrient-highlight-top,
@@ -201,6 +209,10 @@
   font-size: 15px;
 }
 
+.nutrient-highlight-card strong {
+  color: var(--nutrient-accent);
+}
+
 .nutrient-highlight-card p,
 .nutrient-page-card p {
   margin: 6px 0 0;
@@ -216,10 +228,62 @@
   font-size: 11px;
 }
 
+.nutrient-progress {
+  margin-top: 10px;
+}
+
+.nutrient-progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: #f7eee4;
+  box-shadow: inset 0 1px 2px rgba(88, 51, 25, 0.08);
+}
+
+.nutrient-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--nutrient-accent) 72%, #ffffff 28%), var(--nutrient-accent));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.22) inset,
+    0 8px 14px color-mix(in srgb, var(--nutrient-accent) 28%, transparent);
+}
+
+.nutrient-progress-strong {
+  margin-top: 12px;
+}
+
+.nutrient-progress-strong .nutrient-progress-track {
+  height: 12px;
+}
+
 .nutrient-page-list,
 .nutrient-page-card-list {
   display: grid;
   gap: 10px;
+}
+
+.nutrient-page-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.nutrient-page-card-amount {
+  color: var(--nutrient-accent);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.nutrient-page-card-target {
+  color: #9b8c7f;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .nutrient-page-card-values {
@@ -234,14 +298,57 @@
   gap: 4px;
   padding: 10px;
   border-radius: 10px;
-  background: #fff8ef;
+  background: linear-gradient(180deg, rgba(255,255,255,.92), color-mix(in srgb, var(--nutrient-accent-soft) 55%, #fff7ef));
   color: #806f61;
   font-size: 11px;
+  border: 1px solid color-mix(in srgb, var(--nutrient-accent-soft) 75%, #f0e5da);
 }
 
 .nutrient-page-card-values b {
   color: #35271d;
   font-size: 13px;
+}
+
+.nutrient-tone-coral {
+  --nutrient-accent: #f05b4f;
+  --nutrient-accent-soft: rgba(240, 91, 79, 0.18);
+  --nutrient-accent-glow: rgba(240, 91, 79, 0.18);
+}
+
+.nutrient-tone-violet {
+  --nutrient-accent: #8f63df;
+  --nutrient-accent-soft: rgba(143, 99, 223, 0.18);
+  --nutrient-accent-glow: rgba(143, 99, 223, 0.18);
+}
+
+.nutrient-tone-mint {
+  --nutrient-accent: #36a97f;
+  --nutrient-accent-soft: rgba(54, 169, 127, 0.18);
+  --nutrient-accent-glow: rgba(54, 169, 127, 0.16);
+}
+
+.nutrient-tone-sun {
+  --nutrient-accent: #d89b20;
+  --nutrient-accent-soft: rgba(216, 155, 32, 0.18);
+  --nutrient-accent-glow: rgba(216, 155, 32, 0.16);
+}
+
+.nutrient-tone-ocean {
+  --nutrient-accent: #3490d8;
+  --nutrient-accent-soft: rgba(52, 144, 216, 0.18);
+  --nutrient-accent-glow: rgba(52, 144, 216, 0.16);
+}
+
+.nutrient-tone-amber {
+  --nutrient-accent: #dc7b2c;
+  --nutrient-accent-soft: rgba(220, 123, 44, 0.18);
+  --nutrient-accent-glow: rgba(220, 123, 44, 0.16);
+}
+
+.nutrient-tone-peach {
+  --nutrient-accent: #ee8a62;
+  --nutrient-accent-soft: rgba(238, 138, 98, 0.18);
+  --nutrient-accent-glow: rgba(238, 138, 98, 0.16);
 }
 
 .health-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
