@@ -1099,10 +1099,11 @@ function renderFoodStory(todayMeals, calories, calorieGoal) {
   setText('foodStoryGoalCalories', `${Number(calorieGoal || 0).toLocaleString()} cal`);
 
   const donut = document.getElementById('foodStoryDonut');
-  const storyItems = buildFoodStoryItems(todayMeals, calories);
+  const chartItems = buildFoodStoryItems(todayMeals, calories);
+  const storyItems = buildFoodStoryDisplayItems(todayMeals, calories);
   if (donut) {
-    donut.style.setProperty('--story-chart', storyItems.length
-      ? `conic-gradient(${storyItems.map((item) => `${item.color} ${item.start}% ${item.end}%`).join(', ')})`
+    donut.style.setProperty('--story-chart', chartItems.length
+      ? `conic-gradient(${chartItems.map((item) => `${item.color} ${item.start}% ${item.end}%`).join(', ')})`
       : 'conic-gradient(#f2ece4 0 100%)');
   }
 
@@ -1110,14 +1111,10 @@ function renderFoodStory(todayMeals, calories, calorieGoal) {
   if (foodStoryList) {
     foodStoryList.innerHTML = storyItems.length ? storyItems.map((item) => `
       <article class="food-story-item">
-        <span class="food-story-media">
-          ${item.photoUrl
-            ? `<img class="food-story-photo" src="${escapeAttr(item.photoUrl)}" alt="${escapeAttr(item.name)}">`
-            : `<span class="food-story-dot" style="background:${escapeAttr(item.color)}"></span>`}
-        </span>
+        <span class="food-story-dot" style="background:${escapeAttr(item.color)}"></span>
         <div class="food-story-copy">
           <strong>${escapeHtml(item.name)}</strong>
-          <small>${item.percent}% of today</small>
+          <small>${escapeHtml(item.meta)}</small>
         </div>
         <b>${item.calories.toLocaleString()} cal</b>
       </article>
@@ -1148,12 +1145,78 @@ function buildFoodStoryItems(todayMeals, totalCalories) {
       name: meal.food_name || 'Meal',
       calories,
       percent,
-      photoUrl: meal.photo_url || '',
       color: palette[index % palette.length],
       start,
       end: cursor
     };
   });
+}
+
+function buildFoodStoryDisplayItems(todayMeals, totalCalories, limit = 5) {
+  const chartItems = buildFoodStoryItems(todayMeals, totalCalories);
+  const mealsByTime = [...todayMeals]
+    .filter((meal) => Number(meal.calories) > 0)
+    .sort((a, b) => new Date(a.eaten_at || a.created_at || 0).getTime() - new Date(b.eaten_at || b.created_at || 0).getTime());
+  const selectedMeals = pickRepresentativeStoryMeals(mealsByTime, limit);
+
+  return selectedMeals.map((meal) => {
+    const name = meal.food_name || 'Meal';
+    const chartMatch = chartItems.find((item) => item.name === name && item.calories === (Number(meal.calories) || 0)) || chartItems.find((item) => item.name === name);
+    const mealType = getMealType(meal);
+    const mealLabel = mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : 'Meal';
+    return {
+      name,
+      calories: Number(meal.calories) || 0,
+      percent: chartMatch?.percent || 0,
+      color: chartMatch?.color || '#f46d1f',
+      meta: `${mealLabel} · ${chartMatch?.percent || 0}% of today`
+    };
+  });
+}
+
+function pickRepresentativeStoryMeals(meals, limit) {
+  if (meals.length <= limit) return meals;
+
+  const selectedIds = new Set();
+  const selectedMeals = [];
+  const mealTypePriority = ['breakfast', 'lunch', 'dinner', 'snack', 'drink'];
+
+  mealTypePriority.forEach((mealType) => {
+    const match = meals
+      .filter((meal) => getMealType(meal) === mealType)
+      .sort((a, b) => (Number(b.calories) || 0) - (Number(a.calories) || 0))[0];
+    const mealId = match?.id || `${match?.food_name || ''}-${match?.eaten_at || match?.created_at || ''}`;
+    if (match && !selectedIds.has(mealId) && selectedMeals.length < limit) {
+      selectedIds.add(mealId);
+      selectedMeals.push(match);
+    }
+  });
+
+  if (selectedMeals.length < limit) {
+    const remainingMeals = meals.filter((meal) => {
+      const mealId = meal.id || `${meal.food_name || ''}-${meal.eaten_at || meal.created_at || ''}`;
+      return !selectedIds.has(mealId);
+    });
+
+    const weightedMeals = remainingMeals.sort((a, b) => {
+      const calorieDiff = (Number(b.calories) || 0) - (Number(a.calories) || 0);
+      if (calorieDiff !== 0) return calorieDiff;
+      return new Date(a.eaten_at || a.created_at || 0).getTime() - new Date(b.eaten_at || b.created_at || 0).getTime();
+    });
+
+    weightedMeals.forEach((meal) => {
+      if (selectedMeals.length >= limit) return;
+      const mealId = meal.id || `${meal.food_name || ''}-${meal.eaten_at || meal.created_at || ''}`;
+      if (!selectedIds.has(mealId)) {
+        selectedIds.add(mealId);
+        selectedMeals.push(meal);
+      }
+    });
+  }
+
+  return selectedMeals
+    .sort((a, b) => new Date(a.eaten_at || a.created_at || 0).getTime() - new Date(b.eaten_at || b.created_at || 0).getTime())
+    .slice(0, limit);
 }
 
 function buildFoodStoryObservation(todayMeals, calories, calorieGoal, averageScore, varietyCount) {
@@ -1298,13 +1361,6 @@ function compactFoodStorySnapshot(clone) {
     item.style.borderRadius = '10px';
   });
 
-  clone.querySelectorAll('.food-story-media').forEach((media) => {
-    if (!(media instanceof HTMLElement)) return;
-    media.style.width = '34px';
-    media.style.height = '34px';
-    media.style.borderRadius = '10px';
-  });
-
   clone.querySelectorAll('.food-story-copy strong').forEach((label) => {
     if (label instanceof HTMLElement) label.style.fontSize = '12px';
   });
@@ -1339,7 +1395,7 @@ function downloadBlob(blob, filename) {
 
 function buildShareableFoodStory(todayMeals, calories, calorieGoal) {
   const dateLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
-  const items = buildFoodStoryItems(todayMeals, calories);
+  const items = buildFoodStoryDisplayItems(todayMeals, calories);
   const topItems = items.map((item) => `- ${item.name} - ${item.calories.toLocaleString()} cal (${item.percent}% of today)`);
   const varietyCount = new Set(todayMeals.map((meal) => meal.food_name?.trim().toLowerCase()).filter(Boolean)).size;
   const averageScore = todayMeals.length
