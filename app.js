@@ -1211,11 +1211,14 @@ async function createCardSnapshotBlob(element) {
   const rect = element.getBoundingClientRect();
   const width = Math.max(1, Math.ceil(rect.width));
   const height = Math.max(1, Math.ceil(rect.height));
+  const sourceDonut = element.querySelector('.food-story-donut');
+  const donutRect = sourceDonut instanceof HTMLElement ? sourceDonut.getBoundingClientRect() : null;
+  const donutSize = Math.max(180, Math.ceil(Math.min(donutRect?.width || 250, donutRect?.height || 250, 280)));
   const clone = element.cloneNode(true);
   inlineSnapshotStyles(element, clone);
   const shareButton = clone.querySelector('#shareFoodStoryButton');
   if (shareButton) shareButton.remove();
-  compactFoodStorySnapshot(clone);
+  compactFoodStorySnapshot(clone, donutSize);
 
   const wrapper = document.createElement('div');
   wrapper.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
@@ -1266,7 +1269,7 @@ function inlineSnapshotStyles(sourceNode, targetNode) {
   });
 }
 
-function compactFoodStorySnapshot(clone) {
+function compactFoodStorySnapshot(clone, donutSize = 250) {
   if (!(clone instanceof Element)) return;
   clone.style.padding = '14px';
 
@@ -1284,7 +1287,13 @@ function compactFoodStorySnapshot(clone) {
 
   const donut = clone.querySelector('.food-story-donut');
   if (donut instanceof HTMLElement) {
-    donut.style.width = 'min(100%, 250px)';
+    donut.style.width = `${donutSize}px`;
+    donut.style.height = `${donutSize}px`;
+    donut.style.minWidth = `${donutSize}px`;
+    donut.style.maxWidth = `${donutSize}px`;
+    donut.style.aspectRatio = '1 / 1';
+    donut.style.justifySelf = 'center';
+    donut.style.alignSelf = 'center';
   }
 
   const list = clone.querySelector('.food-story-list');
