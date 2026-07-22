@@ -241,7 +241,10 @@
 
           <aside class="dashboard-side-column">
             <section class="nutrition-panel dashboard-card">
-              <div class="section-title"><h3>Essential vitamins & minerals</h3></div>
+              <div class="section-title section-title-with-action">
+                <h3>Essential vitamins & minerals</h3>
+                <button class="text-button" data-page="nutrients" type="button">Open full breakdown</button>
+              </div>
               <div class="nutrition-layout">
                 <div class="macro-list">
                   <div><span>Carbohydrates</span><i><em id="carbMacroBar" style="width:0%"></em></i><b id="carbMacroValue">0%</b></div>
@@ -254,13 +257,16 @@
                 <p id="nutritionInsight" class="nutrition-insight">Scan meals to see today’s vitamin and mineral estimate here.</p>
                 <div class="dashboard-nutrient-columns dashboard-nutrient-columns-full">
                   <div>
-                    <h4>13 essential vitamins</h4>
+                    <h4>Vitamin glimpse</h4>
                     <div id="dashboardVitaminList" class="dashboard-nutrient-list"></div>
                   </div>
                   <div>
-                    <h4>Key minerals</h4>
+                    <h4>Mineral glimpse</h4>
                     <div id="dashboardMineralList" class="dashboard-nutrient-list"></div>
                   </div>
+                </div>
+                <div class="dashboard-nutrient-footer">
+                  <button class="secondary-button nutrient-preview-button" data-page="nutrients" type="button">View all 13 vitamins and key minerals</button>
                 </div>
               </div>
               <p class="analysis-note">AI analysis is for reference only and is not medical advice.</p>
@@ -628,6 +634,51 @@
 
         <section id="page-settings" class="page" data-title="Settings" data-kicker="Family preferences">
           <div id="settingsContent"></div>
+        </section>
+
+        <section id="page-nutrients" class="page" data-title="Nutrient Breakdown" data-kicker="Daily essentials">
+          <div class="nutrient-page">
+            <section class="nutrient-page-hero dashboard-card">
+              <div class="nutrient-page-hero-copy">
+                <p class="eyebrow">Daily essentials</p>
+                <h3>Vitamin &amp; mineral breakdown</h3>
+                <p id="nutrientPageSummary" class="nutrient-page-summary">Scan meals to unlock today’s nutrient picture.</p>
+              </div>
+              <div class="nutrient-page-actions">
+                <button class="secondary-button" data-page="dashboard" type="button">Back to dashboard</button>
+              </div>
+            </section>
+
+            <section class="nutrient-page-section dashboard-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Top priorities</p>
+                  <h3>Focus today</h3>
+                </div>
+              </div>
+              <div id="nutrientPageHighlights" class="nutrient-highlight-grid"></div>
+            </section>
+
+            <section class="nutrient-page-section dashboard-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">13 essential vitamins</p>
+                  <h3>Full vitamin view</h3>
+                </div>
+              </div>
+              <div id="nutrientPageVitaminList" class="nutrient-page-list"></div>
+            </section>
+
+            <section class="nutrient-page-section dashboard-card">
+              <div class="section-title">
+                <div>
+                  <p class="eyebrow">Core minerals</p>
+                  <h3>Full mineral view</h3>
+                </div>
+              </div>
+              <div id="nutrientPageMineralList" class="nutrient-page-list"></div>
+            </section>
+          </div>
         </section>
       </div>
 

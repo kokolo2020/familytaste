@@ -500,6 +500,7 @@ const navItems = [
   { page: 'chat', icon: '💬', label: 'Family Chat' },
   { page: 'chef', icon: '📥', label: 'Chef Screen' },
   { page: 'timeline', icon: '📅', label: 'Timeline' },
+  { page: 'nutrients', icon: '🧬', label: 'Nutrients' },
   { page: 'profile', icon: '👤', label: 'Profile' },
   { page: 'settings', icon: '⚙️', label: 'Settings' }
 ];
@@ -1019,6 +1020,7 @@ function renderAll() {
   renderReport();
   renderChat();
   renderProfile();
+  renderNutrientHub();
   renderSettings();
   updateMealPreview();
 }
@@ -1362,8 +1364,8 @@ function renderDashboardNutrition(todayMeals, calories) {
   setText('nutritionInsight', dailyInsight.summary);
   const vitaminList = document.getElementById('dashboardVitaminList');
   const mineralList = document.getElementById('dashboardMineralList');
-  if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
-  if (mineralList) mineralList.innerHTML = renderDashboardNutrientItems(dailyInsight.minerals, 'No mineral estimates yet.');
+  if (vitaminList) vitaminList.innerHTML = renderDashboardNutrientPreviewItems(dailyInsight.vitamins, 'No vitamin estimates yet.');
+  if (mineralList) mineralList.innerHTML = renderDashboardNutrientPreviewItems(dailyInsight.minerals, 'No mineral estimates yet.');
 }
 
 function renderBodyImpactCards(impacts) {
@@ -1545,6 +1547,12 @@ function renderDashboardNutrientItems(items, emptyMessage) {
       </details>
     ` : ''}
   `;
+}
+
+function renderDashboardNutrientPreviewItems(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  const { featured } = getPriorityNutrientGroups(items, 2);
+  return featured.map(renderDashboardNutrientCard).join('');
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
@@ -2595,6 +2603,82 @@ function renderProfileNutrientItems(items, emptyMessage) {
         </div>
       </details>
     ` : ''}
+  `;
+}
+
+function renderNutrientHub() {
+  const summary = document.getElementById('nutrientPageSummary');
+  const highlights = document.getElementById('nutrientPageHighlights');
+  const vitaminList = document.getElementById('nutrientPageVitaminList');
+  const mineralList = document.getElementById('nutrientPageMineralList');
+  if (!summary || !highlights || !vitaminList || !mineralList) return;
+
+  const memberId = appState.currentMember?.id || '';
+  const today = todayKey();
+  const meals = (appState.meals || [])
+    .filter((meal) => (!memberId || meal.member_id === memberId) && mealDayKey(meal.eaten_at || meal.created_at) === today)
+    .slice()
+    .sort((a, b) => new Date(b.eaten_at || b.created_at || 0).getTime() - new Date(a.eaten_at || a.created_at || 0).getTime())
+    .slice(0, 16);
+  const compared = buildComparedNutrientItems(meals, memberId);
+  const allItems = [...compared.vitamins, ...compared.minerals];
+
+  if (!compared.mealCount) {
+    summary.textContent = 'Scan and save meals today to see your full nutrient picture here.';
+    highlights.innerHTML = '<p class="muted">No nutrient priorities yet.</p>';
+    vitaminList.innerHTML = '<p class="muted">No vitamin breakdown yet.</p>';
+    mineralList.innerHTML = '<p class="muted">No mineral breakdown yet.</p>';
+    return;
+  }
+
+  summary.textContent = compared.mealCount === 1
+    ? `Built from today’s latest AI-scanned meal and compared against ${compared.profile.label}.`
+    : `Built from ${compared.mealCount} AI-scanned meals today and compared against ${compared.profile.label}.`;
+
+  const { featured } = getPriorityNutrientGroups(allItems, 4);
+  highlights.innerHTML = featured.map(renderNutrientHighlightCard).join('');
+  vitaminList.innerHTML = renderFullNutrientList(compared.vitamins, 'No vitamin breakdown yet.');
+  mineralList.innerHTML = renderFullNutrientList(compared.minerals, 'No mineral breakdown yet.');
+}
+
+function renderNutrientHighlightCard(item) {
+  return `
+    <article class="nutrient-highlight-card${item.missing ? ' is-missing' : ''}">
+      <div class="nutrient-highlight-top">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span class="profile-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
+      </div>
+      <p>${escapeHtml(item.focus)}</p>
+      <small>${item.remaining > 0 ? `${escapeHtml(formatNutrientValue(item.remaining, item.unit))} still missing` : 'Covered for today'}</small>
+    </article>
+  `;
+}
+
+function renderFullNutrientList(items, emptyMessage) {
+  if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
+  return `
+    <div class="nutrient-page-card-list">
+      ${items.map(renderFullNutrientCard).join('')}
+    </div>
+  `;
+}
+
+function renderFullNutrientCard(item) {
+  return `
+    <article class="nutrient-page-card${item.missing ? ' is-missing' : ''}">
+      <div class="nutrient-page-card-top">
+        <div>
+          <strong>${escapeHtml(item.name)}</strong>
+          <p>${escapeHtml(item.focus)}</p>
+        </div>
+        <span class="profile-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
+      </div>
+      <div class="nutrient-page-card-values">
+        <span><b>${escapeHtml(formatNutrientValue(item.eaten, item.unit))}</b> eaten</span>
+        <span><b>${escapeHtml(formatNutrientValue(item.target, item.unit))}</b> target</span>
+        <span><b>${item.remaining > 0 ? escapeHtml(formatNutrientValue(item.remaining, item.unit)) : '0'}</b> still missing</span>
+      </div>
+    </article>
   `;
 }
 
@@ -3752,6 +3836,7 @@ function renderSettings() {
       <h3>Quick links</h3>
       <div class="settings-nav-grid">
         <button class="settings-nav-btn" data-page="snap">📷 Snap Food</button>
+        <button class="settings-nav-btn" data-page="nutrients">🧬 Nutrients</button>
         <button class="settings-nav-btn" data-page="order">🧑‍🍳 Chef Menu</button>
         <button class="settings-nav-btn" data-page="weekly">📊 Weekly Report</button>
         <button class="settings-nav-btn" data-page="timeline">📅 Timeline</button>
