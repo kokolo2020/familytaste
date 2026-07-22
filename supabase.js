@@ -121,37 +121,15 @@
 
   async function fetchMembershipForUser(userId, userEmail) {
     const normalizedEmail = String(userEmail || '').trim().toLowerCase();
-    const membershipQueries = [
-      () => client
-        .from('family_memberships')
-        .select('id, family_id, role, email, status')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: true })
-        .limit(1),
-      () => client
-        .from('family_users')
-        .select('id, family_id, role, member_id, email')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(1)
-    ];
-
-    let legacyLookupError = null;
-
-    for (const runQuery of membershipQueries) {
-      const { data, error } = await runQuery();
-      if (!error && data?.[0]) return normalizeMembershipRecord(data[0]);
-      if (!error) continue;
-      legacyLookupError = error;
-      const message = String(error.message || '').toLowerCase();
-      const safeToFallback = error.code === 'PGRST205'
-        || message.includes('relation')
-        || message.includes('does not exist')
-        || message.includes('column')
-        || message.includes('schema cache');
-      if (!safeToFallback) throw error;
-    }
+    const { data: directMemberships, error: directMembershipError } = await client
+      .from('family_memberships')
+      .select('id, family_id, role, email, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: true })
+      .limit(1);
+    if (directMembershipError) throw directMembershipError;
+    if (directMemberships?.[0]) return normalizeMembershipRecord(directMemberships[0]);
 
     if (normalizedEmail) {
       const { data, error } = await client
@@ -177,10 +155,6 @@
         }
         return normalizeMembershipRecord(matchedMembership);
       }
-    }
-
-    if (legacyLookupError) {
-      console.warn('Legacy family lookup unavailable; continuing with family_memberships-only auth.', legacyLookupError);
     }
 
     return null;
@@ -213,43 +187,7 @@
       .insert(membershipPayload)
       .select('id, family_id, role, email, status')
       .single();
-    if (membershipError) {
-      const fallbackPayload = {
-        family_id: createdFamily.id,
-        user_id: user.id,
-        email: user.email || null,
-        role: 'admin',
-        member_id: null
-      };
-      const { data: fallbackMembership, error: fallbackError } = await client
-        .from('family_users')
-        .insert(fallbackPayload)
-        .select('id, family_id, role, member_id, email')
-        .single();
-      if (fallbackError) throw fallbackError;
-
-      const { data: createdMember, error: memberError } = await client
-        .from('members')
-        .insert({
-          family_id: createdFamily.id,
-          name: memberName,
-          avatar: '👤',
-          role: 'Family Admin'
-        })
-        .select()
-        .single();
-      if (memberError) throw memberError;
-
-      const { data: linkedMembership, error: linkedMembershipError } = await client
-        .from('family_users')
-        .update({ member_id: createdMember.id })
-        .eq('id', fallbackMembership.id)
-        .select('id, family_id, role, member_id, email')
-        .single();
-      if (linkedMembershipError) throw linkedMembershipError;
-
-      return normalizeMembershipRecord(linkedMembership);
-    }
+    if (membershipError) throw membershipError;
 
     return normalizeMembershipRecord(createdMembership);
   }
@@ -269,9 +207,11 @@
       if (error) {
         const message = String(error.message || '').toLowerCase();
         const safeToSkip = error.code === 'PGRST205'
+          || error.code === '42501'
           || message.includes('relation')
           || message.includes('does not exist')
-          || message.includes('schema cache');
+          || message.includes('schema cache')
+          || message.includes('permission denied');
         if (safeToSkip) return null;
         throw error;
       }
@@ -300,7 +240,15 @@
       .select('id, family_id, role, member_id, email')
       .single();
     if (error) {
-      const duplicate = error.code === '23505' || String(error.message || '').toLowerCase().includes('duplicate');
+      const message = String(error.message || '').toLowerCase();
+      const safeToSkip = error.code === 'PGRST205'
+        || error.code === '42501'
+        || message.includes('relation')
+        || message.includes('does not exist')
+        || message.includes('schema cache')
+        || message.includes('permission denied');
+      const duplicate = error.code === '23505' || message.includes('duplicate');
+      if (safeToSkip) return membership;
       if (!duplicate) throw error;
       const retry = await selectExisting();
       if (retry) {
@@ -395,7 +343,6 @@
           console.warn('Legacy family_users sync failed; continuing with family_memberships access.', error);
         }
       }
-
       if (!membership) {
         this.familyId = null;
         this.authContext = {
@@ -563,7 +510,17 @@
         .select('*')
         .eq('family_id', context.familyId)
         .order('created_at', { ascending: true });
-      if (error) throw error;
+      if (error) {
+        const message = String(error.message || '').toLowerCase();
+        const safeToIgnore = error.code === 'PGRST205'
+          || error.code === '42501'
+          || message.includes('relation')
+          || message.includes('does not exist')
+          || message.includes('schema cache')
+          || message.includes('permission denied');
+        if (safeToIgnore) return [];
+        throw error;
+      }
       return data || [];
     },
     async sendChat(message) {
@@ -578,7 +535,22 @@
         })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        const messageText = String(error.message || '').toLowerCase();
+        const safeToIgnore = error.code === 'PGRST205'
+          || error.code === '42501'
+          || messageText.includes('relation')
+          || messageText.includes('does not exist')
+          || messageText.includes('schema cache')
+          || messageText.includes('permission denied');
+        if (safeToIgnore) {
+          return {
+            ...message,
+            created_at: message.created_at || new Date().toISOString()
+          };
+        }
+        throw error;
+      }
       return data;
     },
     async uploadImage(dataUrl, folder) {
