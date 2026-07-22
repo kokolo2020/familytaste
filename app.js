@@ -37,6 +37,410 @@ const chefVoiceStorageKey = 'familyBites.chefVoiceNotes';
 const bioLogsStorageKey = 'familyBites.bioLogs.v1';
 const profileMeasurementsStorageKey = 'familyBites.profileMeasurements.v1';
 
+const nutrientDisplayOrder = {
+  vitamins: [
+    'Vitamin A',
+    'Vitamin B1 (Thiamin)',
+    'Vitamin B2 (Riboflavin)',
+    'Vitamin B3 (Niacin)',
+    'Vitamin B5 (Pantothenic Acid)',
+    'Vitamin B6',
+    'Vitamin B7 (Biotin)',
+    'Folate (Vitamin B9)',
+    'Vitamin B12',
+    'Vitamin C',
+    'Vitamin D',
+    'Vitamin E',
+    'Vitamin K'
+  ],
+  minerals: [
+    'Calcium',
+    'Iron',
+    'Magnesium',
+    'Potassium',
+    'Zinc',
+    'Selenium',
+    'Phosphorus',
+    'Iodine'
+  ]
+};
+
+const nutrientReferenceMeta = {
+  'Vitamin A': { group: 'vitamins', unit: 'mcg RAE', focus: 'Eye health' },
+  'Vitamin B1 (Thiamin)': { group: 'vitamins', unit: 'mg', focus: 'Energy' },
+  'Vitamin B2 (Riboflavin)': { group: 'vitamins', unit: 'mg', focus: 'Metabolism' },
+  'Vitamin B3 (Niacin)': { group: 'vitamins', unit: 'mg', focus: 'Brain & skin' },
+  'Vitamin B5 (Pantothenic Acid)': { group: 'vitamins', unit: 'mg', focus: 'Hormones' },
+  'Vitamin B6': { group: 'vitamins', unit: 'mg', focus: 'Mood & sleep' },
+  'Vitamin B7 (Biotin)': { group: 'vitamins', unit: 'mcg', focus: 'Hair & nails' },
+  'Folate (Vitamin B9)': { group: 'vitamins', unit: 'mcg', focus: 'Cell health' },
+  'Vitamin B12': { group: 'vitamins', unit: 'mcg', focus: 'Nerve function' },
+  'Vitamin C': { group: 'vitamins', unit: 'mg', focus: 'Skin & immunity' },
+  'Vitamin D': { group: 'vitamins', unit: 'mcg', focus: 'Bones & immunity' },
+  'Vitamin E': { group: 'vitamins', unit: 'mg', focus: 'Cell protection' },
+  'Vitamin K': { group: 'vitamins', unit: 'mcg', focus: 'Blood & bones' },
+  Calcium: { group: 'minerals', unit: 'mg', focus: 'Bones & teeth' },
+  Iron: { group: 'minerals', unit: 'mg', focus: 'Oxygen transport' },
+  Magnesium: { group: 'minerals', unit: 'mg', focus: 'Muscles & nerves' },
+  Potassium: { group: 'minerals', unit: 'mg', focus: 'Heart & muscles' },
+  Zinc: { group: 'minerals', unit: 'mg', focus: 'Immunity' },
+  Selenium: { group: 'minerals', unit: 'mcg', focus: 'Antioxidants' },
+  Phosphorus: { group: 'minerals', unit: 'mg', focus: 'Bone support' },
+  Iodine: { group: 'minerals', unit: 'mcg', focus: 'Thyroid support' }
+};
+
+const nutrientNameAliases = new Map([
+  ['vitamin a', 'Vitamin A'],
+  ['vitamin b1', 'Vitamin B1 (Thiamin)'],
+  ['thiamin', 'Vitamin B1 (Thiamin)'],
+  ['thiamine', 'Vitamin B1 (Thiamin)'],
+  ['vitamin b2', 'Vitamin B2 (Riboflavin)'],
+  ['riboflavin', 'Vitamin B2 (Riboflavin)'],
+  ['vitamin b3', 'Vitamin B3 (Niacin)'],
+  ['niacin', 'Vitamin B3 (Niacin)'],
+  ['vitamin b5', 'Vitamin B5 (Pantothenic Acid)'],
+  ['pantothenic acid', 'Vitamin B5 (Pantothenic Acid)'],
+  ['vitamin b6', 'Vitamin B6'],
+  ['vitamin b7', 'Vitamin B7 (Biotin)'],
+  ['biotin', 'Vitamin B7 (Biotin)'],
+  ['folate', 'Folate (Vitamin B9)'],
+  ['folate (vitamin b9)', 'Folate (Vitamin B9)'],
+  ['vitamin b9', 'Folate (Vitamin B9)'],
+  ['vitamin b12', 'Vitamin B12'],
+  ['vitamin c', 'Vitamin C'],
+  ['vitamin d', 'Vitamin D'],
+  ['vitamin e', 'Vitamin E'],
+  ['vitamin k', 'Vitamin K'],
+  ['calcium', 'Calcium'],
+  ['iron', 'Iron'],
+  ['magnesium', 'Magnesium'],
+  ['potassium', 'Potassium'],
+  ['zinc', 'Zinc'],
+  ['selenium', 'Selenium'],
+  ['phosphorus', 'Phosphorus'],
+  ['iodine', 'Iodine']
+]);
+
+const nutrientTargetProfiles = [
+  {
+    sex: 'male',
+    minAge: 14,
+    maxAge: 18,
+    label: 'male ages 14 to 18',
+    targets: {
+      'Vitamin A': 900,
+      'Vitamin B1 (Thiamin)': 1.2,
+      'Vitamin B2 (Riboflavin)': 1.3,
+      'Vitamin B3 (Niacin)': 16,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.3,
+      'Vitamin B7 (Biotin)': 25,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 75,
+      'Vitamin D': 15,
+      'Vitamin E': 15,
+      'Vitamin K': 75,
+      Calcium: 1300,
+      Iron: 11,
+      Magnesium: 410,
+      Potassium: 3000,
+      Zinc: 11,
+      Selenium: 55,
+      Phosphorus: 1250,
+      Iodine: 150
+    }
+  },
+  {
+    sex: 'female',
+    minAge: 14,
+    maxAge: 18,
+    label: 'female ages 14 to 18',
+    targets: {
+      'Vitamin A': 700,
+      'Vitamin B1 (Thiamin)': 1,
+      'Vitamin B2 (Riboflavin)': 1,
+      'Vitamin B3 (Niacin)': 14,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.2,
+      'Vitamin B7 (Biotin)': 25,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 65,
+      'Vitamin D': 15,
+      'Vitamin E': 15,
+      'Vitamin K': 75,
+      Calcium: 1300,
+      Iron: 15,
+      Magnesium: 360,
+      Potassium: 2300,
+      Zinc: 9,
+      Selenium: 55,
+      Phosphorus: 1250,
+      Iodine: 150
+    }
+  },
+  {
+    sex: 'male',
+    minAge: 19,
+    maxAge: 50,
+    label: 'male ages 19 to 50',
+    targets: {
+      'Vitamin A': 900,
+      'Vitamin B1 (Thiamin)': 1.2,
+      'Vitamin B2 (Riboflavin)': 1.3,
+      'Vitamin B3 (Niacin)': 16,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.3,
+      'Vitamin B7 (Biotin)': 30,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 90,
+      'Vitamin D': 15,
+      'Vitamin E': 15,
+      'Vitamin K': 120,
+      Calcium: 1000,
+      Iron: 8,
+      Magnesium: 400,
+      Potassium: 3400,
+      Zinc: 11,
+      Selenium: 55,
+      Phosphorus: 700,
+      Iodine: 150
+    }
+  },
+  {
+    sex: 'female',
+    minAge: 19,
+    maxAge: 50,
+    label: 'female ages 19 to 50',
+    targets: {
+      'Vitamin A': 700,
+      'Vitamin B1 (Thiamin)': 1.1,
+      'Vitamin B2 (Riboflavin)': 1.1,
+      'Vitamin B3 (Niacin)': 14,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.3,
+      'Vitamin B7 (Biotin)': 30,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 75,
+      'Vitamin D': 15,
+      'Vitamin E': 15,
+      'Vitamin K': 90,
+      Calcium: 1000,
+      Iron: 18,
+      Magnesium: 310,
+      Potassium: 2600,
+      Zinc: 8,
+      Selenium: 55,
+      Phosphorus: 700,
+      Iodine: 150
+    }
+  },
+  {
+    sex: 'male',
+    minAge: 51,
+    maxAge: 120,
+    label: 'male ages 51 plus',
+    targets: {
+      'Vitamin A': 900,
+      'Vitamin B1 (Thiamin)': 1.2,
+      'Vitamin B2 (Riboflavin)': 1.3,
+      'Vitamin B3 (Niacin)': 16,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.7,
+      'Vitamin B7 (Biotin)': 30,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 90,
+      'Vitamin D': 20,
+      'Vitamin E': 15,
+      'Vitamin K': 120,
+      Calcium: 1200,
+      Iron: 8,
+      Magnesium: 420,
+      Potassium: 3400,
+      Zinc: 11,
+      Selenium: 55,
+      Phosphorus: 700,
+      Iodine: 150
+    }
+  },
+  {
+    sex: 'female',
+    minAge: 51,
+    maxAge: 120,
+    label: 'female ages 51 plus',
+    targets: {
+      'Vitamin A': 700,
+      'Vitamin B1 (Thiamin)': 1.1,
+      'Vitamin B2 (Riboflavin)': 1.1,
+      'Vitamin B3 (Niacin)': 14,
+      'Vitamin B5 (Pantothenic Acid)': 5,
+      'Vitamin B6': 1.5,
+      'Vitamin B7 (Biotin)': 30,
+      'Folate (Vitamin B9)': 400,
+      'Vitamin B12': 2.4,
+      'Vitamin C': 75,
+      'Vitamin D': 20,
+      'Vitamin E': 15,
+      'Vitamin K': 90,
+      Calcium: 1200,
+      Iron: 8,
+      Magnesium: 320,
+      Potassium: 2600,
+      Zinc: 8,
+      Selenium: 55,
+      Phosphorus: 700,
+      Iodine: 150
+    }
+  }
+];
+
+function canonicalNutrientName(name) {
+  const normalized = String(name || '').trim().toLowerCase();
+  if (!normalized) return '';
+  return nutrientNameAliases.get(normalized) || String(name || '').trim();
+}
+
+function getProfileSexForTargets(memberId) {
+  const member = (appState.members || []).find((item) => item.id === memberId) || {};
+  const measurements = appState.profileMeasurements?.[memberId] || {};
+  const sex = String(measurements.sex || member.sex || '').trim().toLowerCase();
+  if (sex === 'male' || sex === 'female') return sex;
+  const name = String(member.name || '').toLowerCase();
+  return name.includes('dad') || name.includes('papa') ? 'male' : 'female';
+}
+
+function getProfileAgeForTargets(memberId) {
+  const measurements = appState.profileMeasurements?.[memberId] || {};
+  const age = Number(measurements.age);
+  return Number.isFinite(age) && age > 0 ? age : 30;
+}
+
+function resolveNutrientTargetProfile(memberId) {
+  const sex = getProfileSexForTargets(memberId);
+  const age = getProfileAgeForTargets(memberId);
+  return nutrientTargetProfiles.find((profile) => profile.sex === sex && age >= profile.minAge && age <= profile.maxAge)
+    || nutrientTargetProfiles.find((profile) => profile.sex === sex && profile.minAge === 19)
+    || nutrientTargetProfiles[0];
+}
+
+function parseNutrientAmount(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const numbers = Array.from(text.matchAll(/\d+(?:\.\d+)?/g)).map((match) => Number(match[0]));
+  if (!numbers.length) return null;
+  const average = numbers.reduce((sum, number) => sum + number, 0) / numbers.length;
+  const lower = text.toLowerCase();
+  let unit = '';
+  if (lower.includes('mcg')) unit = 'mcg';
+  else if (lower.includes('mg')) unit = 'mg';
+  else if (lower.includes(' g') || lower.endsWith('g')) unit = 'g';
+  return { amount: average, unit };
+}
+
+function convertNutrientAmount(amount, fromUnit, toUnit) {
+  if (!Number.isFinite(amount)) return null;
+  const normalizeUnit = (unit) => {
+    const lower = String(unit || '').toLowerCase();
+    if (lower.includes('mcg')) return 'mcg';
+    if (lower.includes('mg')) return 'mg';
+    if (lower === 'g' || lower.endsWith(' g') || lower.endsWith('g')) return 'g';
+    return lower;
+  };
+  const from = normalizeUnit(fromUnit);
+  const to = normalizeUnit(toUnit);
+  if (!from || !to || from === to) return amount;
+  if (from === 'g' && to === 'mg') return amount * 1000;
+  if (from === 'mg' && to === 'g') return amount / 1000;
+  if (from === 'mg' && to === 'mcg') return amount * 1000;
+  if (from === 'mcg' && to === 'mg') return amount / 1000;
+  if (from === 'g' && to === 'mcg') return amount * 1000000;
+  if (from === 'mcg' && to === 'g') return amount / 1000000;
+  return null;
+}
+
+function formatNutrientValue(value, unit) {
+  if (!Number.isFinite(value)) return `0 ${unit}`.trim();
+  const decimals = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(decimals).replace(/\.?0+$/, '')} ${unit}`.trim();
+}
+
+function mealDayKey(value) {
+  return dateKey(new Date(value || Date.now()));
+}
+
+function collectDailyNutrientTotals(meals) {
+  const totals = new Map();
+  let mealCount = 0;
+
+  meals.forEach((meal) => {
+    const insight = getMealInsight(meal);
+    if (!insight) return;
+    mealCount += 1;
+    ['vitamins', 'minerals'].forEach((group) => {
+      (insight[group] || []).forEach((item) => {
+        const name = canonicalNutrientName(item.name);
+        const meta = nutrientReferenceMeta[name];
+        if (!meta) return;
+        const parsed = parseNutrientAmount(item.amount);
+        if (!parsed) return;
+        const converted = convertNutrientAmount(parsed.amount, parsed.unit, meta.unit);
+        if (!Number.isFinite(converted)) return;
+        const existing = totals.get(name) || {
+          name,
+          group,
+          amount: 0,
+          unit: meta.unit,
+          benefit: item.benefit || '',
+          hits: 0
+        };
+        existing.amount += converted;
+        existing.hits += 1;
+        if (!existing.benefit && item.benefit) existing.benefit = item.benefit;
+        totals.set(name, existing);
+      });
+    });
+  });
+
+  return { totals, mealCount };
+}
+
+function buildComparedNutrientItems(meals, memberId) {
+  const profile = resolveNutrientTargetProfile(memberId);
+  const { totals, mealCount } = collectDailyNutrientTotals(meals);
+
+  const buildGroup = (group) => nutrientDisplayOrder[group].map((name) => {
+    const meta = nutrientReferenceMeta[name];
+    const target = Number(profile.targets?.[name]) || 0;
+    const eaten = totals.get(name)?.amount || 0;
+    const remaining = Math.max(target - eaten, 0);
+    const percent = target ? Math.round((eaten / target) * 100) : 0;
+    const sourceHits = totals.get(name)?.hits || 0;
+    return {
+      name,
+      focus: meta.focus,
+      unit: meta.unit,
+      target,
+      eaten,
+      remaining,
+      percent,
+      sourceHits,
+      benefit: totals.get(name)?.benefit || '',
+      missing: eaten <= 0.000001
+    };
+  });
+
+  return {
+    profile,
+    mealCount,
+    vitamins: buildGroup('vitamins'),
+    minerals: buildGroup('minerals')
+  };
+}
+
 const avatarOptions = [
   { id: 'dad', label: 'Dad', url: 'assets/avatars/dad.jpg' },
   { id: 'rithyna', label: 'Rithyna', url: 'assets/avatars/mom.jpg' },
@@ -1079,115 +1483,68 @@ function estimateMealMacroShare(meal) {
 }
 
 function aggregateDailyScanInsight(todayMeals) {
-  const vitaminCatalog = [
-    ['vitamin a', 'Vitamin A'],
-    ['vitamin b1', 'Vitamin B1 (Thiamin)'],
-    ['vitamin b2', 'Vitamin B2 (Riboflavin)'],
-    ['vitamin b3', 'Vitamin B3 (Niacin)'],
-    ['vitamin b5', 'Vitamin B5 (Pantothenic Acid)'],
-    ['vitamin b6', 'Vitamin B6'],
-    ['vitamin b7', 'Vitamin B7 (Biotin)'],
-    ['folate', 'Folate (Vitamin B9)'],
-    ['folate (vitamin b9)', 'Folate (Vitamin B9)'],
-    ['vitamin b9', 'Folate (Vitamin B9)'],
-    ['vitamin b12', 'Vitamin B12'],
-    ['vitamin c', 'Vitamin C'],
-    ['vitamin d', 'Vitamin D'],
-    ['vitamin e', 'Vitamin E'],
-    ['vitamin k', 'Vitamin K']
-  ];
-  const mineralCatalog = [
-    ['calcium', 'Calcium'],
-    ['iron', 'Iron'],
-    ['magnesium', 'Magnesium'],
-    ['potassium', 'Potassium'],
-    ['zinc', 'Zinc'],
-    ['selenium', 'Selenium'],
-    ['phosphorus', 'Phosphorus'],
-    ['iodine', 'Iodine'],
-    ['sodium', 'Sodium']
-  ];
-  const nutrientBuckets = {
-    vitamins: new Map(),
-    minerals: new Map()
-  };
-  let mealsWithInsight = 0;
-  let summarySource = '';
-
-  todayMeals.forEach((meal) => {
-    const insight = getMealInsight(meal);
-    if (!insight) return;
-    mealsWithInsight += 1;
-    if (!summarySource && insight.summary) summarySource = insight.summary;
-    ['vitamins', 'minerals'].forEach((group) => {
-      (insight[group] || []).forEach((item) => {
-        const key = String(item.name || '').trim().toLowerCase();
-        if (!key) return;
-        if (!nutrientBuckets[group].has(key)) {
-          nutrientBuckets[group].set(key, {
-            name: item.name,
-            amount: item.amount,
-            benefit: item.benefit,
-            count: 0
-          });
-        }
-        nutrientBuckets[group].get(key).count += 1;
-      });
-    });
-  });
-
-  const buildCatalogItems = (map, catalog) => {
-    const remaining = new Map(map);
-    const items = [];
-
-    catalog.forEach(([key, label]) => {
-      const match = remaining.get(key);
-      if (match) {
-        items.push({ ...match, name: label, missing: false });
-        remaining.delete(key);
-      } else {
-        items.push({
-          name: label,
-          amount: '',
-          benefit: 'No estimate yet from today’s scans.',
-          count: 0,
-          missing: true
-        });
-      }
-    });
-
-    Array.from(remaining.values())
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-      .forEach((item) => items.push({ ...item, missing: false }));
-
-    return items;
-  };
-
-  if (!mealsWithInsight) {
+  const memberId = appState.currentMember?.id || '';
+  const compared = buildComparedNutrientItems(todayMeals, memberId);
+  if (!compared.mealCount) {
     return {
       summary: 'Scan a meal photo to unlock today’s vitamin and mineral estimate on the dashboard.',
-      vitamins: buildCatalogItems(new Map(), vitaminCatalog),
-      minerals: buildCatalogItems(new Map(), mineralCatalog)
+      vitamins: compared.vitamins,
+      minerals: compared.minerals
     };
   }
 
   return {
-    summary: mealsWithInsight === 1
-      ? (summarySource || 'Today’s scan suggests a useful mix of vitamins and minerals.')
-      : `Combined from ${mealsWithInsight} scanned meals today. The breakdown below brings together the strongest estimated vitamins and minerals from your saved scans.`,
-    vitamins: buildCatalogItems(nutrientBuckets.vitamins, vitaminCatalog),
-    minerals: buildCatalogItems(nutrientBuckets.minerals, mineralCatalog)
+    summary: compared.mealCount === 1
+      ? `Compared against daily targets for ${compared.profile.label}.`
+      : `Combined from ${compared.mealCount} scanned meals today, compared against daily targets for ${compared.profile.label}.`,
+    vitamins: compared.vitamins,
+    minerals: compared.minerals
   };
+}
+
+function getPriorityNutrientGroups(items, priorityCount = 4) {
+  const ranked = [...items].sort((a, b) => {
+    if (a.missing !== b.missing) return a.missing ? -1 : 1;
+    if (a.percent !== b.percent) return a.percent - b.percent;
+    if (a.remaining !== b.remaining) return b.remaining - a.remaining;
+    if (a.sourceHits !== b.sourceHits) return b.sourceHits - a.sourceHits;
+    return a.name.localeCompare(b.name);
+  });
+  return {
+    featured: ranked.slice(0, priorityCount),
+    extra: ranked.slice(priorityCount)
+  };
+}
+
+function renderDashboardNutrientCard(item) {
+  return `
+    <article class="dashboard-nutrient-item${item.missing ? ' is-missing' : ''}">
+      <div class="dashboard-nutrient-item-top">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span class="dashboard-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
+      </div>
+      <p class="dashboard-nutrient-amount">${escapeHtml(formatNutrientValue(item.eaten, item.unit))} <small>of ${escapeHtml(formatNutrientValue(item.target, item.unit))}</small></p>
+      <small>${escapeHtml(item.focus)}${item.remaining > 0 ? ` · ${escapeHtml(formatNutrientValue(item.remaining, item.unit))} still missing` : ' · Covered for today'}</small>
+    </article>
+  `;
 }
 
 function renderDashboardNutrientItems(items, emptyMessage) {
   if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
-  return items.map((item) => `
-    <article class="dashboard-nutrient-item${item.missing ? ' is-missing' : ''}">
-      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      <small>${escapeHtml(item.benefit || (item.missing ? 'No estimate yet from today’s scans.' : 'Estimated from today’s scanned meals.'))}</small>
-    </article>
-  `).join('');
+  const { featured, extra } = getPriorityNutrientGroups(items);
+  return `
+    <div class="nutrient-priority-list">
+      ${featured.map(renderDashboardNutrientCard).join('')}
+    </div>
+    ${extra.length ? `
+      <details class="nutrient-collapsible">
+        <summary>Show full breakdown <b>${extra.length} more</b></summary>
+        <div class="nutrient-collapsible-list">
+          ${extra.map(renderDashboardNutrientCard).join('')}
+        </div>
+      </details>
+    ` : ''}
+  `;
 }
 
 function buildFoodBodyImpacts(todayMeals, totalCalories) {
@@ -2186,68 +2543,59 @@ function renderProfileNutrientBreakdown(memberId) {
   const mineralList = document.getElementById('profileMineralList');
   if (!summary || !vitaminList || !mineralList) return;
 
+  const today = todayKey();
   const meals = (appState.meals || [])
-    .filter((meal) => !memberId || meal.member_id === memberId)
+    .filter((meal) => (!memberId || meal.member_id === memberId) && mealDayKey(meal.eaten_at || meal.created_at) === today)
     .slice()
     .sort((a, b) => new Date(b.eaten_at || b.created_at || 0).getTime() - new Date(a.eaten_at || a.created_at || 0).getTime())
     .slice(0, 12);
+  const compared = buildComparedNutrientItems(meals, memberId);
+  const vitamins = compared.vitamins;
+  const minerals = compared.minerals;
 
-  const nutrientMap = {
-    vitamins: new Map(),
-    minerals: new Map()
-  };
-  let insightMealCount = 0;
-
-  meals.forEach((meal) => {
-    const insight = getMealInsight(meal);
-    if (!insight) return;
-    insightMealCount += 1;
-    ['vitamins', 'minerals'].forEach((group) => {
-      (insight[group] || []).forEach((item) => {
-        const key = String(item.name || '').trim().toLowerCase();
-        if (!key) return;
-        if (!nutrientMap[group].has(key)) {
-          nutrientMap[group].set(key, {
-            name: item.name,
-            amount: item.amount || '',
-            benefit: item.benefit || '',
-            count: 0
-          });
-        }
-        nutrientMap[group].get(key).count += 1;
-      });
-    });
-  });
-
-  const rankItems = (map) => Array.from(map.values())
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 6);
-
-  const vitamins = rankItems(nutrientMap.vitamins);
-  const minerals = rankItems(nutrientMap.minerals);
-
-  if (!insightMealCount) {
-    summary.textContent = 'Scan and save meals to see real vitamins and minerals here.';
+  if (!compared.mealCount) {
+    summary.textContent = 'Scan and save meals today to see your daily vitamin and mineral picture here.';
     vitaminList.innerHTML = '<p class="muted">No vitamin breakdown yet.</p>';
     mineralList.innerHTML = '<p class="muted">No mineral breakdown yet.</p>';
     return;
   }
 
-  summary.textContent = insightMealCount === 1
-    ? 'Based on your latest AI-scanned meal.'
-    : `Based on ${insightMealCount} recent AI-scanned meals for this profile.`;
+  summary.textContent = compared.mealCount === 1
+    ? `Based on today’s latest AI-scanned meal, compared against ${compared.profile.label}.`
+    : `Based on ${compared.mealCount} AI-scanned meals today, compared against ${compared.profile.label}.`;
   vitaminList.innerHTML = renderProfileNutrientItems(vitamins, 'No vitamin breakdown yet.');
   mineralList.innerHTML = renderProfileNutrientItems(minerals, 'No mineral breakdown yet.');
 }
 
+function renderProfileNutrientCard(item) {
+  return `
+    <article class="profile-nutrient-item${item.missing ? ' is-missing' : ''}">
+      <div class="profile-nutrient-item-top">
+        <strong>${escapeHtml(item.name)}</strong>
+        <span class="profile-nutrient-percent${item.percent >= 100 ? ' is-covered' : item.percent <= 35 ? ' is-low' : ''}">${Math.max(0, item.percent)}%</span>
+      </div>
+      <p class="profile-nutrient-amount">${escapeHtml(formatNutrientValue(item.eaten, item.unit))} <small>of ${escapeHtml(formatNutrientValue(item.target, item.unit))}</small></p>
+      <small>${escapeHtml(item.focus)}${item.remaining > 0 ? ` · ${escapeHtml(formatNutrientValue(item.remaining, item.unit))} still missing` : ' · Covered for today'}</small>
+    </article>
+  `;
+}
+
 function renderProfileNutrientItems(items, emptyMessage) {
   if (!items.length) return `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
-  return items.map((item) => `
-    <article class="profile-nutrient-item">
-      <strong>${escapeHtml(item.name)}${item.amount ? ` · ${escapeHtml(item.amount)}` : ''}</strong>
-      ${item.benefit ? `<small>${escapeHtml(item.benefit)}</small>` : ''}
-    </article>
-  `).join('');
+  const { featured, extra } = getPriorityNutrientGroups(items);
+  return `
+    <div class="nutrient-priority-list">
+      ${featured.map(renderProfileNutrientCard).join('')}
+    </div>
+    ${extra.length ? `
+      <details class="nutrient-collapsible">
+        <summary>Show full breakdown <b>${extra.length} more</b></summary>
+        <div class="nutrient-collapsible-list">
+          ${extra.map(renderProfileNutrientCard).join('')}
+        </div>
+      </details>
+    ` : ''}
+  `;
 }
 
 async function handleSaveProfileMeasurements() {

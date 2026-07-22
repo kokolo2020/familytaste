@@ -71,8 +71,60 @@
 .dashboard-nutrient-columns h4 { margin: 0 0 8px; color: #39271c; font-size: 13px; }
 .dashboard-nutrient-list { display: grid; gap: 8px; }
 .dashboard-nutrient-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
+.dashboard-nutrient-item-top,
+.profile-nutrient-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .dashboard-nutrient-item strong { display: block; color: #312218; font-size: 13px; }
 .dashboard-nutrient-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
+.dashboard-nutrient-amount,
+.profile-nutrient-amount { margin: 6px 0 0; color: #3f2d21; font-size: 12px; font-weight: 800; }
+.dashboard-nutrient-amount small,
+.profile-nutrient-amount small { display: inline; margin: 0; color: #8f7c6c; font-size: 11px; font-weight: 600; }
+.dashboard-nutrient-percent,
+.profile-nutrient-percent {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff3d8;
+  color: #9b5d0c;
+  font-size: 11px;
+  font-weight: 900;
+}
+.dashboard-nutrient-percent.is-low,
+.profile-nutrient-percent.is-low { background: #ffe7e7; color: #b54444; }
+.dashboard-nutrient-percent.is-covered,
+.profile-nutrient-percent.is-covered { background: #e8f8ec; color: #31704a; }
+.nutrient-priority-list,
+.nutrient-collapsible-list { display: grid; gap: 8px; }
+.nutrient-collapsible {
+  margin-top: 8px;
+  border: 1px solid #efe3d8;
+  border-radius: 12px;
+  background: rgba(255, 252, 246, .92);
+  overflow: hidden;
+}
+.nutrient-collapsible summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  color: #4d392b;
+  font-size: 12px;
+  font-weight: 800;
+}
+.nutrient-collapsible summary::-webkit-details-marker { display: none; }
+.nutrient-collapsible summary b {
+  color: #8e7766;
+  font-size: 10px;
+  font-weight: 800;
+}
+.nutrient-collapsible[open] summary {
+  border-bottom: 1px solid #efe3d8;
+  background: rgba(255,255,255,.78);
+}
+.nutrient-collapsible-list { padding: 10px; }
 .nutrition-insight { color: #6d6259; font-size: 11px; }
 
 .health-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -2861,6 +2913,7 @@ h1 span {
 .profile-nutrient-item { padding: 10px; border: 1px solid #efe3d8; border-radius: 10px; background: rgba(255,255,255,.88); }
 .profile-nutrient-item strong { display: block; color: #312218; font-size: 13px; }
 .profile-nutrient-item small { display: block; margin-top: 5px; color: #958678; font-size: 10px; line-height: 1.4; }
+.profile-nutrient-item.is-missing { background: #fcf8f2; }
 
 @media (max-width: 520px) {
   .profile-detail { align-items: flex-start; flex-direction: column; padding: 16px; }
@@ -2868,6 +2921,13 @@ h1 span {
   .profile-measurement-grid { grid-template-columns: 1fr; }
   .profile-target-results { grid-template-columns: repeat(3, 1fr); }
   .profile-nutrient-columns { grid-template-columns: 1fr; }
+  .dashboard-nutrient-amount,
+  .profile-nutrient-amount { font-size: 11px; }
+  .dashboard-nutrient-amount small,
+  .profile-nutrient-amount small { font-size: 10px; }
+  .dashboard-nutrient-percent,
+  .profile-nutrient-percent { font-size: 10px; }
+  .nutrient-collapsible summary { font-size: 11px; }
 }
 
 .meal-actions {
